@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<project name="zm-oauth2" default="deploy">
+  <import file="../zm-zcs/ant-global.xml" />
+  <!-- Properties -->
+  <property name="ext.name" value="com_zimbra_zm_oauth2"/>
+  <property name="dist.lib.dir" location="${dist.dir}/lib"/>
+  <property name="dist.lib.ext.dir" location="${dist.lib.dir}/ext"/>
+  <property name="extension.dist.dir" location="${dist.lib.ext.dir}/${ext.name}"/>
+  <property name="extension.deploy.dir" location="${zimbra.home.dir}/lib/ext/${ext.name}"/>
+
+  <target name="build-init">
+    <mkdir dir="${build.classes.dir}"/>
+    <mkdir dir="${dist.dir}"/>
+    <mkdir dir="${dist.lib.dir}"/>
+    <mkdir dir="${dist.lib.ext.dir}"/>
+    <mkdir dir="${extension.dist.dir}"/>
+  </target>
+
+  <target name="deploy" depends="jar,set-dev-version">
+    <ant dir="${server.dir}" target="stop-webserver" inheritAll="false"/>
+    <delete verbose="true">
+      <fileset dir="${extension.deploy.dir}" includes="${ant.project.name}*.jar" />
+    </delete>
+    <echo> Copying ${build.dir}/${jar.file} to ${extension.deploy.dir}</echo>
+    <copy todir="${extension.deploy.dir}">
+      <fileset dir="${build.dir}" includes="${jar.file}" />
+    </copy>
+    <ant dir="${server.dir}" target="start-webserver" inheritAll="false"/>
+  </target>
+
+  <target name="undeploy" depends="jar">
+    <ant dir="${server.dir}" target="stop-webserver" inheritAll="false"/>
+    <delete dir="${extension.deploy.dir}"/>
+    <ant dir="${server.dir}" target="start-webserver" inheritAll="false"/>
+  </target>
+
+  <target name="dist" depends="jar" description="Copies jar to dist dir">
+    <copy todir="${extension.dist.dir}">
+      <fileset dir="${build.dir}" includes="${jar.file}" />
+    </copy>
+  </target>
+
+  <target name="jar" depends="compile" description="Creates the jar file">
+    <antcall target="zimbra-jar">
+      <param name="implementation.title" value="${ext.name}" />
+      <param name="zimbra.extension.class" value="com.zimbra.oauth.OAuth2Extension" />
+    </antcall>
+  </target>
+</project>

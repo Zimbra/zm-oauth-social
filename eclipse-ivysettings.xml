@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivysettings>
+<settings defaultResolver="chain-resolver" />
+  <caches defaultCacheDir="${user.home}/.ivy2/cache"/>
+  <resolvers>
+    <chain name="chain-resolver" returnFirst="true">
+      <filesystem name="local">
+        <artifact pattern= "${user.home}/.zcs-deps/[organisation]/[module]/[module]-[revision].[ext]" />
+        <artifact pattern= "${user.home}/.zcs-deps/[organisation]-[revision].[ext]" />
+        <artifact pattern= "${user.home}/.zcs-deps/[organisation].[ext]" />
+      </filesystem>
+      <ibiblio name="maven" m2compatible="true" usepoms="false"/>
+      <url name="zimbra">
+        <artifact pattern="https://files.zimbra.com/repository/[module]/[artifact]-[revision].[ext]" />
+        <artifact pattern="https://files.zimbra.com/repository/[module]/[artifact].[ext]" />
+        <artifact pattern="https://files.zimbra.com/repository/[organisation]/[module]/[module]-[revision].[ext]" />
+      </url>
+    </chain>
+  </resolvers>
+</ivysettings>
