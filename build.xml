@@ -16,8 +16,26 @@
     <mkdir dir="${extension.dist.dir}"/>
   </target>
 
+  <target name="stop-authserver">
+    <exec executable="zmoauth2">
+      <arg value="stop"/>
+    </exec>
+  </target>
+	
+  <target name="start-authserver">
+    <exec executable="zmoauth2">
+      <arg value="start"/>
+    </exec>
+  </target>
+  
+  <target name="restart-authserver">
+    <exec executable="zmoauth2">
+      <arg value="restart"/>
+    </exec>
+  </target>
+	
   <target name="deploy" depends="jar,set-dev-version">
-    <ant dir="${server.dir}" target="stop-webserver" inheritAll="false"/>
+    <ant dir="${server.dir}" target="stop-authserver" inheritAll="false"/>
     <delete verbose="true">
       <fileset dir="${extension.deploy.dir}" includes="${ant.project.name}*.jar" />
     </delete>
@@ -25,13 +43,13 @@
     <copy todir="${extension.deploy.dir}">
       <fileset dir="${build.dir}" includes="${jar.file}" />
     </copy>
-    <ant dir="${server.dir}" target="start-webserver" inheritAll="false"/>
+    <ant dir="${server.dir}" target="start-authserver" inheritAll="false"/>
   </target>
 
   <target name="undeploy" depends="jar">
-    <ant dir="${server.dir}" target="stop-webserver" inheritAll="false"/>
+    <ant dir="${server.dir}" target="stop-authserver" inheritAll="false"/>
     <delete dir="${extension.deploy.dir}"/>
-    <ant dir="${server.dir}" target="start-webserver" inheritAll="false"/>
+    <ant dir="${server.dir}" target="start-authserver" inheritAll="false"/>
   </target>
 
   <target name="dist" depends="jar" description="Copies jar to dist dir">
