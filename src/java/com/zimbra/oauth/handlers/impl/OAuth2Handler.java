@@ -28,7 +28,6 @@ import com.zimbra.client.ZMailbox;
 import com.zimbra.common.localconfig.LC;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
-import com.zimbra.cs.ephemeral.EphemeralStore;
 import com.zimbra.oauth.exceptions.GenericOAuthException;
 import com.zimbra.oauth.exceptions.InvalidResponseException;
 import com.zimbra.oauth.exceptions.ServiceNotAvailableException;
@@ -41,8 +40,6 @@ public class OAuth2Handler {
 	protected static final Map<String, CloseableHttpClient> clients = Collections.synchronizedMap(new HashMap<String, CloseableHttpClient>(1));
 
 	protected final CloseableHttpClient client;
-
-	protected EphemeralStore store;
 
 	protected final Configuration config;
 
@@ -62,14 +59,6 @@ public class OAuth2Handler {
 			LC.zimbra_server_hostname.setDefault(hostname);
 			LC.ssl_allow_accept_untrusted_certs.setDefault("true");
 			LC.ssl_allow_untrusted_certs.setDefault("true");
-		}
-		// create ephemeral store
-        try {
-			final EphemeralStore.Factory factory = EphemeralStore.getFactory();
-			store = factory.getStore();
-		} catch (final ServiceException e) {
-			ZimbraLog.extensions.error("There was an issue creating the ephemeral store.");
-			// TODO: consider exception
 		}
 	}
 
@@ -147,17 +136,16 @@ public class OAuth2Handler {
 	}
 
 	/**
-	 * Retrieves the Zimbra account id via specified auth token.
+	 * Retrieves the Zimbra mailbox via specified auth token.
 	 *
 	 * @param zmAuthToken The Zimbra auth token to identify the account with
-	 * @return The ZimbraAccountId
-	 * @throws InvalidResponseException If there is an issue retrieving the account id
+	 * @return The Zimbra mailbox
+	 * @throws InvalidResponseException If there is an issue retrieving the account mailbox
 	 */
-	protected String getZimbraAccountId(String zmAuthToken) throws InvalidResponseException {
+	protected ZMailbox getZimbraMailbox(String zmAuthToken) throws InvalidResponseException {
 		// create a mailbox by auth token then retrieve its accountId
 		try {
-			final ZMailbox mailbox = ZMailbox.getByAuthToken(zmAuthToken, config.getString("zimbra.soapuri"));
-			return mailbox.getAccountId();
+			return ZMailbox.getByAuthToken(zmAuthToken, config.getString("zimbra.soapuri"));
 		} catch (final ServiceException e) {
 			ZimbraLog.extensions.error("There was an issue acquiring the account id.", e);
 			throw new InvalidResponseException("There was an issue acquiring the account id.", e);

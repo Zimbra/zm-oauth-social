@@ -17,6 +17,8 @@ import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.message.BasicNameValuePair;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.zimbra.client.ZMailbox;
+import com.zimbra.common.localconfig.LC;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.exceptions.ConfigurationException;
 import com.zimbra.oauth.exceptions.GenericOAuthException;
@@ -25,6 +27,7 @@ import com.zimbra.oauth.exceptions.InvalidResponseException;
 import com.zimbra.oauth.exceptions.UserForbiddenException;
 import com.zimbra.oauth.exceptions.UserUnauthorizedException;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
+import com.zimbra.oauth.models.OAuthDataSource;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
@@ -45,6 +48,31 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 	 * The profile endpoint for Yahoo.
 	 */
 	protected final String profileUriTemplate;
+
+	/**
+	 * Yahoo client id.
+	 */
+	protected final String clientId;
+
+	/**
+	 * Yahoo client secret.
+	 */
+	protected final String clientSecret;
+
+	/**
+	 * Yahoo redirect uri.
+	 */
+	protected final String clientRedirectUri;
+
+	/**
+	 * Default yahoo relay key.
+	 */
+	protected final String relayKey;
+
+	/**
+	 * DataSource handler for Yahoo.
+	 */
+	protected final OAuthDataSource dataSource;
 
 	/**
 	 * Unauthorized response code from Yahoo.
@@ -93,18 +121,22 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 
 	public YahooOAuth2Handler(Configuration config) {
 		super(config);
-		authorizeUriTemplate = config.getString("http.authorize.uri.template");
-		authenticateUri = config.getString("http.authenticate.uri");
-		profileUriTemplate = config.getString("http.profile.uri.template");
+		authorizeUriTemplate = LC.get(OAuth2Constants.LC_OAUTH_AUTHORIZE_URI_TEMPLATE);
+		authenticateUri = LC.get(OAuth2Constants.LC_OAUTH_AUTHENTICATE_URI);
+		profileUriTemplate = LC.get(OAuth2Constants.LC_OAUTH_PROFILE_URI_TEMPLATE);
+		clientId = LC.get(OAuth2Constants.LC_OAUTH_YAHOO_CLIENT_ID);
+		clientSecret = LC.get(OAuth2Constants.LC_OAUTH_YAHOO_CLIENT_SECRET);
+		clientRedirectUri = LC.get(OAuth2Constants.LC_OAUTH_YAHOO_CLIENT_REDIRECT_URI);
+		relayKey = StringUtils.defaultString(LC.get(OAuth2Constants.LC_OAUTH_YAHOO_RELAY_KEY), OAuth2Constants.OAUTH2_RELAY_KEY);
+		dataSource = new OAuthDataSource(authenticateUri, LC.get(OAuth2Constants.LC_OAUTH_FOLDER_ID), LC.get(OAuth2Constants.LC_OAUTH_YAHOO_IMPORT_CLASS));
 	}
 
 	@Override
 	public String authorize(String relayState) throws GenericOAuthException {
-		final String clientId = config.getString("oauth.clientid");
 		final String responseType = "code";
-		String redirectUri = "";
+		String encodedRedirectUri = "";
 		try {
-			redirectUri = URLEncoder.encode(config.getString("oauth.redirecturi"), OAuth2Constants.ENCODING);
+			encodedRedirectUri = URLEncoder.encode(clientRedirectUri, OAuth2Constants.ENCODING);
 		} catch (final UnsupportedEncodingException e) {
 			ZimbraLog.extensions.error("Invalid redirect URI found in client config.", e);
 			throw new ConfigurationException("Invalid redirect URI found in client config.");
@@ -112,7 +144,6 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 
 		String relayParam = "%s";
 		String relayValue = "";
-		final String stateKey = StringUtils.defaultString(config.getString("oauth.relaykey"), OAuth2Constants.OAUTH2_RELAY_KEY);
 		String relay = StringUtils.defaultString(relayState, "");
 
 		if (!relay.isEmpty()) {
@@ -123,53 +154,56 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 			}
 
 			try {
-				relayParam = "&" + stateKey + "=%s";
+				relayParam = "&" + relayKey + "=%s";
 				relayValue = URLEncoder.encode(relay, OAuth2Constants.ENCODING);
 			} catch (final UnsupportedEncodingException e) {
 				throw new InvalidOperationException("Unable to encode relay parameter.");
 			}
 		}
-		return String.format(authorizeUriTemplate + relayParam, clientId, redirectUri, responseType, relayValue);
+		return String.format(authorizeUriTemplate + relayParam, clientId, encodedRedirectUri, responseType, relayValue);
 	}
 
 	@Override
 	public Boolean authenticate(OAuthInfo oauthInfo) throws GenericOAuthException {
-		final String redirectUri = config.getString("oauth.redirecturi");
-		oauthInfo.setClientId(config.getString("oauth.clientid"));
-		oauthInfo.setClientSecret(config.getString("oauth.clientsecret"));
-//		final HttpClientContext context = HttpClientContext.create();
-//		final long timestamp = System.currentTimeMillis();
-//		final JsonNode credentials = authenticateRequest(oauthInfo, redirectUri, context);
-//
-//		final String accessToken = credentials.get("access_token").asText();
-//		final JsonNode profileContainer = getUserProfile(credentials.get("xoauth_yahoo_guid").asText(), accessToken, context);
-//		final JsonNode profile = profileContainer.get("profile");
-//		final String username = profile.get("emails").get(0).get("handle").asText();
+		oauthInfo.setClientId(clientId);
+		oauthInfo.setClientSecret(clientSecret);
+		final HttpClientContext context = HttpClientContext.create();
+		final JsonNode credentials = authenticateRequest(oauthInfo, clientRedirectUri, context);
 
-		// TODO: get zimbraAccountId
-		final String zimbraAccountId = getZimbraAccountId(oauthInfo.getZmAuthToken());
+		final String accessToken = credentials.get("access_token").asText();
+		final JsonNode profileContainer = getUserProfile(credentials.get("xoauth_yahoo_guid").asText(), accessToken, context);
+		final JsonNode profile = profileContainer.get("profile");
+		final String username = profile.get("emails").get(0).get("handle").asText();
 
-		// TODO: use ephemeral-storage with username, accessToken, timestamp, zimbraAccountId
+		// get zimbra mailbox
+		final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken());
 
+		// store username, zimbraAccountId, refreshToken
+		oauthInfo.setUsername(username);
+		oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
+		dataSource.updateCredentials(mailbox, oauthInfo);
 		return true;
 	}
 
 	@Override
-	public Boolean refresh(String client, String username) throws GenericOAuthException {
-		final OAuthInfo oauthInfo = new OAuthInfo(null);
-		final String redirectUri = config.getString("oauth.redirecturi");
-		oauthInfo.setClientId(config.getString("oauth.clientid"));
-		oauthInfo.setClientSecret(config.getString("oauth.clientsecret"));
+	public Boolean refresh(OAuthInfo oauthInfo) throws GenericOAuthException {
+		oauthInfo.setClientId(clientId);
+		oauthInfo.setClientSecret(clientSecret);
 		final HttpClientContext context = HttpClientContext.create();
-		final long timestamp = System.currentTimeMillis();
 
-		// TODO: get refreshToken from ephemeral-storage with end service username (user@yahoo.com)
+		// get zimbra mailbox
+		final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken());
 
+		// get refreshToken from DataSource with end service username (user@yahoo.com)
+		final String refreshToken = dataSource.getRefreshToken(mailbox, oauthInfo.getUsername());
 
-		// TODO: add refreshToken to oauthInfo, call authenticateRequest
+		// add refreshToken to oauthInfo, call authenticateRequest
+		oauthInfo.setRefreshToken(refreshToken);
+		final JsonNode credentials = authenticateRequest(oauthInfo, clientRedirectUri, context);
 
-		// TODO: update ephemeral-storage details
-
+		// update credentials
+		oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
+		dataSource.updateCredentials(mailbox, oauthInfo);
 		return true;
 	}
 

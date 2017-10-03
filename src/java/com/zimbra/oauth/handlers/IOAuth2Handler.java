@@ -25,10 +25,9 @@ public interface IOAuth2Handler {
 	/**
 	 * Refreshes credentials for an endpoint user.
 	 *
-	 * @param client The client
-	 * @param username The email address of the endpoint user to refresh (e.g. user@yahoo.com)
-	 * @return
-	 * @throws GenericOAuthException
+	 * @param oauthInfo Contains the client and email address of the endpoint user to refresh (e.g. user@yahoo.com)
+	 * @return True on success
+	 * @throws GenericOAuthException If there are issues in this process
 	 */
-	public Boolean refresh(String client, String username) throws GenericOAuthException;
+	public Boolean refresh(OAuthInfo oauthInfo) throws GenericOAuthException;
 }
