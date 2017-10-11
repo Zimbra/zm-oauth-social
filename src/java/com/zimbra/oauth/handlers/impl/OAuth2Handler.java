@@ -17,13 +17,9 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.common.localconfig.LC;
 import com.zimbra.common.service.ServiceException;
@@ -43,7 +39,7 @@ public class OAuth2Handler {
 
 	protected final Configuration config;
 
-	protected static final ObjectMapper mapper = createDefaultMapper();
+	protected static final ObjectMapper mapper = OAuth2Utilities.createDefaultMapper();
 
 	public OAuth2Handler(Configuration config) {
 		this.config = config;
@@ -60,15 +56,6 @@ public class OAuth2Handler {
 			LC.ssl_allow_accept_untrusted_certs.setDefault("true");
 			LC.ssl_allow_untrusted_certs.setDefault("true");
 		}
-	}
-
-	private static ObjectMapper createDefaultMapper() {
-		final ObjectMapper mapper = new ObjectMapper();
-		mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-		mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-		mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS, true);
-		return mapper;
 	}
 
 	protected JsonNode executeRequest(HttpUriRequest request, HttpClientContext context) throws GenericOAuthException, IOException {

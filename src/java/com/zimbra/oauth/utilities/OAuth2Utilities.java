@@ -10,6 +10,11 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.zimbra.oauth.models.ResponseObject;
 
 public class OAuth2Utilities {
@@ -35,6 +40,15 @@ public class OAuth2Utilities {
 			input.close();
 		}
 		return buffer.toByteArray();
+	}
+
+	public static ObjectMapper createDefaultMapper() {
+		final ObjectMapper mapper = new ObjectMapper();
+		mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+		mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+		mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS, true);
+		return mapper;
 	}
 
 	/**

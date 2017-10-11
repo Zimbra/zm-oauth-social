@@ -17,6 +17,7 @@ import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.message.BasicNameValuePair;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.zimbra.client.ZDataSource;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.common.localconfig.LC;
 import com.zimbra.common.util.ZimbraLog;
@@ -121,14 +122,14 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 
 	public YahooOAuth2Handler(Configuration config) {
 		super(config);
-		authorizeUriTemplate = LC.get(OAuth2Constants.LC_OAUTH_AUTHORIZE_URI_TEMPLATE);
-		authenticateUri = LC.get(OAuth2Constants.LC_OAUTH_AUTHENTICATE_URI);
-		profileUriTemplate = LC.get(OAuth2Constants.LC_OAUTH_PROFILE_URI_TEMPLATE);
+		authorizeUriTemplate = LC.get(OAuth2Constants.LC_OAUTH_YAHOO_AUTHORIZE_URI_TEMPLATE);
+		authenticateUri = LC.get(OAuth2Constants.LC_OAUTH_YAHOO_AUTHENTICATE_URI);
+		profileUriTemplate = LC.get(OAuth2Constants.LC_OAUTH_YAHOO_PROFILE_URI_TEMPLATE);
 		clientId = LC.get(OAuth2Constants.LC_OAUTH_YAHOO_CLIENT_ID);
 		clientSecret = LC.get(OAuth2Constants.LC_OAUTH_YAHOO_CLIENT_SECRET);
 		clientRedirectUri = LC.get(OAuth2Constants.LC_OAUTH_YAHOO_CLIENT_REDIRECT_URI);
 		relayKey = StringUtils.defaultString(LC.get(OAuth2Constants.LC_OAUTH_YAHOO_RELAY_KEY), OAuth2Constants.OAUTH2_RELAY_KEY);
-		dataSource = new OAuthDataSource(authenticateUri, LC.get(OAuth2Constants.LC_OAUTH_FOLDER_ID), LC.get(OAuth2Constants.LC_OAUTH_YAHOO_IMPORT_CLASS));
+		dataSource = new OAuthDataSource(ZDataSource.SOURCE_HOST_YAHOO);
 	}
 
 	@Override
@@ -196,6 +197,11 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 
 		// get refreshToken from DataSource with end service username (user@yahoo.com)
 		final String refreshToken = dataSource.getRefreshToken(mailbox, oauthInfo.getUsername());
+
+		// invalid operation if no refresh token stored for the user
+		if (StringUtils.isEmpty(refreshToken)) {
+			throw new InvalidOperationException("The specified user has no stored refresh token.");
+		}
 
 		// add refreshToken to oauthInfo, call authenticateRequest
 		oauthInfo.setRefreshToken(refreshToken);
