@@ -73,18 +73,13 @@ public class OAuth2HandlerUtilities {
 		return OAuth2Utilities.buildResponse(null, Status.SEE_OTHER, headers);
 	}
 
-	public static Response refresh(String client, String username) throws GenericOAuthException {
+	public static Response refresh(String client, String username, String zmAuthToken) throws GenericOAuthException {
 		final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
-
-		return OAuth2Utilities.buildResponse(new ResponseObject<Boolean>(oauth2Handler.refresh(client, username)), null, null);
-	}
-
-	public static Response subscribe(String client, String username, String subscription) {
-		return null;
-	}
-
-	public static Response unsubscribe(String client, String username, String subscription) {
-		return null;
+		final OAuthInfo authInfo = new OAuthInfo(null);
+		authInfo.setClientId(client);
+		authInfo.setUsername(username);
+		authInfo.setZmAuthToken(zmAuthToken);
+		return OAuth2Utilities.buildResponse(new ResponseObject<Boolean>(oauth2Handler.refresh(authInfo)), null, null);
 	}
 
 	/**

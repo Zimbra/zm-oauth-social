@@ -1,7 +1,6 @@
 package com.zimbra.oauth.resources;
 
 import javax.ws.rs.CookieParam;
-import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -52,25 +51,9 @@ public class OAuth2Resource {
 	}
 
 	@POST
-	@Path("subscribe/{client}/{username}/{subscription}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response subscribe(@PathParam("client") String client, @PathParam("username") String username,
-		@PathParam("subscription") String subscription) throws GenericOAuthException {
-		return OAuth2HandlerUtilities.subscribe(client, username, subscription);
-	}
-
-	@DELETE
-	@Path("unsubscribe/{client}/{username}/{subscription}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response unsubscribe(@PathParam("client") String client, @PathParam("username") String username,
-		@PathParam("subscription") String subscription) throws GenericOAuthException {
-		return OAuth2HandlerUtilities.unsubscribe(client, username, subscription);
-	}
-
-	@POST
 	@Path("refresh/{client}/{username}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response refresh(@PathParam("client") String client, @PathParam("username") String username) throws GenericOAuthException {
-		return OAuth2HandlerUtilities.refresh(client, username);
+	public Response refresh(@PathParam("client") String client, @PathParam("username") String username, @CookieParam("ZM_AUTH_TOKEN") String zmAuthToken) throws GenericOAuthException {
+		return OAuth2HandlerUtilities.refresh(client, username, zmAuthToken);
 	}
 }

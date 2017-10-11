@@ -2,6 +2,8 @@ package com.zimbra.oauth.models;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.zimbra.oauth.utilities.OAuth2Constants;
+
 @XmlRootElement
 public class ResponseObject<E> {
 
@@ -31,7 +33,7 @@ public class ResponseObject<E> {
 
 	@XmlRootElement
 	protected class Meta {
-		protected final String api = "zm-oauth2";
+		protected final String api = OAuth2Constants.API_NAME;
 
 		public String getApi() {
 			return api;
