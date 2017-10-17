@@ -8,7 +8,10 @@ import java.util.Map;
 import org.apache.commons.configuration.CompositeConfiguration;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
+import org.codehaus.plexus.util.StringUtils;
 
+import com.zimbra.common.localconfig.LC;
+import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.exceptions.ConfigurationException;
 import com.zimbra.oauth.exceptions.InvalidClientException;
 
@@ -41,6 +44,32 @@ public class Configuration extends CompositeConfiguration {
 
 	public String getClientId() {
 		return clientId;
+	}
+
+	@Override
+	public String getString(String key) {
+		return getString(key, null);
+	}
+
+	@Override
+	public String getString(String key, String defaultValue) {
+		return StringUtils.defaultString(LC.get(key), defaultValue);
+	}
+
+	@Override
+	public Integer getInteger(String key, Integer defaultValue) {
+		final String stringValue = LC.get(key);
+		Integer value = defaultValue;
+		if (stringValue != null) {
+			try
+			{
+				value = Integer.parseInt(stringValue);
+			}
+			catch (final NumberFormatException e) {
+				ZimbraLog.extensions.debug("Cannot parse integer from configured LC value for key: '" + key + "'.");
+			}
+		}
+		return value;
 	}
 
 	/**

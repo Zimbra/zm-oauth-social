@@ -4,6 +4,7 @@ import java.util.EnumSet;
 
 import javax.servlet.DispatcherType;
 
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -52,7 +53,7 @@ public class JettyServer {
 		}
 
 		// setup ZimbraLog
-		ZimbraLog.toolSetupLog4jConsole(config.getString("zimbra.log.level", OAuth2Constants.DEFAULT_LOG_LEVEL), true, false);
+		ZimbraLog.toolSetupLog4jConsole(config.getString(OAuth2Constants.LC_OAUTH_LOG_LEVEL, OAuth2Constants.DEFAULT_LOG_LEVEL), true, false);
 	}
 
 	/**
@@ -60,14 +61,14 @@ public class JettyServer {
 	 */
 	protected void setup() {
 		final ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
-		context.setContextPath(config.getString("server.contextpath", OAuth2Constants.DEFAULT_SERVER_CONTEXT_PATH));
+		context.setContextPath(StringUtils.defaultIfEmpty(config.getString(OAuth2Constants.LC_OAUTH_SERVER_CONTEXT_PATH), OAuth2Constants.DEFAULT_SERVER_CONTEXT_PATH));
 		context.addFilter(OAuthExceptionFilter.class, OAuth2Constants.DEFAULT_SERVER_CONTEXT_PATH, EnumSet.of(DispatcherType.REQUEST));
-		server = new Server(config.getInt("server.port", OAuth2Constants.DEFAULT_SERVER_PORT));
-		server.setHandler(context);
-
 		final ServletHolder jerseyServlet = context.addServlet(org.glassfish.jersey.servlet.ServletContainer.class, OAuth2Constants.DEFAULT_SERVER_CONTEXT_PATH);
 		jerseyServlet.setInitOrder(0);
 		jerseyServlet.setInitParameter("jersey.config.server.provider.packages", "com.zimbra.oauth, com.fasterxml.jackson.jaxrs.json");
+
+		server = new Server(config.getInteger(OAuth2Constants.LC_OAUTH_SERVER_PORT, OAuth2Constants.DEFAULT_SERVER_PORT));
+		server.setHandler(context);
 	}
 
 	/**

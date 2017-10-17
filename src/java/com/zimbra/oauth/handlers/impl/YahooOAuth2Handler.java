@@ -19,7 +19,6 @@ import org.apache.http.message.BasicNameValuePair;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZDataSource;
 import com.zimbra.client.ZMailbox;
-import com.zimbra.common.localconfig.LC;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.exceptions.ConfigurationException;
 import com.zimbra.oauth.exceptions.GenericOAuthException;
@@ -122,13 +121,13 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 
 	public YahooOAuth2Handler(Configuration config) {
 		super(config);
-		authorizeUriTemplate = LC.get(OAuth2Constants.LC_OAUTH_YAHOO_AUTHORIZE_URI_TEMPLATE);
-		authenticateUri = LC.get(OAuth2Constants.LC_OAUTH_YAHOO_AUTHENTICATE_URI);
-		profileUriTemplate = LC.get(OAuth2Constants.LC_OAUTH_YAHOO_PROFILE_URI_TEMPLATE);
-		clientId = LC.get(OAuth2Constants.LC_OAUTH_YAHOO_CLIENT_ID);
-		clientSecret = LC.get(OAuth2Constants.LC_OAUTH_YAHOO_CLIENT_SECRET);
-		clientRedirectUri = LC.get(OAuth2Constants.LC_OAUTH_YAHOO_CLIENT_REDIRECT_URI);
-		relayKey = StringUtils.defaultString(LC.get(OAuth2Constants.LC_OAUTH_YAHOO_RELAY_KEY), OAuth2Constants.OAUTH2_RELAY_KEY);
+		authorizeUriTemplate = config.getString(OAuth2Constants.LC_OAUTH_YAHOO_AUTHORIZE_URI_TEMPLATE);
+		authenticateUri = config.getString(OAuth2Constants.LC_OAUTH_YAHOO_AUTHENTICATE_URI);
+		profileUriTemplate = config.getString(OAuth2Constants.LC_OAUTH_YAHOO_PROFILE_URI_TEMPLATE);
+		clientId = config.getString(OAuth2Constants.LC_OAUTH_YAHOO_CLIENT_ID);
+		clientSecret = config.getString(OAuth2Constants.LC_OAUTH_YAHOO_CLIENT_SECRET);
+		clientRedirectUri = config.getString(OAuth2Constants.LC_OAUTH_YAHOO_CLIENT_REDIRECT_URI);
+		relayKey = config.getString(OAuth2Constants.LC_OAUTH_YAHOO_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY);
 		dataSource = new OAuthDataSource(ZDataSource.SOURCE_HOST_YAHOO);
 	}
 

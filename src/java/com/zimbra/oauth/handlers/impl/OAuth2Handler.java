@@ -29,6 +29,7 @@ import com.zimbra.oauth.exceptions.InvalidResponseException;
 import com.zimbra.oauth.exceptions.ServiceNotAvailableException;
 import com.zimbra.oauth.exceptions.UnreachableHostException;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
 
 public class OAuth2Handler {
@@ -41,23 +42,32 @@ public class OAuth2Handler {
 
 	protected static final ObjectMapper mapper = OAuth2Utilities.createDefaultMapper();
 
+	protected final String zimbraHostname;
+
+	protected final String zimbraSoapUri;
+
 	public OAuth2Handler(Configuration config) {
 		this.config = config;
 		client = buildHttpClientIfAbsent(config);
 
 		// set some required localconfig properties
 		synchronized (LC.zimbra_server_hostname) {
-			final String hostname = config.getString("zimbra.soaphost");
-			LC.ldap_host.setDefault(config.getString("zimbra.ldaphost"));
-			LC.ldap_port.setDefault(config.getInt("zimbra.ldapport"));
-			LC.zimbra_ldap_password.setDefault(config.getString("zimbra.ldappassword"));
-			LC.zimbra_zmprov_default_soap_server.setDefault(hostname);
-			LC.zimbra_server_hostname.setDefault(hostname);
-			LC.ssl_allow_accept_untrusted_certs.setDefault("true");
-			LC.ssl_allow_untrusted_certs.setDefault("true");
+			zimbraHostname = config.getString(OAuth2Constants.LC_SOAP_HOST);
+			zimbraSoapUri = config.getString(OAuth2Constants.LC_SOAP_URI);
+			LC.zimbra_zmprov_default_soap_server.setDefault(zimbraHostname);
+			LC.zimbra_server_hostname.setDefault(zimbraHostname);
 		}
 	}
 
+	/**
+	 * Executes an HttpUriRequest and parses for json.
+	 *
+	 * @param request Request to execute
+	 * @param context The context to use when executing
+	 * @return Json response
+	 * @throws GenericOAuthException If there are issues with the connection
+	 * @throws IOException If there are non connection related issues
+	 */
 	protected JsonNode executeRequest(HttpUriRequest request, HttpClientContext context) throws GenericOAuthException, IOException {
 		CloseableHttpResponse response = null;
 		JsonNode json = null;
@@ -95,6 +105,12 @@ public class OAuth2Handler {
 		return json;
 	}
 
+	/**
+	 * Creates an http client that can be used by the app.
+	 *
+	 * @param config The config to load properties from
+	 * @return A configured closeable http client
+	 */
 	protected CloseableHttpClient buildHttpClientIfAbsent(Configuration config) {
 		final String clientId = config.getClientId();
 		CloseableHttpClient localClient = clients.get(clientId);
@@ -104,14 +120,14 @@ public class OAuth2Handler {
 		if (localClient == null) {
 			final PoolingHttpClientConnectionManager manager = new PoolingHttpClientConnectionManager();
 			// limit the authenticate route
-			manager.setDefaultMaxPerRoute(config.getInt("http.client.max.per", 150));
-			manager.setMaxTotal(config.getInt("http.client.max.total", 500));
+			manager.setDefaultMaxPerRoute(config.getInt(OAuth2Constants.LC_OAUTH_HTTP_CLIENT_MAX_PER, 150));
+			manager.setMaxTotal(config.getInt(OAuth2Constants.LC_OAUTH_HTTP_CLIENT_MAX_TOTAL, 500));
 
 			final RequestConfig requestConfig = RequestConfig.custom()
 				// timeout for getting an http client
-				.setConnectionRequestTimeout(config.getInt("http.client.timeout", 3000))
+				.setConnectionRequestTimeout(config.getInt(OAuth2Constants.LC_OAUTH_HTTP_CLIENT_TIMEOUT, 3000))
 				// timeout for host to answer an http request
-				.setConnectTimeout(config.getInt("http.client.answer.timeout", 6000)).build();
+				.setConnectTimeout(config.getInt(OAuth2Constants.LC_OAUTH_HTTP_CLIENT_ANSWER_TIMEOUT, 6000)).build();
 
 			// create a single instance of pooling http client
 			localClient = HttpClientBuilder.create().setConnectionManager(manager)
@@ -132,7 +148,7 @@ public class OAuth2Handler {
 	protected ZMailbox getZimbraMailbox(String zmAuthToken) throws InvalidResponseException {
 		// create a mailbox by auth token then retrieve its accountId
 		try {
-			return ZMailbox.getByAuthToken(zmAuthToken, config.getString("zimbra.soapuri"));
+			return ZMailbox.getByAuthToken(zmAuthToken, zimbraSoapUri);
 		} catch (final ServiceException e) {
 			ZimbraLog.extensions.error("There was an issue acquiring the account id.", e);
 			throw new InvalidResponseException("There was an issue acquiring the account id.", e);

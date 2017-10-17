@@ -26,7 +26,17 @@ public class OAuth2Constants {
 	public static final String PROPERTIES_NAME_APPLICATION = "application";
 
 	// LC properties related
+	public static final String LC_SOAP_HOST = "soap_host";
+	public static final String LC_SOAP_URI = "soap_uri";
 	public static final String LC_OAUTH_FOLDER_ID = "zm_oauth_source_folder_id";
+	public static final String LC_OAUTH_SERVER_PORT = "zm_oauth_server_port";
+	public static final String LC_OAUTH_SERVER_CONTEXT_PATH = "zm_oauth_server_context_path";
+	public static final String LC_OAUTH_LOG_LEVEL = "zm_oauth_log_level";
+	// LC HTTP Client
+	public static final String LC_OAUTH_HTTP_CLIENT_MAX_PER = "zm_oauth_http_client_max_per";
+	public static final String LC_OAUTH_HTTP_CLIENT_MAX_TOTAL = "zm_oauth_http_client_max_total";
+	public static final String LC_OAUTH_HTTP_CLIENT_TIMEOUT = "zm_oauth_http_client_timeout";
+	public static final String LC_OAUTH_HTTP_CLIENT_ANSWER_TIMEOUT = "zm_oauth_http_client_answer_timeout";
 	// LC Yahoo
 	public static final String LC_OAUTH_YAHOO_AUTHORIZE_URI_TEMPLATE = "zm_oauth_yahoo_authorize_uri_template";
 	public static final String LC_OAUTH_YAHOO_PROFILE_URI_TEMPLATE = "zm_oauth_yahoo_profile_uri_template";

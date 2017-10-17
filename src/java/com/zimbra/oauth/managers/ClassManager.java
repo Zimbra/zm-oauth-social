@@ -41,7 +41,7 @@ public class ClassManager {
 						final Configuration config = Configuration.buildConfiguration(client);
 
 						// load the handler class
-						final Class<?> daoClass = Class.forName(config.getString("classes.handlers." + client));
+						final Class<?> daoClass = Class.forName(config.getString("zm_oauth_classes_handlers_" + client));
 						handler = (IOAuth2Handler) daoClass.getConstructor(Configuration.class).newInstance(config);
 
 						// cache the new handler
