@@ -1,21 +1,79 @@
 <?xml version="1.0"?>
-<project name="zm-oauth2" default="deploy">
+<project name="zm-oauth2" default="run" xmlns:ivy="antlib:org.apache.ivy.ant">
   <import file="../zm-zcs/ant-global.xml" />
   <!-- Properties -->
-  <property name="ext.name" value="com_zimbra_zm_oauth2"/>
-  <property name="dist.lib.dir" location="${dist.dir}/lib"/>
-  <property name="dist.lib.ext.dir" location="${dist.lib.dir}/ext"/>
-  <property name="extension.dist.dir" location="${dist.lib.ext.dir}/${ext.name}"/>
-  <property name="extension.deploy.dir" location="${zimbra.home.dir}/lib/ext/${ext.name}"/>
+  <property name="src.dir" location="src"/>
+  <property name="test.src.dir" location="src/java-test"/>
+  <property name="build.dir" location="build"/>
+  <property name="classes.dir" location="${build.dir}/classes"/>
+  <property name="test.classes.dir" location="${build.dir}/test-classes"/>
+  <property name="ivy.reports.dir"  location="${build.dir}/ivy-reports"/>
+  <property name="test.reports.dir"  location="${build.dir}/test-reports"/>
+	
+  <!-- Config -->
+  <target name="init">
+  	<ivy:configure file="eclipse-ivysettings.xml" />
+  	<ivy:resolve/>
+  	<ivy:retrieve type="jar,bundle" sync="true" />
 
-  <target name="build-init">
-    <mkdir dir="${build.classes.dir}"/>
-    <mkdir dir="${dist.dir}"/>
-    <mkdir dir="${dist.lib.dir}"/>
-    <mkdir dir="${dist.lib.ext.dir}"/>
-    <mkdir dir="${extension.dist.dir}"/>
+    <ivy:report todir='${ivy.reports.dir}' graph='false' xml='false'/>
+
+    <ivy:cachepath pathid="compile.path" conf="compile"/>
+    <ivy:cachepath pathid="runtime.path" conf="runtime"/>
+    <ivy:cachepath pathid="test.path" conf="test"/>
+
+    <mkdir dir="${classes.dir}"/>
+    <mkdir dir="${test.classes.dir}"/>
+    <mkdir dir="${test.reports.dir}"/>
   </target>
 
+  <!-- Compile -->  	
+  <target name="compile" depends="init">
+    <javac srcdir="${src.dir}" destdir="${classes.dir}" includeantruntime="false" debug="true" classpathref="compile.path">
+        <include name="java/**/*.java"/>
+	</javac>
+  </target>
+
+  <target name="compile-tests" depends="compile">
+    <javac srcdir="${test.src.dir}" destdir="${test.classes.dir}" includeantruntime="false" debug="true">
+      <classpath>
+        <path refid="test.path"/>
+        <pathelement path="${classes.dir}"/>
+      </classpath>
+    </javac>
+  </target>
+
+  <!-- Test -->
+  <target name="test" depends="compile-tests">
+    <junit printsummary="yes" haltonfailure="no">
+      <classpath>
+        <path refid="test.path"/>
+        <pathelement path="${classes.dir}"/>
+        <pathelement path="${test.classes.dir}"/>
+      </classpath>
+      <formatter type="xml"/>
+      <batchtest fork="yes" todir="${test.reports.dir}">
+        <fileset dir="${test.src.dir}">
+          <include name="**/*Test*.java"/>
+          <exclude name="**/AllTests.java"/>
+        </fileset>
+      </batchtest>
+    </junit>
+  </target>
+	
+  <!-- Run -->
+  <target name="build" depends="test"/>
+
+  <target name="run" depends="build">
+    <java classname="com.zimbra.oauth.server.JettyServer">
+      <classpath>
+        <path refid="runtime.path"/>
+          <pathelement location="${classes.dir}"/>
+      </classpath>
+    </java>
+  </target>
+  
+	
   <target name="stop-authserver">
     <exec executable="zmoauth2">
       <arg value="stop"/>
@@ -46,6 +104,16 @@
     <ant dir="${server.dir}" target="start-authserver" inheritAll="false"/>
   </target>
 
+  <!-- Clean Targets -->
+  <target name="clean">
+    <delete dir="${build.dir}"/>
+  </target>
+
+  <target name="clean-all" depends="clean">
+    <ivy:cleancache/>
+  </target>
+	
+	
   <target name="undeploy" depends="jar">
     <ant dir="${server.dir}" target="stop-authserver" inheritAll="false"/>
     <delete dir="${extension.deploy.dir}"/>

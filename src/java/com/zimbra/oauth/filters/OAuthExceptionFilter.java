@@ -24,6 +24,9 @@ import com.zimbra.oauth.utilities.OAuth2Utilities;
 
 public class OAuthExceptionFilter implements Filter {
 
+	/**
+	 * JSON mapper.
+	 */
 	protected static final ObjectMapper mapper = OAuth2Utilities.createDefaultMapper();
 
 	/**

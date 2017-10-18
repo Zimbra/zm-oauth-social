@@ -1,21 +1,17 @@
 package com.zimbra.oauth.utilities;
 
-import java.io.FileNotFoundException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.configuration.CompositeConfiguration;
-import org.apache.commons.configuration.PropertiesConfiguration;
-import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
-import org.codehaus.plexus.util.StringUtils;
+import org.apache.commons.lang.StringUtils;
 
 import com.zimbra.common.localconfig.LC;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.exceptions.ConfigurationException;
 import com.zimbra.oauth.exceptions.InvalidClientException;
 
-public class Configuration extends CompositeConfiguration {
+public class Configuration {
 
 	/**
 	 * Map storing configurations per client.
@@ -23,19 +19,12 @@ public class Configuration extends CompositeConfiguration {
 	private static Map<String, Configuration> configCache = Collections.synchronizedMap(new HashMap<String, Configuration>());
 
 	/**
-	 * Map storing properties configurations.
-	 */
-	private static Map<String, PropertiesConfiguration> propertiesCache = Collections.synchronizedMap(new HashMap<String, PropertiesConfiguration>());
-
-	/**
 	 * The config name.
 	 */
 	private String clientId = null;
 
-	protected Configuration(String clientId) throws InvalidClientException, ConfigurationException {
+	protected Configuration(String clientId) {
 		setClientId(clientId);
-		// every config should also have the class properties
-		addApplicationProperties();
 	}
 
 	public void setClientId(String clientId) {
@@ -46,18 +35,15 @@ public class Configuration extends CompositeConfiguration {
 		return clientId;
 	}
 
-	@Override
 	public String getString(String key) {
 		return getString(key, null);
 	}
 
-	@Override
 	public String getString(String key, String defaultValue) {
 		return StringUtils.defaultString(LC.get(key), defaultValue);
 	}
 
-	@Override
-	public Integer getInteger(String key, Integer defaultValue) {
+	public Integer getInt(String key, Integer defaultValue) {
 		final String stringValue = LC.get(key);
 		Integer value = defaultValue;
 		if (stringValue != null) {
@@ -73,17 +59,7 @@ public class Configuration extends CompositeConfiguration {
 	}
 
 	/**
-	 * Adds the application properties to this Configuration object.
-	 *
-	 * @throws InvalidClientException If the file does not exist
-	 * @throws ConfigurationException If there are issues loading the file
-	 */
-	protected void addApplicationProperties() throws InvalidClientException, ConfigurationException {
-		addConfiguration(getPropertiesConfiguration(OAuth2Constants.PROPERTIES_NAME_APPLICATION));
-	}
-
-	/**
-	 * Loads the default configuration (non-client specific).<br>
+	 * Creates a default configuration (non-client specific).<br>
 	 * Does not cache the configuration object.
 	 *
 	 * @return The default Configuration object
@@ -91,16 +67,14 @@ public class Configuration extends CompositeConfiguration {
 	 * @throws ConfigurationException If there are issues loading the file
 	 */
 	public static Configuration getDefaultConfiguration() throws InvalidClientException, ConfigurationException {
-		final Configuration config = new Configuration(OAuth2Constants.PROPERTIES_NAME_APPLICATION);
-		config.setDelimiterParsingDisabled(true);
-		return config;
+		return new Configuration(OAuth2Constants.PROPERTIES_NAME_APPLICATION);
 	}
 
 	/**
-	 * Loads a single properties file by name (no extension).<br>
-	 * Creates a Configuration, attaches requires sub-properties files and caches the Configuration.
+	 * Loads a single configuration by name (no extension).<br>
+	 * Creates a Configuration and caches the Configuration.
 	 *
-	 * @param name Name of the config file (no extension)
+	 * @param name Name of the client
 	 * @return Configuration object
 	 * @throws ConfigurationException If there are issues loading the file
 	 * @throws InvalidClientException If the file does not exist
@@ -116,41 +90,8 @@ public class Configuration extends CompositeConfiguration {
 		// if the config is empty, try to load it
 		if (config == null) {
 			config = new Configuration(name);
-			config.setDelimiterParsingDisabled(true);
-			config.addConfiguration(getPropertiesConfiguration(name));
 		}
 		configCache.put(name, config);
 		return config;
-	}
-
-	/**
-	 * Loads the properties for a given file name.<br>
-	 * Caches the loaded properties.
-	 *
-	 * @param name Name of the config file (no extension)
-	 * @return Properties from the config file
-	 * @throws InvalidClientException If there are issues loading the file
-	 * @throws ConfigurationException If the file does not exist
-	 */
-	protected static PropertiesConfiguration getPropertiesConfiguration(String name) throws InvalidClientException, ConfigurationException {
-		PropertiesConfiguration propertiesConfig = propertiesCache.get(name);
-		// if not in cache, load it then cache it
-		if (propertiesConfig == null) {
-			final String propertiesFilename = name + ".properties";
-			propertiesConfig = new PropertiesConfiguration();
-			propertiesConfig.setDelimiterParsingDisabled(true);
-			propertiesConfig.setReloadingStrategy(new FileChangedReloadingStrategy());
-			try {
-				propertiesConfig.load(propertiesFilename);
-			} catch (final org.apache.commons.configuration.ConfigurationException e) {
-				if (!(e.getCause() instanceof FileNotFoundException)) {
-					throw new InvalidClientException(e.getMessage());
-				} else {
-					throw new ConfigurationException(e);
-				}
-			}
-			propertiesCache.put(name, propertiesConfig);
-		}
-		return propertiesConfig;
 	}
 }

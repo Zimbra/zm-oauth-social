@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ivysettings>
 <settings defaultResolver="chain-resolver" />
-  <caches defaultCacheDir="${user.home}/.ivy2/cache"/>
+  <caches defaultCacheDir="${user.home}/.ivy2/cache" />
   <resolvers>
     <chain name="chain-resolver" returnFirst="true">
       <filesystem name="local">

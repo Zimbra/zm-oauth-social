@@ -67,7 +67,7 @@ public class JettyServer {
 		jerseyServlet.setInitOrder(0);
 		jerseyServlet.setInitParameter("jersey.config.server.provider.packages", "com.zimbra.oauth, com.fasterxml.jackson.jaxrs.json");
 
-		server = new Server(config.getInteger(OAuth2Constants.LC_OAUTH_SERVER_PORT, OAuth2Constants.DEFAULT_SERVER_PORT));
+		server = new Server(config.getInt(OAuth2Constants.LC_OAUTH_SERVER_PORT, OAuth2Constants.DEFAULT_SERVER_PORT));
 		server.setHandler(context);
 	}
 
