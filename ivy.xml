@@ -9,9 +9,12 @@
     </configurations>
     <dependencies>
       <!-- Core Requirements -->
-      <dependency org="javax.servlet" name="javax.servlet-api" rev="4.0.0-b07" conf="compile->*" />
+      <dependency org="javax.servlet" name="javax.servlet-api" rev="3.1.0" conf="compile->*" />
+      <dependency org="org.eclipse.jetty" name="jetty-continuation" rev="9.4.6.v20170531" conf="compile->*" />
       <dependency org="org.eclipse.jetty" name="jetty-server" rev="9.4.6.v20170531" conf="compile->*" />
+      <dependency org="org.eclipse.jetty" name="jetty-security" rev="9.4.6.v20170531" conf="compile->*" />
       <dependency org="org.eclipse.jetty" name="jetty-servlet" rev="9.4.6.v20170531" conf="compile->*" />
+      <dependency org="org.eclipse.jetty" name="jetty-servlets" rev="9.4.6.v20170531" conf="compile->*" />
       <dependency org="org.eclipse.jetty" name="jetty-util" rev="9.4.6.v20170531" conf="compile->*" />
       <dependency org="org.eclipse.jetty" name="jetty-http" rev="9.4.6.v20170531" conf="compile->*" />
       <dependency org="org.eclipse.jetty" name="jetty-io" rev="9.4.6.v20170531" conf="compile->*" />
@@ -19,7 +22,6 @@
       <dependency org="org.apache.httpcomponents" name="httpcore" rev="4.4.6" conf="compile->*" />
       <dependency org="commons-collections" name="commons-collections" rev="3.2.1" conf="compile->*" />
       <dependency org="commons-io" name="commons-io" rev="1.3.2" conf="compile->*" />
-      <dependency org="commons-configuration" name="commons-configuration" rev="1.10" conf="compile->*" />
       <dependency org="commons-codec" name="commons-codec" rev="1.10" conf="compile->*" />
       <dependency org="commons-lang" name="commons-lang" rev="2.6" conf="compile->*" />
       <dependency org="com.fasterxml.jackson.core" name="jackson-core" rev="2.9.0" conf="compile->*" />
@@ -28,14 +30,25 @@
       <dependency org="com.fasterxml.jackson.jaxrs" name="jackson-jaxrs-base" rev="2.9.0" conf="compile->*" />
       <dependency org="com.fasterxml.jackson.jaxrs" name="jackson-jaxrs-json-provider" rev="2.9.0" conf="compile->*" />
       <dependency org="org.glassfish.jersey.core" name="jersey-server" rev="2.25.1" conf="compile->*" />
-      <dependency org="org.eclipse.jetty.aggregate" name="jetty-all" rev="9.3.9.M0">
-        <artifact name="jetty-all" type="pom" ext="pom" />
-      </dependency>
+      <dependency org="javax.ws.rs" name="javax.ws.rs-api" rev="2.0.1" conf="compile->*" />
+      <!-- Jersey/Jetty Compile Dependencies -->
+      <dependency org="org.glassfish.jersey.core" name="jersey-common" rev="2.25.1" conf="runtime->*" />
+      <dependency org="org.glassfish.jersey.core" name="jersey-client" rev="2.25.1" conf="runtime->*" />
+      <dependency org="javax.validation" name="validation-api" rev="1.1.0.Final" conf="runtime->*" />
+      <dependency org="org.eclipse.persistence" name="org.eclipse.persistence.core" rev="2.7.0" conf="runtime->*" />
+      <dependency org="org.eclipse.persistence" name="org.eclipse.persistence.moxy" rev="2.7.0" conf="runtime->*" />
       <dependency org="org.glassfish.jersey.containers" name="jersey-container-servlet-core" rev="2.25.1" conf="compile->*" />
       <dependency org="org.glassfish.jersey.containers" name="jersey-container-servlet" rev="2.25.1" conf="compile->*" />
       <dependency org="org.glassfish.jersey.containers" name="jersey-container-jetty-http" rev="2.25.1" conf="compile->*" />
       <dependency org="org.glassfish.jersey.media" name="jersey-media-moxy" rev="2.25.1" conf="compile->*" />
-      <dependency org="javax.ws.rs" name="javax.ws.rs-api" rev="2.1-m09" conf="compile->*" />
+      <dependency org="org.glassfish.jersey.media" name="jersey-media-jaxb" rev="2.25.1" conf="compile->*" />
+      <dependency org="org.glassfish.jersey.ext" name="jersey-entity-filtering" rev="2.25.1" conf="compile->*" />
+      <dependency org="org.glassfish.hk2" name="hk2-api" rev="2.5.0-b32" conf="runtime->*" />
+      <dependency org="org.glassfish.hk2" name="hk2-locator" rev="2.5.0-b32" conf="runtime->*" />
+      <dependency org="org.glassfish.hk2" name="hk2-utils" rev="2.5.0-b32" conf="runtime->*" />
+      <dependency org="org.glassfish.hk2.external" name="javax.inject" rev="2.5.0-b32" conf="runtime->*" />
+      <dependency org="javax.annotation" name="javax.annotation-api" rev="1.2" conf="runtime->*" />
+      <dependency org="org.glassfish.jersey.bundles.repackaged" name="jersey-guava" rev="2.25.1" conf="runtime->*" />
       <!-- Logging Requirements -->
       <dependency org="log4j" name="log4j" rev="1.2.17" conf="runtime->*" />
       <dependency org="com.google.collections" name="google-collections" rev="1.0" conf="runtime->*" />
@@ -47,14 +60,12 @@
       <!-- ZMailbox Requirements -->
       <dependency org="commons-httpclient" name="commons-httpclient" rev="3.1" conf="runtime->*" />
       <dependency org="org.json" name="json" rev="20170516" conf="runtime->*" />
-      <!-- LC Requirements -->
-      <dependency org="xerces" name="xercesImpl" rev="2.9.1" conf="runtime->*" />
       <!-- Local Requirements -->
-      <dependency org="zimbra" name="zm-store" rev="latest.integration" conf="compile->*" />
+      <dependency org="zimbra" name="zm-store" rev="latest.integration" conf="runtime->*" />
       <dependency org="zimbra" name="zm-common" rev="latest.integration" conf="compile->*" />
       <dependency org="zimbra" name="zm-client" rev="latest.integration" conf="compile->*" />
-      <dependency org="zimbra" name="zm-soap" rev="latest.integration" conf="compile->*" />
-      <dependency org="zimbra" name="zm-native" rev="latest.integration" conf="compile->*" />
+      <dependency org="zimbra" name="zm-soap" rev="latest.integration" conf="runtime->*" />
+      <dependency org="zimbra" name="zm-native" rev="latest.integration" conf="runtime->*" />
       <!-- Test Requirements -->
       <dependency org="junit" name="junit" rev="4.12" conf="test->*" />
       <dependency org="org.powermock" name="powermock-module-junit4" rev="1.7.3" conf="test->*" />

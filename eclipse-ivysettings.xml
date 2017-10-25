@@ -4,17 +4,23 @@
   <caches defaultCacheDir="${user.home}/.ivy2/cache" />
   <resolvers>
     <chain name="chain-resolver" returnFirst="true">
+      <ibiblio name="maven" m2compatible="true" usepoms="false"/>
       <filesystem name="local">
+      	<ivy pattern= "${user.home}/.zcs-deps/[organisation]/[module]/[module]-[revision].xml" />
         <artifact pattern= "${user.home}/.zcs-deps/[organisation]/[module]/[module]-[revision].[ext]" />
         <artifact pattern= "${user.home}/.zcs-deps/[organisation]-[revision].[ext]" />
         <artifact pattern= "${user.home}/.zcs-deps/[organisation].[ext]" />
       </filesystem>
-      <ibiblio name="maven" m2compatible="true" usepoms="false"/>
       <url name="zimbra">
         <artifact pattern="https://files.zimbra.com/repository/[module]/[artifact]-[revision].[ext]" />
         <artifact pattern="https://files.zimbra.com/repository/[module]/[artifact].[ext]" />
         <artifact pattern="https://files.zimbra.com/repository/[organisation]/[module]/[module]-[revision].[ext]" />
       </url>
+      <!-- used by xerces module -->
+      <ibiblio name="maven-redhat" root="https://maven.repository.redhat.com/ga/" pattern="[organisation]/[module]/[revision]/[module]-[revision].[ext]"/>
     </chain>
   </resolvers>
+  <modules>
+    <module organisation="xerces" name="xercesImpl" revision="2.9.1-patch-01" resolver="maven-redhat"/>
+  </modules>
 </ivysettings>
