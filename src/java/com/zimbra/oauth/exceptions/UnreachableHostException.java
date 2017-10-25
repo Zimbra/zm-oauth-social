@@ -9,17 +9,17 @@ public class UnreachableHostException extends GenericOAuthException {
 	private static final long serialVersionUID = 1L;
 
 	public UnreachableHostException(String message) {
-		super(message);
-		error = OAuth2Error.UNREACHABLE_HOST_ERROR;
-		status = Status.GATEWAY_TIMEOUT;
+		this(message, null);
+	}
+
+	public UnreachableHostException(Throwable throwable) {
+		this(null, throwable);
 	}
 
 	public UnreachableHostException(String message, Throwable throwable) {
 		super(message, throwable);
-	}
-
-	public UnreachableHostException(Throwable throwable) {
-		super(throwable);
+		setError(OAuth2Error.UNREACHABLE_HOST_ERROR);
+		setStatus(Status.GATEWAY_TIMEOUT);
 	}
 
 }

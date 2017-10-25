@@ -9,16 +9,17 @@ public class ConfigurationException extends GenericOAuthException {
 	private static final long serialVersionUID = 1L;
 
 	public ConfigurationException(String message) {
-		super(message);
-		error = OAuth2Error.CONFIGURATION_ERROR;
-		status = Status.INTERNAL_SERVER_ERROR;
+		this(message, null);
+	}
+
+	public ConfigurationException(Throwable throwable) {
+		this(null, throwable);
 	}
 
 	public ConfigurationException(String message, Throwable throwable) {
 		super(message, throwable);
+		setError(OAuth2Error.CONFIGURATION_ERROR);
+		setStatus(Status.INTERNAL_SERVER_ERROR);
 	}
 
-	public ConfigurationException(Throwable throwable) {
-		super(throwable);
-	}
 }

@@ -9,16 +9,17 @@ public class InvalidResponseException extends GenericOAuthException {
 	private static final long serialVersionUID = 1L;
 
 	public InvalidResponseException(String message) {
-		super(message);
-		error = OAuth2Error.INVALID_RESPONSE_ERROR;
-		status = Status.BAD_GATEWAY;
+		this(message, null);
+	}
+
+	public InvalidResponseException(Throwable throwable) {
+		this(null, throwable);
 	}
 
 	public InvalidResponseException(String message, Throwable throwable) {
 		super(message, throwable);
+		setError(OAuth2Error.INVALID_RESPONSE_ERROR);
+		setStatus(Status.BAD_GATEWAY);
 	}
 
-	public InvalidResponseException(Throwable throwable) {
-		super(throwable);
-	}
 }

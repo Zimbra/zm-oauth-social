@@ -9,17 +9,17 @@ public class InvalidOperationException extends GenericOAuthException {
 	private static final long serialVersionUID = 1L;
 
 	public InvalidOperationException(String message) {
-		super(message);
-		error = OAuth2Error.INVALID_OPERATION_ERROR;
-		status = Status.BAD_REQUEST;
+		this(message, null);
+	}
+
+	public InvalidOperationException(Throwable throwable) {
+		this(null, throwable);
 	}
 
 	public InvalidOperationException(String message, Throwable throwable) {
 		super(message, throwable);
-	}
-
-	public InvalidOperationException(Throwable throwable) {
-		super(throwable);
+		setError(OAuth2Error.INVALID_OPERATION_ERROR);
+		setStatus(Status.BAD_REQUEST);
 	}
 
 }

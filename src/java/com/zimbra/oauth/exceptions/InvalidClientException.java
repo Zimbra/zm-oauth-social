@@ -9,17 +9,17 @@ public class InvalidClientException extends GenericOAuthException {
 	private static final long serialVersionUID = 1L;
 
 	public InvalidClientException(String message) {
-		super(message);
-		error = OAuth2Error.INVALID_CLIENT_ERROR;
-		status = Status.BAD_REQUEST;
+		this(message, null);
+	}
+
+	public InvalidClientException(Throwable throwable) {
+		this(null, throwable);
 	}
 
 	public InvalidClientException(String message, Throwable throwable) {
 		super(message, throwable);
-	}
-
-	public InvalidClientException(Throwable throwable) {
-		super(throwable);
+		setError(OAuth2Error.INVALID_CLIENT_ERROR);
+		setStatus(Status.BAD_REQUEST);
 	}
 
 }

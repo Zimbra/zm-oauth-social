@@ -9,17 +9,17 @@ public class UserUnauthorizedException extends GenericOAuthException {
 	private static final long serialVersionUID = 1L;
 
 	public UserUnauthorizedException(String message) {
-		super(message);
-		error = OAuth2Error.USER_UNAUTHORIZED_ERROR;
-		status = Status.UNAUTHORIZED;
+		this(message, null);
+	}
+
+	public UserUnauthorizedException(Throwable throwable) {
+		this(null, throwable);
 	}
 
 	public UserUnauthorizedException(String message, Throwable throwable) {
 		super(message, throwable);
-	}
-
-	public UserUnauthorizedException(Throwable throwable) {
-		super(throwable);
+		setError(OAuth2Error.USER_UNAUTHORIZED_ERROR);
+		setStatus(Status.UNAUTHORIZED);
 	}
 
 }
