@@ -29,6 +29,7 @@
       <dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="2.9.0" conf="compile->*" />
       <dependency org="com.fasterxml.jackson.jaxrs" name="jackson-jaxrs-base" rev="2.9.0" conf="compile->*" />
       <dependency org="com.fasterxml.jackson.jaxrs" name="jackson-jaxrs-json-provider" rev="2.9.0" conf="compile->*" />
+      <dependency org="com.auth0" name="java-jwt" rev="3.2.0" conf="compile->*" />
       <dependency org="org.glassfish.jersey.core" name="jersey-server" rev="2.25.1" conf="compile->*" />
       <dependency org="javax.ws.rs" name="javax.ws.rs-api" rev="2.0.1" conf="compile->*" />
       <!-- Jersey/Jetty Compile Dependencies -->

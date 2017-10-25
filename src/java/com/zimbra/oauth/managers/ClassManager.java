@@ -26,7 +26,7 @@ public class ClassManager {
 	 * @return An IOAuthHandler instance
 	 * @throws ConfigurationException
 	 */
-	public static IOAuth2Handler getHandler(String client) throws ConfigurationException {
+	public static IOAuth2Handler getHandler(String client) throws ConfigurationException, InvalidClientException {
 		// check the cache for a matching handler
 		IOAuth2Handler handler = handlersCache.get(client);
 
@@ -50,8 +50,8 @@ public class ClassManager {
 						ZimbraLog.extensions.error("There was an issue loading the configuration for the client.", e);
 						throw new ConfigurationException("There was an issue loading the configuration for the client.", e);
 					} catch (final ClassNotFoundException e) {
-						ZimbraLog.extensions.error("There was an issue loading the oauth2 handler class for client: " + client, e);
-						throw new ConfigurationException("There was an issue loading the oauth2 handler class for client: " + client, e);
+						ZimbraLog.extensions.error("The specified client is not supported: " + client, e);
+						throw new InvalidClientException("The specified client is not supported: " + client, e);
 					} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
 						| InvocationTargetException | NoSuchMethodException | SecurityException e) {
 						ZimbraLog.extensions.error("There was an issue instantiating the oauth2 handler class for client: " + client, e);

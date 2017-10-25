@@ -56,7 +56,18 @@ public class OAuth2Constants {
 	public static final String LC_OAUTH_GOOGLE_SCOPE = "zm_oauth_google_scope";
 	public static final String LC_OAUTH_GOOGLE_IMPORT_CLASS = "zm_oauth_google_import_class";
 	public static final String LC_OAUTH_GOOGLE_RELAY_KEY = "zm_oauth_google_relay_key";
+	// LC Outlook
+	public static final String LC_OAUTH_OUTLOOK_AUTHORIZE_URI_TEMPLATE = "zm_oauth_outlook_authorize_uri_template";
+	public static final String LC_OAUTH_OUTLOOK_PROFILE_URI_TEMPLATE = "zm_oauth_outlook_profile_uri_template";
+	public static final String LC_OAUTH_OUTLOOK_AUTHENTICATE_URI = "zm_oauth_outlook_authenticate_uri";
+	public static final String LC_OAUTH_OUTLOOK_CLIENT_ID = "zm_oauth_outlook_client_id";
+	public static final String LC_OAUTH_OUTLOOK_CLIENT_SECRET = "zm_oauth_outlook_client_secret";
+	public static final String LC_OAUTH_OUTLOOK_CLIENT_REDIRECT_URI = "zm_oauth_outlook_client_redirect_uri";
+	public static final String LC_OAUTH_OUTLOOK_SCOPE = "zm_oauth_outlook_scope";
+	public static final String LC_OAUTH_OUTLOOK_IMPORT_CLASS = "zm_oauth_outlook_import_class";
+	public static final String LC_OAUTH_OUTLOOK_RELAY_KEY = "zm_oauth_outlook_relay_key";
 
 	// ZDataSource temporary constant
 	public static final String HOST_GOOGLE = "googleapis.com";
+	public static final String HOST_OUTLOOK = "microsoftonline.com";
 }
