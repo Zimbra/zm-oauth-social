@@ -3,6 +3,7 @@
   <import file="../zm-zcs/ant-global.xml" />
   <!-- Properties -->
   <property name="src.dir" location="src"/>
+  <property name="lib.dir" location="lib"/>
   <property name="test.src.dir" location="src/java-test"/>
   <property name="build.dir" location="build"/>
   <property name="classes.dir" location="${build.dir}/classes"/>
@@ -72,14 +73,27 @@
       </classpath>
     </java>
   </target>
-  
-	
+
+  <!-- Tar -->
+  <target name="tar" depends="jar,set-dev-version">
+  	<echo append="false" file="${build.dir}/run.sh">java -cp "${jar.file}:./lib/*" com.zimbra.oauth.server.JettyServer</echo>
+    <tar destfile="${build.dir}/zm-oauth2-${dev.version}.tar">
+      <tarfileset dir="${build.dir}" preserveLeadingSlashes="true">
+        <include name="${jar.file}"/>
+      	<include name="run.sh"/>
+      </tarfileset>
+      <tarfileset dir="${lib.dir}" prefix="lib" preserveLeadingSlashes="true">
+        <include name="*"/>
+      </tarfileset>
+    </tar>
+  </target>
+
   <target name="stop-authserver">
     <exec executable="zmoauth2">
       <arg value="stop"/>
     </exec>
   </target>
-	
+
   <target name="start-authserver">
     <exec executable="zmoauth2">
       <arg value="start"/>
