@@ -122,6 +122,11 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 	 */
 	protected static final String RESPONSE_ERROR_RESPONSE_TYPE = "unsupported_response_type";
 
+	/**
+	 * Constructs an OutlookOAuth2Handler object.
+	 *
+	 * @param config For accessing configured properties
+	 */
 	public OutlookOAuth2Handler(Configuration config) {
 		super(config);
 		authorizeUriTemplate = config.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_AUTHORIZE_URI_TEMPLATE);

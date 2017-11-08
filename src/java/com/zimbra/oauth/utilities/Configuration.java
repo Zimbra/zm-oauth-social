@@ -40,7 +40,7 @@ public class Configuration {
 	}
 
 	public String getString(String key, String defaultValue) {
-		return StringUtils.defaultString(LC.get(key), defaultValue);
+		return StringUtils.defaultIfEmpty(LC.get(key), defaultValue);
 	}
 
 	public Integer getInt(String key, Integer defaultValue) {

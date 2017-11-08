@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -21,6 +22,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zimbra.client.ZMailbox;
+import com.zimbra.common.auth.ZAuthToken;
 import com.zimbra.common.localconfig.LC;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
@@ -28,6 +30,7 @@ import com.zimbra.oauth.exceptions.GenericOAuthException;
 import com.zimbra.oauth.exceptions.InvalidResponseException;
 import com.zimbra.oauth.exceptions.ServiceNotAvailableException;
 import com.zimbra.oauth.exceptions.UnreachableHostException;
+import com.zimbra.oauth.exceptions.UserUnauthorizedException;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
@@ -42,20 +45,27 @@ public class OAuth2Handler {
 
 	protected static final ObjectMapper mapper = OAuth2Utilities.createDefaultMapper();
 
-	protected final String zimbraHostname;
-
-	protected final String zimbraSoapUri;
+	protected final String zimbraHostUri;
 
 	public OAuth2Handler(Configuration config) {
 		this.config = config;
 		client = buildHttpClientIfAbsent(config);
 
-		// set some required localconfig properties
 		synchronized (LC.zimbra_server_hostname) {
-			zimbraHostname = config.getString(OAuth2Constants.LC_SOAP_HOST);
-			zimbraSoapUri = config.getString(OAuth2Constants.LC_SOAP_URI);
+			final String zimbraHostname = LC.zimbra_server_hostname.value();
+			// warn if missing hostname
+			if (StringUtils.isEmpty(zimbraHostname)) {
+				ZimbraLog.extensions.warn("The zimbra server hostname is not configured.");
+			}
+			// cache the host uri
+			zimbraHostUri = String.format(
+				config.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE, OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE),
+				zimbraHostname
+			);
+			// set the zmprov soap server
 			LC.zimbra_zmprov_default_soap_server.setDefault(zimbraHostname);
-			LC.zimbra_server_hostname.setDefault(zimbraHostname);
+			LC.ssl_allow_accept_untrusted_certs.setDefault("true");
+			LC.ssl_allow_untrusted_certs.setDefault("true");
 		}
 	}
 
@@ -143,15 +153,15 @@ public class OAuth2Handler {
 	 *
 	 * @param zmAuthToken The Zimbra auth token to identify the account with
 	 * @return The Zimbra mailbox
-	 * @throws InvalidResponseException If there is an issue retrieving the account mailbox
+	 * @throws UserUnauthorizedException If there is an issue retrieving the account mailbox
 	 */
-	protected ZMailbox getZimbraMailbox(String zmAuthToken) throws InvalidResponseException {
-		// create a mailbox by auth token then retrieve its accountId
+	protected ZMailbox getZimbraMailbox(String zmAuthToken) throws UserUnauthorizedException {
+		// create a mailbox by auth token
 		try {
-			return ZMailbox.getByAuthToken(zmAuthToken, zimbraSoapUri);
+			return ZMailbox.getByAuthToken(new ZAuthToken(zmAuthToken), zimbraHostUri, false, true);
 		} catch (final ServiceException e) {
-			ZimbraLog.extensions.error("There was an issue acquiring the account id.", e);
-			throw new InvalidResponseException("There was an issue acquiring the account id.", e);
+			ZimbraLog.extensions.error("There was an issue acquiring the mailbox using the specified auth token.", e);
+			throw new UserUnauthorizedException("There was an issue acquiring the mailbox using the specified auth token", e);
 		}
 	}
 }

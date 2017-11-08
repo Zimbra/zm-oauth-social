@@ -18,7 +18,6 @@ import org.apache.http.message.BasicNameValuePair;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZMailbox;
-import com.zimbra.common.localconfig.LC;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.exceptions.ConfigurationException;
 import com.zimbra.oauth.exceptions.GenericOAuthException;
@@ -124,16 +123,21 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 	 */
 	protected static final String RESPONSE_ERROR_TOKEN_EXPIRED = "TOKEN_EXPIRED";
 
+	/**
+	 * Constructs a GoogleOAuth2Handler object.
+	 *
+	 * @param config For accessing configured properties
+	 */
 	public GoogleOAuth2Handler(Configuration config) {
 		super(config);
-		authorizeUriTemplate = LC.get(OAuth2Constants.LC_OAUTH_GOOGLE_AUTHORIZE_URI_TEMPLATE);
-		authenticateUri = LC.get(OAuth2Constants.LC_OAUTH_GOOGLE_AUTHENTICATE_URI);
-		profileUriTemplate = LC.get(OAuth2Constants.LC_OAUTH_GOOGLE_PROFILE_URI_TEMPLATE);
-		clientId = LC.get(OAuth2Constants.LC_OAUTH_GOOGLE_CLIENT_ID);
-		clientSecret = LC.get(OAuth2Constants.LC_OAUTH_GOOGLE_CLIENT_SECRET);
-		clientRedirectUri = LC.get(OAuth2Constants.LC_OAUTH_GOOGLE_CLIENT_REDIRECT_URI);
-		relayKey = StringUtils.defaultString(LC.get(OAuth2Constants.LC_OAUTH_GOOGLE_RELAY_KEY), OAuth2Constants.OAUTH2_RELAY_KEY);
-		scope = LC.get(OAuth2Constants.LC_OAUTH_GOOGLE_SCOPE);
+		authorizeUriTemplate = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_AUTHORIZE_URI_TEMPLATE);
+		authenticateUri = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_AUTHENTICATE_URI);
+		profileUriTemplate = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_PROFILE_URI_TEMPLATE);
+		clientId = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_CLIENT_ID);
+		clientSecret = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_CLIENT_SECRET);
+		clientRedirectUri = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_CLIENT_REDIRECT_URI);
+		relayKey = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY);
+		scope = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_SCOPE);
 		dataSource = new OAuthDataSource(OAuth2Constants.HOST_GOOGLE);
 	}
 
@@ -178,7 +182,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 
 		final String accessToken = credentials.get("access_token").asText();
 		ZimbraLog.extensions.info(credentials);
-		final JsonNode profileContainer = getUserProfile(null, accessToken, context);
+		final JsonNode profileContainer = getUserProfile(accessToken, context);
 		final JsonNode profile = profileContainer.get("profile");
 		final String username = profile.get("emails").get(0).get("handle").asText();
 
@@ -311,17 +315,16 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 	}
 
 	/**
-	 * Retrieves the profile of the user with the specified guid and auth token.
+	 * Retrieves the profile of the user with the specified auth token.
 	 *
-	 * @param guid The identifier for the user
 	 * @param authToken The auth for the user
 	 * @param context The http context
 	 * @return A profile object
 	 * @throws ScapiException If there are issues
 	 */
-	protected JsonNode getUserProfile(String guid, String authToken, HttpClientContext context) throws GenericOAuthException
+	protected JsonNode getUserProfile(String authToken, HttpClientContext context) throws GenericOAuthException
 	{
-		final String url = String.format(profileUriTemplate, guid);
+		final String url = String.format(profileUriTemplate);
 		final HttpGet request = new HttpGet(url);
 		request.setHeader("Content-Type", "application/x-www-form-urlencoded");
 		request.setHeader("Accept", "application/json");

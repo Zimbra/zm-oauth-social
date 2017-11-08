@@ -9,6 +9,7 @@ public class OAuth2Constants {
 
 	public static final String OAUTH2_RELAY_KEY = "state";
 	public static final String DEFAULT_SUCCESS_REDIRECT = "/";
+	public static final String DEFAULT_HOST_URI_TEMPLATE = "https://%s:443";
 
 	// http related
 	public static final String HEADER_LOCATION = "Location";
@@ -27,7 +28,7 @@ public class OAuth2Constants {
 
 	// LC properties related
 	public static final String LC_SOAP_HOST = "soap_host";
-	public static final String LC_SOAP_URI = "soap_uri";
+	public static final String LC_HOST_URI_TEMPLATE = "host_uri_template";
 	public static final String LC_OAUTH_FOLDER_ID = "zm_oauth_source_folder_id";
 	public static final String LC_OAUTH_SERVER_PORT = "zm_oauth_server_port";
 	public static final String LC_OAUTH_SERVER_CONTEXT_PATH = "zm_oauth_server_context_path";

@@ -119,6 +119,11 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 	 */
 	protected static final String RESPONSE_ERROR_TOKEN_EXPIRED = "TOKEN_EXPIRED";
 
+	/**
+	 * Constructs a YahooOAuth2Handler object.
+	 *
+	 * @param config For accessing configured properties
+	 */
 	public YahooOAuth2Handler(Configuration config) {
 		super(config);
 		authorizeUriTemplate = config.getString(OAuth2Constants.LC_OAUTH_YAHOO_AUTHORIZE_URI_TEMPLATE);
