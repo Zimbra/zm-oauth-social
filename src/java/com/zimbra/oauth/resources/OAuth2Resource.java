@@ -11,7 +11,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.zimbra.oauth.exceptions.GenericOAuthException;
-import com.zimbra.oauth.utilities.OAuth2HandlerUtilities;
+import com.zimbra.oauth.utilities.OAuth2ResourceUtilities;
 
 @Path("oauth2")
 public class OAuth2Resource {
@@ -28,7 +28,7 @@ public class OAuth2Resource {
 	@Path("authorize/{client}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response authorize(@PathParam("client") String client, @QueryParam("relay") String relay) throws GenericOAuthException {
-		return OAuth2HandlerUtilities.authorize(client, relay);
+		return OAuth2ResourceUtilities.authorize(client, relay);
 	}
 
 	/**
@@ -47,13 +47,13 @@ public class OAuth2Resource {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response authenticate(@PathParam("client") String client, @QueryParam("code") String code,
 		@QueryParam("error") String error, @QueryParam("state") String relay, @CookieParam("ZM_AUTH_TOKEN") String zmAuthToken) throws GenericOAuthException {
-		return OAuth2HandlerUtilities.authenticate(client, code, error, relay, zmAuthToken);
+		return OAuth2ResourceUtilities.authenticate(client, code, error, relay, zmAuthToken);
 	}
 
 	@POST
 	@Path("refresh/{client}/{username}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response refresh(@PathParam("client") String client, @PathParam("username") String username, @CookieParam("ZM_AUTH_TOKEN") String zmAuthToken) throws GenericOAuthException {
-		return OAuth2HandlerUtilities.refresh(client, username, zmAuthToken);
+		return OAuth2ResourceUtilities.refresh(client, username, zmAuthToken);
 	}
 }

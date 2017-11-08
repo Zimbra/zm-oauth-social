@@ -22,7 +22,7 @@ import com.zimbra.oauth.managers.ClassManager;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.models.ResponseObject;
 
-public class OAuth2HandlerUtilities {
+public class OAuth2ResourceUtilities {
 
 	public static final Response authorize(String client, String relay) throws GenericOAuthException {
 		final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
