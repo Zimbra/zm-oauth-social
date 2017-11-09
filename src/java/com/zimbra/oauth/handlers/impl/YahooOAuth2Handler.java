@@ -133,7 +133,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 		clientSecret = config.getString(OAuth2Constants.LC_OAUTH_YAHOO_CLIENT_SECRET);
 		clientRedirectUri = config.getString(OAuth2Constants.LC_OAUTH_YAHOO_CLIENT_REDIRECT_URI);
 		relayKey = config.getString(OAuth2Constants.LC_OAUTH_YAHOO_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY);
-		dataSource = new OAuthDataSource(ZDataSource.SOURCE_HOST_YAHOO);
+		dataSource = OAuthDataSource.createDataSource(ZDataSource.SOURCE_HOST_YAHOO);
 	}
 
 	@Override

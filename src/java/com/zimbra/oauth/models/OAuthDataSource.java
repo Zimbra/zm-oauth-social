@@ -16,8 +16,18 @@ public class OAuthDataSource {
 	 */
 	protected final String host;
 
-	public OAuthDataSource(String host) {
+	protected OAuthDataSource(String host) {
 		this.host = host;
+	}
+
+	/**
+	 * Returns a new handler for a Zimbra DataSource.
+	 *
+	 * @param host The host this source is for
+	 * @return OAuthDataSource handler instance
+	 */
+	public static OAuthDataSource createDataSource(String host) {
+		return new OAuthDataSource(host);
 	}
 
 	/**

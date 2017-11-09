@@ -137,7 +137,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 		clientRedirectUri = config.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_CLIENT_REDIRECT_URI);
 		relayKey = config.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY);
 		scope = config.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_SCOPE);
-		dataSource = new OAuthDataSource(OAuth2Constants.HOST_OUTLOOK);
+		dataSource = OAuthDataSource.createDataSource(OAuth2Constants.HOST_OUTLOOK);
 	}
 
 	@Override

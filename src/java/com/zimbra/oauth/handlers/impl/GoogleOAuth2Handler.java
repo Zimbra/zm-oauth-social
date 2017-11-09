@@ -138,7 +138,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 		clientRedirectUri = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_CLIENT_REDIRECT_URI);
 		relayKey = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY);
 		scope = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_SCOPE);
-		dataSource = new OAuthDataSource(OAuth2Constants.HOST_GOOGLE);
+		dataSource = OAuthDataSource.createDataSource(OAuth2Constants.HOST_GOOGLE);
 	}
 
 	@Override

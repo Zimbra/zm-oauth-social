@@ -1,19 +1,21 @@
 package com.zimbra.oauth.utilities;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyMapOf;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.matches;
-import static org.mockito.Matchers.refEq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.eq;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.matches;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+
+import java.util.Map;
 
 import javax.ws.rs.core.Response.Status;
 
+import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
+import org.powermock.api.easymock.PowerMock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
@@ -26,13 +28,13 @@ import com.zimbra.oauth.models.OAuthInfo;
  * Test class for {@link OAuth2ResourceUtilities}.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ClassManager.class, OAuth2ResourceUtilities.class, OAuth2Utilities.class})
+@PrepareForTest({ClassManager.class, OAuth2Utilities.class})
 public class OAuth2ResourceUtilitiesTest {
 
 	/**
 	 * Mock handler.
 	 */
-	protected IOAuth2Handler mockHandler = PowerMockito.mock(IOAuth2Handler.class);
+	protected IOAuth2Handler mockHandler = EasyMock.createMock(IOAuth2Handler.class);
 
 	/**
 	 * Setup for tests.
@@ -41,9 +43,8 @@ public class OAuth2ResourceUtilitiesTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
-		PowerMockito.mockStatic(ClassManager.class);
-		PowerMockito.mockStatic(OAuth2ResourceUtilities.class);
-		PowerMockito.mockStatic(OAuth2Utilities.class);
+		PowerMock.mockStatic(ClassManager.class);
+		PowerMock.mockStatic(OAuth2Utilities.class);
 	}
 
 	/**
@@ -56,17 +57,21 @@ public class OAuth2ResourceUtilitiesTest {
 	public void testAuthorize() throws Exception {
 		final String client = "test-client";
 		final String relay = "test-relay";
+		final String location = "result-location";
 
-		PowerMockito.when(OAuth2ResourceUtilities.authorize(anyString(), anyString())).thenCallRealMethod();
-		PowerMockito.when(ClassManager.getHandler(anyString())).thenReturn(mockHandler);
+		expect(ClassManager.getHandler(matches(client))).andReturn(mockHandler);
+		expect(mockHandler.authorize(matches(relay))).andReturn(location);
+		expect(OAuth2Utilities.buildResponse(anyObject(), eq(Status.SEE_OTHER), EasyMock.<Map<String, Object>> anyObject())).andReturn(null);
+
+		PowerMock.replay(ClassManager.class);
+		replay(mockHandler);
+		PowerMock.replay(OAuth2Utilities.class);
 
 		OAuth2ResourceUtilities.authorize(client, relay);
 
-		PowerMockito.verifyStatic();
-		ClassManager.getHandler(matches(client));
-		verify(mockHandler).authorize(matches(relay));
-		PowerMockito.verifyStatic();
-		OAuth2Utilities.buildResponse(any(), refEq(Status.SEE_OTHER), anyMapOf(String.class, Object.class));
+		PowerMock.verify(ClassManager.class);
+		PowerMock.verify(OAuth2Utilities.class);
+		verify(mockHandler);
 	}
 
 	/**
@@ -83,18 +88,19 @@ public class OAuth2ResourceUtilitiesTest {
 		final String relay = "test-relay";
 		final String zmAuthToken = "test-zm-auth-token";
 
-		PowerMockito
-			.when(OAuth2ResourceUtilities.authenticate(anyString(), anyString(), anyString(), anyString(), anyString()))
-			.thenCallRealMethod();
-		PowerMockito.when(ClassManager.getHandler(anyString())).thenReturn(mockHandler);
+		expect(ClassManager.getHandler(matches(client))).andReturn(mockHandler);
+		expect(mockHandler.authenticate(anyObject(OAuthInfo.class))).andReturn(true);
+		expect(OAuth2Utilities.buildResponse(anyObject(), eq(Status.SEE_OTHER), EasyMock.<Map<String, Object>> anyObject())).andReturn(null);
+
+		PowerMock.replay(ClassManager.class);
+		replay(mockHandler);
+		PowerMock.replay(OAuth2Utilities.class);
 
 		OAuth2ResourceUtilities.authenticate(client, code, error, relay, zmAuthToken);
 
-		PowerMockito.verifyStatic();
-		ClassManager.getHandler(matches(client));
-		verify(mockHandler).authenticate(any(OAuthInfo.class));
-		PowerMockito.verifyStatic();
-		OAuth2Utilities.buildResponse(any(), refEq(Status.SEE_OTHER), anyMapOf(String.class, Object.class));
+		PowerMock.verify(ClassManager.class);
+		PowerMock.verify(OAuth2Utilities.class);
+		verify(mockHandler);
 	}
 
 	/**
@@ -111,18 +117,18 @@ public class OAuth2ResourceUtilitiesTest {
 		final String relay = "test-relay";
 		final String zmAuthToken = "test-zm-auth-token";
 
-		PowerMockito
-			.when(OAuth2ResourceUtilities.authenticate(anyString(), anyString(), anyString(), anyString(), anyString()))
-			.thenCallRealMethod();
-		PowerMockito.when(ClassManager.getHandler(anyString())).thenReturn(mockHandler);
+		expect(ClassManager.getHandler(matches(client))).andReturn(mockHandler);
+		expect(OAuth2Utilities.buildResponse(anyObject(), eq(Status.SEE_OTHER), EasyMock.<Map<String, Object>> anyObject())).andReturn(null);
+
+		PowerMock.replay(ClassManager.class);
+		replay(mockHandler);
+		PowerMock.replay(OAuth2Utilities.class);
 
 		OAuth2ResourceUtilities.authenticate(client, code, error, relay, zmAuthToken);
 
-		PowerMockito.verifyStatic();
-		ClassManager.getHandler(matches(client));
-		verify(mockHandler, never()).authenticate(any());
-		PowerMockito.verifyStatic();
-		OAuth2Utilities.buildResponse(any(), refEq(Status.SEE_OTHER), anyMapOf(String.class, Object.class));
+		PowerMock.verify(ClassManager.class);
+		PowerMock.verify(OAuth2Utilities.class);
+		verify(mockHandler);
 	}
 
 	/**
@@ -140,20 +146,20 @@ public class OAuth2ResourceUtilitiesTest {
 		final String relay = "test-relay";
 		final String zmAuthToken = "test-zm-auth-token";
 
-		PowerMockito
-			.when(OAuth2ResourceUtilities.authenticate(anyString(), anyString(), anyString(), anyString(), anyString()))
-			.thenCallRealMethod();
-		PowerMockito.when(ClassManager.getHandler(anyString())).thenReturn(mockHandler);
-		PowerMockito.when(mockHandler.authenticate(any(OAuthInfo.class)))
-			.thenThrow(new UserUnauthorizedException("Access was denied during get_token!"));
+		expect(ClassManager.getHandler(matches(client))).andReturn(mockHandler);
+		expect(OAuth2Utilities.buildResponse(anyObject(), eq(Status.SEE_OTHER), EasyMock.<Map<String, Object>> anyObject())).andReturn(null);
+		expect(mockHandler.authenticate(anyObject(OAuthInfo.class)))
+			.andThrow(new UserUnauthorizedException("Access was denied during get_token!"));
+
+		PowerMock.replay(ClassManager.class);
+		replay(mockHandler);
+		PowerMock.replay(OAuth2Utilities.class);
 
 		OAuth2ResourceUtilities.authenticate(client, code, error, relay, zmAuthToken);
 
-		PowerMockito.verifyStatic();
-		ClassManager.getHandler(matches(client));
-		verify(mockHandler).authenticate(any(OAuthInfo.class));
-		PowerMockito.verifyStatic();
-		OAuth2Utilities.buildResponse(any(), refEq(Status.SEE_OTHER), anyMapOf(String.class, Object.class));
+		PowerMock.verify(ClassManager.class);
+		PowerMock.verify(OAuth2Utilities.class);
+		verify(mockHandler);
 	}
 
 }
