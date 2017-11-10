@@ -112,17 +112,6 @@ public class OAuthDataSource {
 	}
 
 	/**
-	 * Updates a DataSource refresh token, or creates one if none exists for the specified username.
-	 *
-	 * @param mailbox The user's mailbox
-	 * @param credentials Credentials containing the username and refreshToken
-	 * @throws InvalidResponseException If there are issues
-	 */
-	public void updateCredentials(ZMailbox mailbox, OAuthInfo credentials) throws InvalidResponseException {
-		updateCredentials(mailbox, credentials, null);
-	}
-
-	/**
 	 * Retrieves the refreshToken from DataSource. Returns null token if a source does not exist.
 	 *
 	 * @param mailbox The user's mailbox

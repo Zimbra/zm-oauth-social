@@ -75,6 +75,11 @@ public class OutlookOAuth2HandlerTest {
 	protected final String clientRedirectUri = "http://localhost/oauth2/authenticate";
 
 	/**
+	 * FolderId for testing.
+	 */
+	protected final String storageFolderId = "259";
+
+	/**
 	 * Setup for tests.
 	 *
 	 * @throws Exception If there are issues mocking
@@ -88,6 +93,7 @@ public class OutlookOAuth2HandlerTest {
 		Whitebox.setInternalState(handler, "clientId", clientId);
 		Whitebox.setInternalState(handler, "clientSecret", clientSecret);
 		Whitebox.setInternalState(handler, "dataSource", mockDataSource);
+		Whitebox.setInternalState(handler, "storageFolderId", storageFolderId);
 
 		expect(mockConfig.getClientId()).andReturn(clientId);
 
@@ -109,6 +115,7 @@ public class OutlookOAuth2HandlerTest {
 
 		expect(mockConfig.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE, OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
 			.andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
+		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_FOLDER_ID)).andReturn(storageFolderId);
 		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_AUTHORIZE_URI_TEMPLATE)).andReturn(null);
 		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_AUTHENTICATE_URI)).andReturn(null);
 		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_PROFILE_URI_TEMPLATE)).andReturn(null);
@@ -177,7 +184,7 @@ public class OutlookOAuth2HandlerTest {
 		EasyMock.expectLastCall().once();
 		mockOAuthInfo.setRefreshToken(refreshToken);
 		EasyMock.expectLastCall().once();
-		mockDataSource.updateCredentials(mockZMailbox, mockOAuthInfo);
+		mockDataSource.updateCredentials(mockZMailbox, mockOAuthInfo, storageFolderId);
 		EasyMock.expectLastCall().once();
 
 		replay(handler);

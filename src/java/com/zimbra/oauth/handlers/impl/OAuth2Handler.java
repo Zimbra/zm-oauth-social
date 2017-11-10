@@ -47,6 +47,8 @@ public class OAuth2Handler {
 
 	protected final String zimbraHostUri;
 
+	protected final String storageFolderId;
+
 	public OAuth2Handler(Configuration config) {
 		this.config = config;
 		client = buildHttpClientIfAbsent(config);
@@ -67,6 +69,7 @@ public class OAuth2Handler {
 			LC.ssl_allow_accept_untrusted_certs.setDefault("true");
 			LC.ssl_allow_untrusted_certs.setDefault("true");
 		}
+		storageFolderId = config.getString(OAuth2Constants.LC_OAUTH_FOLDER_ID);
 	}
 
 	/**

@@ -192,7 +192,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 		// store username, zimbraAccountId, refreshToken
 		oauthInfo.setUsername(username);
 		oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
-		dataSource.updateCredentials(mailbox, oauthInfo);
+		dataSource.updateCredentials(mailbox, oauthInfo, storageFolderId);
 		return true;
 	}
 
@@ -219,7 +219,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 
 		// update credentials
 		oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
-		dataSource.updateCredentials(mailbox, oauthInfo);
+		dataSource.updateCredentials(mailbox, oauthInfo, storageFolderId);
 		return true;
 	}
 

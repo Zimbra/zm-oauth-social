@@ -185,7 +185,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 		// store username, zimbraAccountId, refreshToken
 		oauthInfo.setUsername(getPrimaryEmail(credentials));
 		oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
-		dataSource.updateCredentials(mailbox, oauthInfo);
+		dataSource.updateCredentials(mailbox, oauthInfo, storageFolderId);
 		return true;
 	}
 
@@ -212,7 +212,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 
 		// update credentials
 		oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
-		dataSource.updateCredentials(mailbox, oauthInfo);
+		dataSource.updateCredentials(mailbox, oauthInfo, storageFolderId);
 		return true;
 	}
 
