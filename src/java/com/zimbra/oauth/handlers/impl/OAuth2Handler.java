@@ -158,7 +158,7 @@ public class OAuth2Handler {
 	protected ZMailbox getZimbraMailbox(String zmAuthToken) throws UserUnauthorizedException {
 		// create a mailbox by auth token
 		try {
-			return ZMailbox.getByAuthToken(new ZAuthToken(zmAuthToken), zimbraHostUri, false, true);
+			return ZMailbox.getByAuthToken(new ZAuthToken(zmAuthToken), zimbraHostUri, true, true);
 		} catch (final ServiceException e) {
 			ZimbraLog.extensions.error("There was an issue acquiring the mailbox using the specified auth token.", e);
 			throw new UserUnauthorizedException("There was an issue acquiring the mailbox using the specified auth token", e);

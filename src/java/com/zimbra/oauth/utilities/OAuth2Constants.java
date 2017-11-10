@@ -10,6 +10,7 @@ public class OAuth2Constants {
 	public static final String OAUTH2_RELAY_KEY = "state";
 	public static final String DEFAULT_SUCCESS_REDIRECT = "/";
 	public static final String DEFAULT_HOST_URI_TEMPLATE = "https://%s:443";
+	public static final String DEFAULT_OAUTH_FOLDER_PATH = "oauth-storage";
 
 	// http related
 	public static final String HEADER_LOCATION = "Location";
