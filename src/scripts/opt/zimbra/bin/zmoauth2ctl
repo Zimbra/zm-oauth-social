@@ -27,16 +27,16 @@ if [ ! -d "${zimbra_java_home}" ]; then
 fi
 
 # shellcheck disable=SC2154
-JVM_OPTS="${oauth2_java_options}"
+JVM_OPTS="${zm_oauth2_java_options}"
 JVM_HS=""
 # shellcheck disable=SC2154
-if [ -n "${oauth2_java_heap_size}" ]; then
-  JVM_HS="-Xms${oauth2_java_heap_size}m -Xmx${oauth2_java_heap_size}m"
+if [ -n "${zm_oauth2_java_heap_size}" ]; then
+  JVM_HS="-Xms${zm_oauth2_java_heap_size}m -Xmx${zm_oauth2_java_heap_size}m"
 fi
 JVM_HNS=""
 # shellcheck disable=SC2154
-if [ -n "${oauth2_java_heap_new_size_percent}" ]; then
-  JVM_HNS="-Xmn${oauth2_java_heap_new_size_percent}m"
+if [ -n "${zm_oauth2_java_heap_new_size_percent}" ]; then
+  JVM_HNS="-Xmn${zm_oauth2_java_heap_new_size_percent}m"
 fi
 
 PID_FILE=/opt/zimbra/log/oauth2.pid
