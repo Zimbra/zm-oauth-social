@@ -76,10 +76,11 @@
 
   <!-- Tar -->
   <target name="tar" depends="jar,set-dev-version">
-  	<echo append="false" file="${build.dir}/run.sh">java -cp "${jar.file}:./lib/*" com.zimbra.oauth.server.JettyServer</echo>
+    <echo append="false" file="${build.dir}/run.sh">java -cp "${ant.project.name}.jar:./lib/*" com.zimbra.oauth.server.JettyServer</echo>
+    <copy file="${build.dir}/${jar.file}" tofile="${build.dir}/${ant.project.name}.jar"/>
     <tar destfile="${build.dir}/zm-oauth2-${dev.version}.tar">
       <tarfileset dir="${build.dir}" preserveLeadingSlashes="true">
-        <include name="${jar.file}"/>
+        <include name="${ant.project.name}.jar"/>
       	<include name="run.sh"/>
       </tarfileset>
       <tarfileset dir="${lib.dir}" prefix="lib" preserveLeadingSlashes="true">
