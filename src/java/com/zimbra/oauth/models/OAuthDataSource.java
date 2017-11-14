@@ -53,14 +53,20 @@ public class OAuthDataSource {
 			}
 			// if folder does not exist or none specified
 			if (folder == null) {
-				// check if default folder exists
-				folder = mailbox.getFolderByPath(ZMailbox.PATH_SEPARATOR + OAuth2Constants.DEFAULT_OAUTH_FOLDER_PATH);
+				// check if default storage folder exists under Contacts
+				final ZFolder contactsFolder = mailbox.getFolderById(ZFolder.ID_CONTACTS);
+				if (contactsFolder == null) {
+					ZimbraLog.extensions.debug("Contacts folder is missing, cannot create default token storage folder.");
+					throw new InvalidResponseException("Contacts folder is missing, cannot create default token storage folder.");
+				}
+				folder = contactsFolder.getSubFolderByPath(OAuth2Constants.DEFAULT_OAUTH_FOLDER_PATH);
 				// create if it does not exist
 				if (folder == null) {
+					ZimbraLog.extensions.debug("Creating default oauth datasource storage folder.");
 					folder = mailbox.createFolder(
-						ZFolder.ID_USER_ROOT,
+						ZFolder.ID_CONTACTS,
 						OAuth2Constants.DEFAULT_OAUTH_FOLDER_PATH,
-						View.unknown,
+						View.contact,
 						null,
 						null,
 						null
