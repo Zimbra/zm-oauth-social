@@ -71,6 +71,16 @@ public class Configuration {
 	}
 
 	/**
+	 * Determines if a specified name is a valid client for this service.
+	 *
+	 * @param name The client name
+	 * @return True if the client name is known by the service
+	 */
+	protected static boolean isValidClient(String name) {
+		return OAuth2Constants.SUPPORTED_CLIENTS.contains(name);
+	}
+
+	/**
 	 * Loads a single configuration by name (no extension).<br>
 	 * Creates a Configuration and caches the Configuration.
 	 *
@@ -89,6 +99,10 @@ public class Configuration {
 
 		// if the config is empty, try to load it
 		if (config == null) {
+			// validate the client
+			if (!isValidClient(name)) {
+				throw new InvalidClientException("The specified client is unsupported.");
+			}
 			config = new Configuration(name);
 		}
 		configCache.put(name, config);

@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.exceptions.ConfigurationException;
 import com.zimbra.oauth.exceptions.InvalidClientException;
@@ -41,14 +43,19 @@ public class ClassManager {
 						final Configuration config = Configuration.buildConfiguration(client);
 
 						// load the handler class
-						final Class<?> daoClass = Class.forName(config.getString("zm_oauth_classes_handlers_" + client));
+						final String className = config.getString("zm_oauth_classes_handlers_" + client);
+						if (StringUtils.isEmpty(className)) {
+							ZimbraLog.extensions.debug("Missing handler class name declaration in config.");
+							throw new ConfigurationException("Missing handler class name declaration in config.");
+						}
+						final Class<?> daoClass = Class.forName(className);
 						handler = (IOAuth2Handler) daoClass.getConstructor(Configuration.class).newInstance(config);
 
 						// cache the new handler
 						handlersCache.put(client, handler);
 					} catch (ConfigurationException | InvalidClientException e) {
-						ZimbraLog.extensions.error("There was an issue loading the configuration for the client.", e);
-						throw new ConfigurationException("There was an issue loading the configuration for the client.", e);
+						ZimbraLog.extensions.debug("There was an issue loading the configuration for the client.", e);
+						throw e;
 					} catch (final ClassNotFoundException e) {
 						ZimbraLog.extensions.error("The specified client is not supported: " + client, e);
 						throw new InvalidClientException("The specified client is not supported: " + client, e);
