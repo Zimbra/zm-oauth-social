@@ -71,13 +71,15 @@ public class Configuration {
 	}
 
 	/**
-	 * Determines if a specified name is a valid client for this service.
+	 * Determines if a specified name is a valid client for this service.<br>
+	 * A client is valid if localconfig contains a specified handler class for the client.<br>
+	 * Note this does not necessarily mean the class exists on the classpath.
 	 *
 	 * @param name The client name
 	 * @return True if the client name is known by the service
 	 */
 	protected static boolean isValidClient(String name) {
-		return OAuth2Constants.SUPPORTED_CLIENTS.contains(name);
+		return !StringUtils.isEmpty(LC.get(OAuth2Constants.PROPERTIES_HANDLER_PREFIX + name));
 	}
 
 	/**

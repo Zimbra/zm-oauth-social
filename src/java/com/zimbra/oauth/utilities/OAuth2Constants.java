@@ -1,8 +1,5 @@
 package com.zimbra.oauth.utilities;
 
-import java.util.Arrays;
-import java.util.List;
-
 public class OAuth2Constants {
 	public static final String API_NAME = "zm-oauth2";
 	public static final String ENCODING = "utf-8";
@@ -29,12 +26,7 @@ public class OAuth2Constants {
 
 	// properties related
 	public static final String PROPERTIES_NAME_APPLICATION = "application";
-	public static final List<String> SUPPORTED_CLIENTS = Arrays.asList(
-		PROPERTIES_NAME_APPLICATION,
-		"google",
-		"outlook",
-		"yahoo"
-	);
+	public static final String PROPERTIES_HANDLER_PREFIX = "zm_oauth_classes_handlers_";
 
 	// LC properties related
 	public static final String LC_SOAP_HOST = "soap_host";

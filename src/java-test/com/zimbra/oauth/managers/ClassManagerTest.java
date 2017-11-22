@@ -7,6 +7,7 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -69,6 +70,11 @@ public class ClassManagerTest {
 	 */
 	protected static final String hostname = "zcs-dev.test";
 
+	/**
+	 * Setup the static LC properties used during testing once.
+	 *
+	 * @throws Exception If there are issues during setup
+	 */
 	@BeforeClass
 	public static void setUpOnce() throws Exception {
 		PowerMock.mockStatic(LC.class);
@@ -157,6 +163,8 @@ public class ClassManagerTest {
 		} catch (final Exception e) {
 			PowerMock.verify(Configuration.class);
 			assertEquals("The specified client is unsupported.", e.getMessage());
+			return;
 		}
+		fail("Expected exception to be thrown for bad client name.");
 	}
 }

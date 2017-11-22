@@ -5,13 +5,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
-
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.exceptions.ConfigurationException;
 import com.zimbra.oauth.exceptions.InvalidClientException;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.OAuth2Constants;
 
 public class ClassManager {
 
@@ -43,11 +42,7 @@ public class ClassManager {
 						final Configuration config = Configuration.buildConfiguration(client);
 
 						// load the handler class
-						final String className = config.getString("zm_oauth_classes_handlers_" + client);
-						if (StringUtils.isEmpty(className)) {
-							ZimbraLog.extensions.debug("Missing handler class name declaration in config.");
-							throw new ConfigurationException("Missing handler class name declaration in config.");
-						}
+						final String className = config.getString(OAuth2Constants.PROPERTIES_HANDLER_PREFIX + client);
 						final Class<?> daoClass = Class.forName(className);
 						handler = (IOAuth2Handler) daoClass.getConstructor(Configuration.class).newInstance(config);
 
