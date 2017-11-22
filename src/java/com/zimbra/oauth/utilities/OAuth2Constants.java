@@ -26,9 +26,9 @@ public class OAuth2Constants {
 
 	// properties related
 	public static final String PROPERTIES_NAME_APPLICATION = "application";
-	public static final String PROPERTIES_HANDLER_PREFIX = "zm_oauth_classes_handlers_";
 
 	// LC properties related
+	public static final String LC_HANDLER_CLASS_PREFIX = "zm_oauth_classes_handlers_";
 	public static final String LC_SOAP_HOST = "soap_host";
 	public static final String LC_HOST_URI_TEMPLATE = "host_uri_template";
 	public static final String LC_OAUTH_FOLDER_ID = "zm_oauth_source_folder_id";

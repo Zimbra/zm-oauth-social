@@ -79,7 +79,7 @@ public class Configuration {
 	 * @return True if the client name is known by the service
 	 */
 	protected static boolean isValidClient(String name) {
-		return !StringUtils.isEmpty(LC.get(OAuth2Constants.PROPERTIES_HANDLER_PREFIX + name));
+		return !StringUtils.isEmpty(LC.get(OAuth2Constants.LC_HANDLER_CLASS_PREFIX + name));
 	}
 
 	/**
