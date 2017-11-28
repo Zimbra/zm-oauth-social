@@ -22,6 +22,7 @@
     <ivy:cachepath pathid="compile.path" conf="compile"/>
     <ivy:cachepath pathid="runtime.path" conf="runtime"/>
     <ivy:cachepath pathid="test.path" conf="test"/>
+    <ivy:cachepath pathid="doclet.path" conf="doclet"/>
 
     <mkdir dir="${classes.dir}"/>
     <mkdir dir="${test.classes.dir}"/>
@@ -87,6 +88,20 @@
         <include name="*"/>
       </tarfileset>
     </tar>
+  </target>
+
+  <!-- Doclet -->
+  <target name="doclet" depends="jar,set-dev-version">
+    <javadoc destdir="build/javadoc" classpathref="doclet.path">
+      <packageset dir="src/java" defaultexcludes="yes">
+        <include name="com/zimbra/oauth/**" />
+      </packageset>
+      <doclet name="com.tenxerconsulting.swagger.doclet.ServiceDoclet" pathref="doclet.path">
+        <param name="-docBasePath" value="/zm-oauth2-docs-latest"/>
+        <param name="-apiBasePath" value="/"/>
+        <param name="-apiVersion" value="${dev.version}"/>
+      </doclet>
+    </javadoc>
   </target>
 
   <target name="stop-authserver">

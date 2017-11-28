@@ -108,7 +108,6 @@ public class OAuth2Handler {
 		// throw if the upstream response
 		// is not what we previously expected
 		try {
-			ZimbraLog.extensions.debug(responseBody);
 			json = mapper.readTree(responseBody);
 		} catch (final JsonParseException e) {
 			ZimbraLog.extensions.warn("The destination server responded with unexpected data.", e);

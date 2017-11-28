@@ -19,10 +19,11 @@ public class OAuth2Resource {
 	/**
 	 * Redirects to the client's authorize endpoint.
 	 *
-	 * @param client The client to redirect to (yahoo, gmail, outlook, etc)
+	 * @param client The client to redirect to for authorization (yahoo, google, outlook, etc)
 	 * @param relay The location to direct the user after authenticating
 	 * @return HTTP Response 303
-	 * @throws GenericOAuthException
+	 * @responseMessage 303 Client authorization location
+	 * @throws GenericOAuthException If there are unhandled issues determining the authorize location
 	 */
 	@GET
 	@Path("authorize/{client}")
@@ -35,12 +36,13 @@ public class OAuth2Resource {
 	 * Authenticates a user with the endpoint and stores credentials in ephemeral-store.<br>
 	 * Errors will be contained in query parameters `error`, and `error_msg` (if extra details exist).
 	 *
-	 * @param client The client to redirect to (yahoo, gmail, outlook, etc)
+	 * @param client The client used to authenticate (yahoo, google, outlook, etc)
 	 * @param code Code from authorizing endpoint
 	 * @param error Errors from authorizing endpoint
 	 * @param relay The location to direct the user after authenticating
 	 * @return HTTP Response 303
-	 * @throws GenericOAuthException
+	 * @responseMessage 303 Configured location
+	 * @throws GenericOAuthException If there are unhandled issues authenticating
 	 */
 	@GET
 	@Path("authenticate/{client}")
