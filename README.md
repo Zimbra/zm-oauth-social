@@ -43,6 +43,8 @@ ant test
 
 ## Usage
 
+**API**
+
 See the [documentation for api usage].
 
 After a user completes the oauth2 flow, the credentials for their account will be stored as a data source in a configured folder, or a default Contact subfolder - which will be created in the user's mailbox, if necessary, during authentication.
