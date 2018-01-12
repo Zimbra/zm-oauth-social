@@ -79,49 +79,66 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 	protected final OAuthDataSource dataSource;
 
 	/**
-	 * Unauthorized response code from Google.
+	 * Contains constants used in this implementation.
 	 */
-	protected static final String RESPONSE_ERROR_ACCOUNT_NOT_UNAUTHORIZED = "ACCOUNT_NOT_UNAUTHORIZED";
+	protected class GoogleConstants {
 
-	/**
-	 * Invalid client response code from Google.
-	 */
-	protected static final String RESPONSE_ERROR_INVALID_CLIENT = "INVALID_CLIENT";
+		/**
+		 * Unauthorized response code from Google.
+		 */
+		protected static final String RESPONSE_ERROR_ACCOUNT_NOT_UNAUTHORIZED = "ACCOUNT_NOT_UNAUTHORIZED";
 
-	/**
-	 * Invalid client secret response code from Google.
-	 */
-	protected static final String RESPONSE_ERROR_INVALID_CLIENT_SECRET = "INVALID_CLIENT_SECRET";
+		/**
+		 * Invalid client response code from Google.
+		 */
+		protected static final String RESPONSE_ERROR_INVALID_CLIENT = "INVALID_CLIENT";
 
-	/**
-	 * Invalid redirect response code from Google.
-	 */
-	protected static final String RESPONSE_ERROR_INVALID_REDIRECT_URI = "INVALID_REDIRECT_URI";
+		/**
+		 * Invalid client secret response code from Google.
+		 */
+		protected static final String RESPONSE_ERROR_INVALID_CLIENT_SECRET = "INVALID_CLIENT_SECRET";
 
-	/**
-	 * Invalid callback response code from Google.
-	 */
-	protected static final String RESPONSE_ERROR_INVALID_CALLBACK = "INVALID_CALLBACK";
+		/**
+		 * Invalid redirect response code from Google.
+		 */
+		protected static final String RESPONSE_ERROR_INVALID_REDIRECT_URI = "INVALID_REDIRECT_URI";
 
-	/**
-	 * Invalid refresh token response code from Google.
-	 */
-	protected static final String RESPONSE_ERROR_INVALID_REFRESH_TOKEN = "INVALID_REFRESH_TOKEN";
+		/**
+		 * Invalid callback response code from Google.
+		 */
+		protected static final String RESPONSE_ERROR_INVALID_CALLBACK = "INVALID_CALLBACK";
 
-	/**
-	 * Invalid authorization code response code from Google.
-	 */
-	protected static final String RESPONSE_ERROR_INVALID_AUTHORIZATION_CODE = "INVALID_AUTHORIZATION_CODE";
+		/**
+		 * Invalid refresh token response code from Google.
+		 */
+		protected static final String RESPONSE_ERROR_INVALID_REFRESH_TOKEN = "INVALID_REFRESH_TOKEN";
 
-	/**
-	 * Invalid grant response code from Google.
-	 */
-	protected static final String RESPONSE_ERROR_INVALID_GRANT = "INVALID_GRANT";
+		/**
+		 * Invalid authorization code response code from Google.
+		 */
+		protected static final String RESPONSE_ERROR_INVALID_AUTHORIZATION_CODE = "INVALID_AUTHORIZATION_CODE";
 
-	/**
-	 * Token expired response code from Google.
-	 */
-	protected static final String RESPONSE_ERROR_TOKEN_EXPIRED = "TOKEN_EXPIRED";
+		/**
+		 * Invalid grant response code from Google.
+		 */
+		protected static final String RESPONSE_ERROR_INVALID_GRANT = "INVALID_GRANT";
+
+		/**
+		 * Token expired response code from Google.
+		 */
+		protected static final String RESPONSE_ERROR_TOKEN_EXPIRED = "TOKEN_EXPIRED";
+
+		// LC Google
+		public static final String LC_OAUTH_AUTHORIZE_URI_TEMPLATE = "zm_oauth_google_authorize_uri_template";
+		public static final String LC_OAUTH_PROFILE_URI_TEMPLATE = "zm_oauth_google_profile_uri_template";
+		public static final String LC_OAUTH_AUTHENTICATE_URI = "zm_oauth_google_authenticate_uri";
+		public static final String LC_OAUTH_CLIENT_ID = "zm_oauth_google_client_id";
+		public static final String LC_OAUTH_CLIENT_SECRET = "zm_oauth_google_client_secret";
+		public static final String LC_OAUTH_CLIENT_REDIRECT_URI = "zm_oauth_google_client_redirect_uri";
+		public static final String LC_OAUTH_SCOPE = "zm_oauth_google_scope";
+		public static final String LC_OAUTH_IMPORT_CLASS = "zm_oauth_google_import_class";
+		public static final String LC_OAUTH_RELAY_KEY = "zm_oauth_google_relay_key";
+	}
 
 	/**
 	 * Constructs a GoogleOAuth2Handler object.
@@ -130,14 +147,14 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 	 */
 	public GoogleOAuth2Handler(Configuration config) {
 		super(config);
-		authorizeUriTemplate = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_AUTHORIZE_URI_TEMPLATE);
-		authenticateUri = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_AUTHENTICATE_URI);
-		profileUriTemplate = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_PROFILE_URI_TEMPLATE);
-		clientId = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_CLIENT_ID);
-		clientSecret = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_CLIENT_SECRET);
-		clientRedirectUri = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_CLIENT_REDIRECT_URI);
-		relayKey = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY);
-		scope = config.getString(OAuth2Constants.LC_OAUTH_GOOGLE_SCOPE);
+		authorizeUriTemplate = config.getString(GoogleConstants.LC_OAUTH_AUTHORIZE_URI_TEMPLATE);
+		authenticateUri = config.getString(GoogleConstants.LC_OAUTH_AUTHENTICATE_URI);
+		profileUriTemplate = config.getString(GoogleConstants.LC_OAUTH_PROFILE_URI_TEMPLATE);
+		clientId = config.getString(GoogleConstants.LC_OAUTH_CLIENT_ID);
+		clientSecret = config.getString(GoogleConstants.LC_OAUTH_CLIENT_SECRET);
+		clientRedirectUri = config.getString(GoogleConstants.LC_OAUTH_CLIENT_REDIRECT_URI);
+		relayKey = config.getString(GoogleConstants.LC_OAUTH_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY);
+		scope = config.getString(GoogleConstants.LC_OAUTH_SCOPE);
 		dataSource = OAuthDataSource.createDataSource(OAuth2Constants.HOST_GOOGLE);
 	}
 
@@ -278,27 +295,27 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 			final String error = response.get("error").asText();
 			final JsonNode errorMsg = response.get("error_description");
 			switch (error) {
-				case RESPONSE_ERROR_ACCOUNT_NOT_UNAUTHORIZED:
+				case GoogleConstants.RESPONSE_ERROR_ACCOUNT_NOT_UNAUTHORIZED:
 					ZimbraLog.extensions.info("User did not provide authorization for this service: " + errorMsg);
 					throw new UserForbiddenException("User did not provide authorization for this service.");
-				case RESPONSE_ERROR_INVALID_REDIRECT_URI:
+				case GoogleConstants.RESPONSE_ERROR_INVALID_REDIRECT_URI:
 					ZimbraLog.extensions.info("Redirect does not match the one found in authorization request: " + errorMsg);
 					throw new InvalidOperationException("Redirect does not match the one found in authorization request.");
-				case RESPONSE_ERROR_INVALID_CALLBACK:
+				case GoogleConstants.RESPONSE_ERROR_INVALID_CALLBACK:
 					ZimbraLog.extensions.warn("Redirect does not match the configured one expected by the server: " + errorMsg);
 					throw new InvalidOperationException("Redirect does not match the configured one expected by the server.");
-				case RESPONSE_ERROR_INVALID_REFRESH_TOKEN:
+				case GoogleConstants.RESPONSE_ERROR_INVALID_REFRESH_TOKEN:
 					ZimbraLog.extensions.debug("Invalid refresh token used: " + errorMsg);
 					throw new InvalidOperationException("Refresh token is invalid.");
-				case RESPONSE_ERROR_INVALID_AUTHORIZATION_CODE:
-				case RESPONSE_ERROR_INVALID_GRANT:
+				case GoogleConstants.RESPONSE_ERROR_INVALID_AUTHORIZATION_CODE:
+				case GoogleConstants.RESPONSE_ERROR_INVALID_GRANT:
 					ZimbraLog.extensions.debug("Invalid authorization token used: " + errorMsg);
 					throw new UserUnauthorizedException("Authorization token is expired or invalid. Unable to authenticate the user.");
-				case RESPONSE_ERROR_TOKEN_EXPIRED:
+				case GoogleConstants.RESPONSE_ERROR_TOKEN_EXPIRED:
 					ZimbraLog.extensions.debug("Refresh token is expired: " + errorMsg);
 					throw new UserUnauthorizedException("Refresh token is expired. Unable to authenticate the user.");
-				case RESPONSE_ERROR_INVALID_CLIENT:
-				case RESPONSE_ERROR_INVALID_CLIENT_SECRET:
+				case GoogleConstants.RESPONSE_ERROR_INVALID_CLIENT:
+				case GoogleConstants.RESPONSE_ERROR_INVALID_CLIENT_SECRET:
 					ZimbraLog.extensions.warn("Invalid client or client secret provided to mail server: " + errorMsg );
 					throw new ConfigurationException("Invalid client details provided to mail server.");
 				default:

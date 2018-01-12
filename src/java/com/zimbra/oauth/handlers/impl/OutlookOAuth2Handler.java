@@ -81,46 +81,63 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 	protected final OAuthDataSource dataSource;
 
 	/**
-	 * Invalid request error from Outlook.<br>
-	 * Protocol error, such as a missing required parameter.
+	 * Contains constants used in this implementation.
 	 */
-	protected static final String RESPONSE_ERROR_INVALID_REQUEST = "invalid_request";
+	protected class OutlookConstants {
 
-	/**
-	 * Unauthorized client error from Outlook.<br>
-	 * The client application is not permitted to request an authorization code.
-	 */
-	protected static final String RESPONSE_ERROR_UNAUTHORIZED_CLIENT = "unauthorized_client";
+		/**
+		 * Invalid request error from Outlook.<br>
+		 * Protocol error, such as a missing required parameter.
+		 */
+		protected static final String RESPONSE_ERROR_INVALID_REQUEST = "invalid_request";
 
-	/**
-	 * Access denied error from Outlook.<br>
-	 * Resource owner denied consent.
-	 */
-	protected static final String RESPONSE_ERROR_ACCESS_DENIED = "access_denied";
+		/**
+		 * Unauthorized client error from Outlook.<br>
+		 * The client application is not permitted to request an authorization code.
+		 */
+		protected static final String RESPONSE_ERROR_UNAUTHORIZED_CLIENT = "unauthorized_client";
 
-	/**
-	 * Server error, error from Outlook.<br>
-	 * The server encountered an unexpected error.
-	 */
-	protected static final String RESPONSE_ERROR_SERVER_ERROR = "server_error";
+		/**
+		 * Access denied error from Outlook.<br>
+		 * Resource owner denied consent.
+		 */
+		protected static final String RESPONSE_ERROR_ACCESS_DENIED = "access_denied";
 
-	/**
-	 * Temporarily unavailable error from Outlook.<br>
-	 * The server is temporarily too busy to handle the request.
-	 */
-	protected static final String RESPONSE_ERROR_TEMPORARILY_UNAVAILABLE = "temporarily_unavailable";
+		/**
+		 * Server error, error from Outlook.<br>
+		 * The server encountered an unexpected error.
+		 */
+		protected static final String RESPONSE_ERROR_SERVER_ERROR = "server_error";
 
-	/**
-	 * Invalid resource error from Outlook.<br>
-	 * The target resource is invalid because it does not exist, Azure AD cannot find it, or it is not correctly configured.
-	 */
-	protected static final String RESPONSE_ERROR_INVALID_RESOURCE = "invalid_resource";
+		/**
+		 * Temporarily unavailable error from Outlook.<br>
+		 * The server is temporarily too busy to handle the request.
+		 */
+		protected static final String RESPONSE_ERROR_TEMPORARILY_UNAVAILABLE = "temporarily_unavailable";
 
-	/**
-	 * Unsupported response type error from Outlook.<br>
-	 * The authorization server does not support the response type in the request.
-	 */
-	protected static final String RESPONSE_ERROR_RESPONSE_TYPE = "unsupported_response_type";
+		/**
+		 * Invalid resource error from Outlook.<br>
+		 * The target resource is invalid because it does not exist, Azure AD cannot find it, or it is not correctly configured.
+		 */
+		protected static final String RESPONSE_ERROR_INVALID_RESOURCE = "invalid_resource";
+
+		/**
+		 * Unsupported response type error from Outlook.<br>
+		 * The authorization server does not support the response type in the request.
+		 */
+		protected static final String RESPONSE_ERROR_RESPONSE_TYPE = "unsupported_response_type";
+
+		// LC Outlook
+		public static final String LC_OAUTH_AUTHORIZE_URI_TEMPLATE = "zm_oauth_outlook_authorize_uri_template";
+		public static final String LC_OAUTH_PROFILE_URI_TEMPLATE = "zm_oauth_outlook_profile_uri_template";
+		public static final String LC_OAUTH_AUTHENTICATE_URI = "zm_oauth_outlook_authenticate_uri";
+		public static final String LC_OAUTH_CLIENT_ID = "zm_oauth_outlook_client_id";
+		public static final String LC_OAUTH_CLIENT_SECRET = "zm_oauth_outlook_client_secret";
+		public static final String LC_OAUTH_CLIENT_REDIRECT_URI = "zm_oauth_outlook_client_redirect_uri";
+		public static final String LC_OAUTH_SCOPE = "zm_oauth_outlook_scope";
+		public static final String LC_OAUTH_IMPORT_CLASS = "zm_oauth_outlook_import_class";
+		public static final String LC_OAUTH_RELAY_KEY = "zm_oauth_outlook_relay_key";
+	}
 
 	/**
 	 * Constructs an OutlookOAuth2Handler object.
@@ -129,14 +146,14 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 	 */
 	public OutlookOAuth2Handler(Configuration config) {
 		super(config);
-		authorizeUriTemplate = config.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_AUTHORIZE_URI_TEMPLATE);
-		authenticateUri = config.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_AUTHENTICATE_URI);
-		profileUriTemplate = config.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_PROFILE_URI_TEMPLATE);
-		clientId = config.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_CLIENT_ID);
-		clientSecret = config.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_CLIENT_SECRET);
-		clientRedirectUri = config.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_CLIENT_REDIRECT_URI);
-		relayKey = config.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY);
-		scope = config.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_SCOPE);
+		authorizeUriTemplate = config.getString(OutlookConstants.LC_OAUTH_AUTHORIZE_URI_TEMPLATE);
+		authenticateUri = config.getString(OutlookConstants.LC_OAUTH_AUTHENTICATE_URI);
+		profileUriTemplate = config.getString(OutlookConstants.LC_OAUTH_PROFILE_URI_TEMPLATE);
+		clientId = config.getString(OutlookConstants.LC_OAUTH_CLIENT_ID);
+		clientSecret = config.getString(OutlookConstants.LC_OAUTH_CLIENT_SECRET);
+		clientRedirectUri = config.getString(OutlookConstants.LC_OAUTH_CLIENT_REDIRECT_URI);
+		relayKey = config.getString(OutlookConstants.LC_OAUTH_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY);
+		scope = config.getString(OutlookConstants.LC_OAUTH_SCOPE);
 		dataSource = OAuthDataSource.createDataSource(OAuth2Constants.HOST_OUTLOOK);
 	}
 
@@ -271,23 +288,23 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 			final String error = response.get("error").asText();
 			final JsonNode errorMsg = response.get("error_description");
 			switch (error) {
-				case RESPONSE_ERROR_INVALID_REQUEST:
+				case OutlookConstants.RESPONSE_ERROR_INVALID_REQUEST:
 					ZimbraLog.extensions.warn("Invalid authentication request parameters: " + errorMsg);
 					throw new InvalidOperationException("The authentication request parameters are invalid.");
-				case RESPONSE_ERROR_UNAUTHORIZED_CLIENT:
+				case OutlookConstants.RESPONSE_ERROR_UNAUTHORIZED_CLIENT:
 					ZimbraLog.extensions.warn("The specified client details provided to oauth2 server are invalid: " + errorMsg );
 					throw new ConfigurationException("The specified client details provided to oauth2 server are invalid.");
-				case RESPONSE_ERROR_ACCESS_DENIED:
+				case OutlookConstants.RESPONSE_ERROR_ACCESS_DENIED:
 					ZimbraLog.extensions.info("User did not provide authorization for this service: " + errorMsg);
 					throw new UserForbiddenException("User did not provide authorization for this service.");
-				case RESPONSE_ERROR_SERVER_ERROR:
-				case RESPONSE_ERROR_TEMPORARILY_UNAVAILABLE:
+				case OutlookConstants.RESPONSE_ERROR_SERVER_ERROR:
+				case OutlookConstants.RESPONSE_ERROR_TEMPORARILY_UNAVAILABLE:
 					ZimbraLog.extensions.debug("There was an issue with the remote oauth2 server: " + errorMsg);
 					throw new InvalidResponseException("There was an issue with the remote oauth2 server.");
-				case RESPONSE_ERROR_INVALID_RESOURCE:
+				case OutlookConstants.RESPONSE_ERROR_INVALID_RESOURCE:
 					ZimbraLog.extensions.debug("Invalid resource: " + errorMsg);
 					throw new UserUnauthorizedException("The specified resource is invalid.");
-				case RESPONSE_ERROR_RESPONSE_TYPE:
+				case OutlookConstants.RESPONSE_ERROR_RESPONSE_TYPE:
 					ZimbraLog.extensions.info("Requested response type is not supported: " + errorMsg);
 					throw new InvalidOperationException("Requested response type is not supported by the oauth2 server.");
 				default:

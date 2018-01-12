@@ -40,35 +40,6 @@ public class OAuth2Constants {
 	public static final String LC_OAUTH_HTTP_CLIENT_MAX_TOTAL = "zm_oauth_http_client_max_total";
 	public static final String LC_OAUTH_HTTP_CLIENT_TIMEOUT = "zm_oauth_http_client_timeout";
 	public static final String LC_OAUTH_HTTP_CLIENT_ANSWER_TIMEOUT = "zm_oauth_http_client_answer_timeout";
-	// LC Yahoo
-	public static final String LC_OAUTH_YAHOO_AUTHORIZE_URI_TEMPLATE = "zm_oauth_yahoo_authorize_uri_template";
-	public static final String LC_OAUTH_YAHOO_PROFILE_URI_TEMPLATE = "zm_oauth_yahoo_profile_uri_template";
-	public static final String LC_OAUTH_YAHOO_AUTHENTICATE_URI = "zm_oauth_yahoo_authenticate_uri";
-	public static final String LC_OAUTH_YAHOO_CLIENT_ID = "zm_oauth_yahoo_client_id";
-	public static final String LC_OAUTH_YAHOO_CLIENT_SECRET = "zm_oauth_yahoo_client_secret";
-	public static final String LC_OAUTH_YAHOO_CLIENT_REDIRECT_URI = "zm_oauth_yahoo_client_redirect_uri";
-	public static final String LC_OAUTH_YAHOO_IMPORT_CLASS = "zm_oauth_yahoo_import_class";
-	public static final String LC_OAUTH_YAHOO_RELAY_KEY = "zm_oauth_yahoo_relay_key";
-	// LC Google
-	public static final String LC_OAUTH_GOOGLE_AUTHORIZE_URI_TEMPLATE = "zm_oauth_google_authorize_uri_template";
-	public static final String LC_OAUTH_GOOGLE_PROFILE_URI_TEMPLATE = "zm_oauth_google_profile_uri_template";
-	public static final String LC_OAUTH_GOOGLE_AUTHENTICATE_URI = "zm_oauth_google_authenticate_uri";
-	public static final String LC_OAUTH_GOOGLE_CLIENT_ID = "zm_oauth_google_client_id";
-	public static final String LC_OAUTH_GOOGLE_CLIENT_SECRET = "zm_oauth_google_client_secret";
-	public static final String LC_OAUTH_GOOGLE_CLIENT_REDIRECT_URI = "zm_oauth_google_client_redirect_uri";
-	public static final String LC_OAUTH_GOOGLE_SCOPE = "zm_oauth_google_scope";
-	public static final String LC_OAUTH_GOOGLE_IMPORT_CLASS = "zm_oauth_google_import_class";
-	public static final String LC_OAUTH_GOOGLE_RELAY_KEY = "zm_oauth_google_relay_key";
-	// LC Outlook
-	public static final String LC_OAUTH_OUTLOOK_AUTHORIZE_URI_TEMPLATE = "zm_oauth_outlook_authorize_uri_template";
-	public static final String LC_OAUTH_OUTLOOK_PROFILE_URI_TEMPLATE = "zm_oauth_outlook_profile_uri_template";
-	public static final String LC_OAUTH_OUTLOOK_AUTHENTICATE_URI = "zm_oauth_outlook_authenticate_uri";
-	public static final String LC_OAUTH_OUTLOOK_CLIENT_ID = "zm_oauth_outlook_client_id";
-	public static final String LC_OAUTH_OUTLOOK_CLIENT_SECRET = "zm_oauth_outlook_client_secret";
-	public static final String LC_OAUTH_OUTLOOK_CLIENT_REDIRECT_URI = "zm_oauth_outlook_client_redirect_uri";
-	public static final String LC_OAUTH_OUTLOOK_SCOPE = "zm_oauth_outlook_scope";
-	public static final String LC_OAUTH_OUTLOOK_IMPORT_CLASS = "zm_oauth_outlook_import_class";
-	public static final String LC_OAUTH_OUTLOOK_RELAY_KEY = "zm_oauth_outlook_relay_key";
 
 	// ZDataSource temporary constant
 	public static final String HOST_GOOGLE = "googleapis.com";
