@@ -233,6 +233,15 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 		return true;
 	}
 
+	/**
+	 * Builds the HTTP request for authentication.
+	 *
+	 * @param authInfo Contains the auth info to use in the request
+	 * @param redirectUri The user's redirect uri
+	 * @param context The HTTP context
+	 * @return Json response from the endpoint
+	 * @throws GenericOAuthException If there are issues performing the request or parsing for json
+	 */
 	protected JsonNode authenticateRequest(OAuthInfo authInfo, String redirectUri, HttpClientContext context) throws GenericOAuthException {
 		final String clientId = authInfo.getClientId();
 		final String clientSecret = authInfo.getClientSecret();
@@ -258,7 +267,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 		JsonNode json = null;
 		try {
 			request.setEntity(new UrlEncodedFormEntity(params));
-			json = executeRequest(request, context);
+			json = executeRequestForJson(request, context);
 		} catch (final IOException e) {
 			ZimbraLog.extensions.error("There was an issue acquiring the authorization token.", e);
 			throw new UserUnauthorizedException("There was an issue acquiring an authorization token for this user.");
@@ -344,7 +353,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 		JsonNode json = null;
 		try
 		{
-			json = executeRequest(request, context);
+			json = executeRequestForJson(request, context);
 		}
 		catch (final IOException e)
 		{

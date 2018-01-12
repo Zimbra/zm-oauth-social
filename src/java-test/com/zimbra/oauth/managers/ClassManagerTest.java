@@ -122,7 +122,7 @@ public class ClassManagerTest {
 		expect(mockConfig.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE, OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
 			.andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
 		expect(mockConfig.getString(matches(OAuth2Constants.LC_OAUTH_FOLDER_ID))).andReturn(folderId);
-		// expect
+		// expect some properties to be read at least once
 		expect(mockConfig.getString(anyObject(String.class))).andReturn(null).atLeastOnce();
 		expect(mockConfig.getString(anyObject(String.class), anyObject(String.class))).andReturn(null).atLeastOnce();
 

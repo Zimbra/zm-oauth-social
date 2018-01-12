@@ -41,7 +41,4 @@ public class OAuth2Constants {
 	public static final String LC_OAUTH_HTTP_CLIENT_TIMEOUT = "zm_oauth_http_client_timeout";
 	public static final String LC_OAUTH_HTTP_CLIENT_ANSWER_TIMEOUT = "zm_oauth_http_client_answer_timeout";
 
-	// ZDataSource temporary constant
-	public static final String HOST_GOOGLE = "googleapis.com";
-	public static final String HOST_OUTLOOK = "microsoftonline.com";
 }

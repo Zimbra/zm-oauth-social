@@ -126,7 +126,7 @@ public class GoogleOAuth2HandlerTest {
 		expect(mockConfig.getString(GoogleConstants.LC_OAUTH_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY)).andReturn(null);
 		expect(mockConfig.getString(GoogleConstants.LC_OAUTH_SCOPE)).andReturn(null);
 		PowerMock.mockStatic(OAuthDataSource.class);
-		expect(OAuthDataSource.createDataSource(OAuth2Constants.HOST_GOOGLE)).andReturn(mockDataSource);
+		expect(OAuthDataSource.createDataSource(GoogleConstants.HOST_GOOGLE)).andReturn(mockDataSource);
 
 		replay(mockConfig);
 		PowerMock.replay(OAuthDataSource.class);

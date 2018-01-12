@@ -123,9 +123,34 @@ public class OAuth2Handler {
 	 * @throws GenericOAuthException If there are issues with the connection
 	 * @throws IOException If there are non connection related issues
 	 */
-	protected JsonNode executeRequest(HttpUriRequest request, HttpClientContext context) throws GenericOAuthException, IOException {
-		CloseableHttpResponse response = null;
+	protected JsonNode executeRequestForJson(HttpUriRequest request, HttpClientContext context) throws GenericOAuthException, IOException {
 		JsonNode json = null;
+		final String responseBody = executeRequest(request, context);
+
+		// try to parse json
+		// throw if the upstream response
+		// is not what we previously expected
+		try {
+			json = mapper.readTree(responseBody);
+		} catch (final JsonParseException e) {
+			ZimbraLog.extensions.warn("The destination server responded with unexpected data.", e);
+			throw new InvalidResponseException("The destination server responded with unexpected data.");
+		}
+
+		return json;
+	}
+
+	/**
+	 * Executes an HttpUriRequest and returns the response body.
+	 *
+	 * @param request Request to execute
+	 * @param context The context to use when executing
+	 * @return Response body as a string
+	 * @throws GenericOAuthException If there are issues with the connection
+	 * @throws IOException If there are non connection related issues
+	 */
+	protected String executeRequest(HttpUriRequest request, HttpClientContext context) throws GenericOAuthException, IOException {
+		CloseableHttpResponse response = null;
 		String responseBody = null;
 		try {
 			response = client.execute(request, context);
@@ -145,18 +170,7 @@ public class OAuth2Handler {
 				response.close();
 			}
 		}
-
-		// try to parse json
-		// throw if the upstream response
-		// is not what we previously expected
-		try {
-			json = mapper.readTree(responseBody);
-		} catch (final JsonParseException e) {
-			ZimbraLog.extensions.warn("The destination server responded with unexpected data.", e);
-			throw new InvalidResponseException("The destination server responded with unexpected data.");
-		}
-
-		return json;
+		return responseBody;
 	}
 
 	/**

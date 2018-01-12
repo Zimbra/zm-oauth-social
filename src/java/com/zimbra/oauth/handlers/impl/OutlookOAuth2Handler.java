@@ -137,6 +137,8 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 		public static final String LC_OAUTH_SCOPE = "zm_oauth_outlook_scope";
 		public static final String LC_OAUTH_IMPORT_CLASS = "zm_oauth_outlook_import_class";
 		public static final String LC_OAUTH_RELAY_KEY = "zm_oauth_outlook_relay_key";
+
+		public static final String HOST_OUTLOOK = "microsoftonline.com";
 	}
 
 	/**
@@ -154,7 +156,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 		clientRedirectUri = config.getString(OutlookConstants.LC_OAUTH_CLIENT_REDIRECT_URI);
 		relayKey = config.getString(OutlookConstants.LC_OAUTH_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY);
 		scope = config.getString(OutlookConstants.LC_OAUTH_SCOPE);
-		dataSource = OAuthDataSource.createDataSource(OAuth2Constants.HOST_OUTLOOK);
+		dataSource = OAuthDataSource.createDataSource(OutlookConstants.HOST_OUTLOOK);
 	}
 
 	@Override
@@ -233,6 +235,15 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 		return true;
 	}
 
+	/**
+	 * Builds the HTTP request for authentication.
+	 *
+	 * @param authInfo Contains the auth info to use in the request
+	 * @param redirectUri The user's redirect uri
+	 * @param context The HTTP context
+	 * @return Json response from the endpoint
+	 * @throws GenericOAuthException If there are issues performing the request or parsing for json
+	 */
 	protected JsonNode authenticateRequest(OAuthInfo authInfo, String redirectUri, HttpClientContext context) throws GenericOAuthException {
 		final String clientId = authInfo.getClientId();
 		final String clientSecret = authInfo.getClientSecret();
@@ -258,7 +269,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 		JsonNode json = null;
 		try {
 			request.setEntity(new UrlEncodedFormEntity(params));
-			json = executeRequest(request, context);
+			json = executeRequestForJson(request, context);
 		} catch (final IOException e) {
 			ZimbraLog.extensions.error("There was an issue acquiring the authorization token.", e);
 			throw new UserUnauthorizedException("There was an issue acquiring an authorization token for this user.");
