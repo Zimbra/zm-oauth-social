@@ -5,17 +5,21 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriInfo;
 
 import org.apache.commons.lang.StringUtils;
 
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.exceptions.GenericOAuthException;
+import com.zimbra.oauth.exceptions.InvalidOperationException;
 import com.zimbra.oauth.exceptions.UserUnauthorizedException;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.managers.ClassManager;
@@ -24,6 +28,14 @@ import com.zimbra.oauth.models.ResponseObject;
 
 public class OAuth2ResourceUtilities {
 
+	/**
+	 * Handles client manager acquisition for authorize call.
+	 *
+	 * @param client The client
+	 * @param relay The relay state
+	 * @return HTTP Response
+	 * @throws GenericOAuthException If there are issues
+	 */
 	public static final Response authorize(String client, String relay) throws GenericOAuthException {
 		final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
 		final String authorizeEndpoint = oauth2Handler.authorize(relay);
@@ -34,31 +46,44 @@ public class OAuth2ResourceUtilities {
 		return OAuth2Utilities.buildResponse(null, Status.SEE_OTHER, headers);
 	}
 
-	public static Response authenticate(String client, String code, String error, String relay, String zmAuthToken) throws GenericOAuthException {
+	/**
+	 * Handles client manager acquisition, and input organization for the authenticate call.
+	 *
+	 * @param client The client
+	 * @param uriInfo The context
+	 * @param zmAuthToken The Zimbra auth token
+	 * @return HTTP Response
+	 * @throws GenericOAuthException If there are issues
+	 */
+	public static Response authenticate(String client, UriInfo uriInfo, String zmAuthToken) throws GenericOAuthException {
 		final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
 		final Map<String, String> errorParams = new HashMap<String, String>();
+		final Map<String, String> params = getParams(oauth2Handler.getAuthenticateParamKeys(), uriInfo);
 
-		if (!StringUtils.isEmpty(error)) {
-			// if we got an error from authorize, redirect the user to their relay
-			// with query params: error, and the original error in error_msg
+		// verify the expected params exist, with no errors
+		try {
+			oauth2Handler.verifyAuthenticateParams(params);
+		} catch (final UserUnauthorizedException e) {
+			// if unauthorized, pass along the error message
 			errorParams.put(OAuth2Constants.QUERY_ERROR, OAuth2Constants.ERROR_ACCESS_DENIED);
-			errorParams.put(OAuth2Constants.QUERY_ERROR_MSG, error);
-		} else if (StringUtils.isEmpty(code)) {
-			// if no auth code, and no error is provided redirect the user to their relay
-			// specifying that an invalid auth code was specified
-			errorParams.put(OAuth2Constants.QUERY_ERROR, OAuth2Constants.ERROR_INVALID_AUTH_CODE);
-		} else if (StringUtils.isEmpty(zmAuthToken)) {
-			// if there is no zimbra auth code, the zimbra account cannot be identified
-			// this happens if the request has no zimbra cookie identifying a session
+			errorParams.put(OAuth2Constants.QUERY_ERROR_MSG, e.getMessage());
+		} catch (final InvalidOperationException e) {
+			// if invalid op, pass along the error message
+			errorParams.put(OAuth2Constants.QUERY_ERROR, e.getMessage());
+		}
+
+		// if there is no zimbra auth code, the zimbra account cannot be identified
+		// this happens if the request has no zimbra cookie identifying a session
+		if (StringUtils.isEmpty(zmAuthToken)) {
 			errorParams.put(OAuth2Constants.QUERY_ERROR, OAuth2Constants.ERROR_INVALID_ZM_AUTH_CODE);
 			errorParams.put(OAuth2Constants.QUERY_ERROR_MSG, OAuth2Constants.ERROR_INVALID_ZM_AUTH_CODE_MSG);
 		} else {
 			try {
-				final OAuthInfo authInfo = new OAuthInfo(code);
+				final OAuthInfo authInfo = new OAuthInfo(params);
 				authInfo.setZmAuthToken(zmAuthToken);
 				oauth2Handler.authenticate(authInfo);
 			} catch (final UserUnauthorizedException e) {
-				// Unauthorized does not have an error header associated with it
+				// unauthorized does not have an error message associated with it
 				errorParams.put(OAuth2Constants.QUERY_ERROR, OAuth2Constants.ERROR_ACCESS_DENIED);
 			} catch (final GenericOAuthException e) {
 				errorParams.put(OAuth2Constants.QUERY_ERROR, OAuth2Constants.ERROR_AUTHENTICATION_ERROR);
@@ -67,6 +92,7 @@ public class OAuth2ResourceUtilities {
 		}
 
 		// validate relay, then add error params if there are any, then redirect
+		final String relay = oauth2Handler.getRelay(params);
 		final Map<String, Object> headers = new HashMap<String, Object>();
 		headers.put(OAuth2Constants.HEADER_LOCATION, addQueryParams(getValidatedRelay(relay), errorParams));
 
@@ -80,6 +106,27 @@ public class OAuth2ResourceUtilities {
 		authInfo.setUsername(username);
 		authInfo.setZmAuthToken(zmAuthToken);
 		return OAuth2Utilities.buildResponse(new ResponseObject<Boolean>(oauth2Handler.refresh(authInfo)), null, null);
+	}
+
+	/**
+	 * Retrieves a map of query params expected for the client.
+	 *
+	 * @param expectedParams A list of params this client is looking for
+	 * @param uriInfo The context to check for request params
+	 * @return Map of params found
+	 */
+	private static Map<String, String> getParams(List<String> expectedParams, UriInfo uriInfo) {
+		final Map<String, String> foundParams = new HashMap<String, String>(expectedParams.size());
+		final MultivaluedMap<String, String> queryParams = uriInfo.getQueryParameters();
+
+		// check for every expected param, add if it exists
+		for (final String key : expectedParams) {
+			if (queryParams.containsKey(key)) {
+				foundParams.put(key, queryParams.getFirst(key));
+			}
+		}
+
+		return foundParams;
 	}
 
 	/**

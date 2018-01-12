@@ -1,12 +1,12 @@
 package com.zimbra.oauth.models;
 
+import java.util.Map;
+
 public class OAuthInfo {
 
 	protected String clientId;
 
 	protected String clientSecret;
-
-	protected String code;
 
 	protected String accessToken;
 
@@ -22,8 +22,10 @@ public class OAuthInfo {
 
 	protected String refreshUrl;
 
-	public OAuthInfo(String code) {
-		this.code = code;
+	protected Map<String, String> params;
+
+	public OAuthInfo(Map<String, String> params) {
+		this.params = params;
 	}
 
 	public String getClientId() {
@@ -42,12 +44,8 @@ public class OAuthInfo {
 		this.clientSecret = clientSecret;
 	}
 
-	public String getCode() {
-		return code;
-	}
-
-	public void setCode(String code) {
-		this.code = code;
+	public String getParam(String key) {
+		return params.get(key);
 	}
 
 	public String getAccessToken() {

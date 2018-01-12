@@ -220,7 +220,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 		final String clientId = authInfo.getClientId();
 		final String clientSecret = authInfo.getClientSecret();
 		final String basicToken = Base64.encodeBase64String(new String(clientId + ":" + clientSecret).getBytes());
-		final String code = authInfo.getCode();
+		final String code = authInfo.getParam("code");
 		final String refreshToken = authInfo.getRefreshToken();
 		final HttpPost request = new HttpPost(authenticateUri);
 		final List<NameValuePair> params = new ArrayList<NameValuePair>();

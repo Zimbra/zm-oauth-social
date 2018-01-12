@@ -3,8 +3,10 @@ package com.zimbra.oauth.handlers.impl;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
@@ -27,10 +29,12 @@ import com.zimbra.common.localconfig.LC;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.exceptions.GenericOAuthException;
+import com.zimbra.oauth.exceptions.InvalidOperationException;
 import com.zimbra.oauth.exceptions.InvalidResponseException;
 import com.zimbra.oauth.exceptions.ServiceNotAvailableException;
 import com.zimbra.oauth.exceptions.UnreachableHostException;
 import com.zimbra.oauth.exceptions.UserUnauthorizedException;
+import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
@@ -70,6 +74,44 @@ public class OAuth2Handler {
 			LC.ssl_allow_untrusted_certs.setDefault("true");
 		}
 		storageFolderId = config.getString(OAuth2Constants.LC_OAUTH_FOLDER_ID);
+	}
+
+	/**
+	 * Declares the query params to look for on oauth2 authenticate callback.<br>
+	 * This method should be overriden if the implementing client uses different parameters.
+	 *
+	 * @see IOAuth2Handler#getAuthenticateParamKeys()
+	 */
+	public List<String> getAuthenticateParamKeys() {
+		// code, error, state are default oauth2 keys
+		return Arrays.asList("code", "error", "state");
+	}
+
+	/**
+	 * Default param verifier. Ensures no `error`, and that `code` is passed in.<br>
+	 * This method should be overriden if the implementing client expects different parameters.
+	 *
+	 * @see IOAuth2Handler#verifyAuthenticateParams()
+	 */
+	public void verifyAuthenticateParams(Map<String, String> params) throws GenericOAuthException {
+		final String error = params.get("error");
+		// check for errors
+		if (!StringUtils.isEmpty(error)) {
+			throw new UserUnauthorizedException(error);
+		// ensure code exists
+		} else if (!params.containsKey("code")) {
+			throw new InvalidOperationException(OAuth2Constants.ERROR_INVALID_AUTH_CODE);
+		}
+	}
+
+	/**
+	 * Returns the relay state param for the client.<br>
+	 * This method should be overriden if the implementing client uses a different key for relay.
+	 *
+	 * @see IOAuth2Handler#getRelay()
+	 */
+	public String getRelay(Map<String, String> params) {
+		return params.get("state");
 	}
 
 	/**
