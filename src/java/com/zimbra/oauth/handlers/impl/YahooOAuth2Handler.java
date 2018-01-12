@@ -82,7 +82,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 		/**
 		 * Unauthorized response code from Yahoo.
 		 */
-		protected static final String RESPONSE_ERROR_ACCOUNT_NOT_UNAUTHORIZED = "ACCOUNT_NOT_UNAUTHORIZED";
+		protected static final String RESPONSE_ERROR_ACCOUNT_NOT_AUTHORIZED = "ACCOUNT_NOT_AUTHORIZED";
 
 		/**
 		 * Invalid client response code from Yahoo.
@@ -297,7 +297,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 			final String error = response.get("error").asText();
 			final JsonNode errorMsg = response.get("error_description");
 			switch (error) {
-				case YahooConstants.RESPONSE_ERROR_ACCOUNT_NOT_UNAUTHORIZED:
+				case YahooConstants.RESPONSE_ERROR_ACCOUNT_NOT_AUTHORIZED:
 					ZimbraLog.extensions.info("User did not provide authorization for this service: " + errorMsg);
 					throw new UserForbiddenException("User did not provide authorization for this service.");
 				case YahooConstants.RESPONSE_ERROR_INVALID_REDIRECT_URI:
