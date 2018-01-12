@@ -122,15 +122,9 @@ public class ClassManagerTest {
 		expect(mockConfig.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE, OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
 			.andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
 		expect(mockConfig.getString(matches(OAuth2Constants.LC_OAUTH_FOLDER_ID))).andReturn(folderId);
-		// yahoo handler constructor
-		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_YAHOO_AUTHORIZE_URI_TEMPLATE)).andReturn(null);
-		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_YAHOO_AUTHENTICATE_URI)).andReturn(null);
-		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_YAHOO_PROFILE_URI_TEMPLATE)).andReturn(null);
-		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_YAHOO_CLIENT_ID)).andReturn(null);
-		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_YAHOO_CLIENT_SECRET)).andReturn(null);
-		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_YAHOO_CLIENT_REDIRECT_URI)).andReturn(null);
-		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_YAHOO_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY))
-			.andReturn(null);
+		// expect
+		expect(mockConfig.getString(anyObject(String.class))).andReturn(null).atLeastOnce();
+		expect(mockConfig.getString(anyObject(String.class), anyObject(String.class))).andReturn(null).atLeastOnce();
 
 		PowerMock.replay(Configuration.class);
 		replay(mockConfig);

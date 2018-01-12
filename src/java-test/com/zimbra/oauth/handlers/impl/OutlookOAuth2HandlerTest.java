@@ -26,6 +26,7 @@ import org.powermock.reflect.Whitebox;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZMailbox;
+import com.zimbra.oauth.handlers.impl.OutlookOAuth2Handler.OutlookConstants;
 import com.zimbra.oauth.models.OAuthDataSource;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
@@ -116,14 +117,14 @@ public class OutlookOAuth2HandlerTest {
 		expect(mockConfig.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE, OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
 			.andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
 		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_FOLDER_ID)).andReturn(storageFolderId);
-		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_AUTHORIZE_URI_TEMPLATE)).andReturn(null);
-		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_AUTHENTICATE_URI)).andReturn(null);
-		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_PROFILE_URI_TEMPLATE)).andReturn(null);
-		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_CLIENT_ID)).andReturn(null);
-		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_CLIENT_SECRET)).andReturn(null);
-		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_CLIENT_REDIRECT_URI)).andReturn(null);
-		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY)).andReturn(null);
-		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_OUTLOOK_SCOPE)).andReturn(null);
+		expect(mockConfig.getString(OutlookConstants.LC_OAUTH_AUTHORIZE_URI_TEMPLATE)).andReturn(null);
+		expect(mockConfig.getString(OutlookConstants.LC_OAUTH_AUTHENTICATE_URI)).andReturn(null);
+		expect(mockConfig.getString(OutlookConstants.LC_OAUTH_PROFILE_URI_TEMPLATE)).andReturn(null);
+		expect(mockConfig.getString(OutlookConstants.LC_OAUTH_CLIENT_ID)).andReturn(null);
+		expect(mockConfig.getString(OutlookConstants.LC_OAUTH_CLIENT_SECRET)).andReturn(null);
+		expect(mockConfig.getString(OutlookConstants.LC_OAUTH_CLIENT_REDIRECT_URI)).andReturn(null);
+		expect(mockConfig.getString(OutlookConstants.LC_OAUTH_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY)).andReturn(null);
+		expect(mockConfig.getString(OutlookConstants.LC_OAUTH_SCOPE)).andReturn(null);
 		PowerMock.mockStatic(OAuthDataSource.class);
 		expect(OAuthDataSource.createDataSource(OAuth2Constants.HOST_OUTLOOK)).andReturn(mockDataSource);
 
