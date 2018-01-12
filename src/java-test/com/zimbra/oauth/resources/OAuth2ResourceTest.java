@@ -3,6 +3,7 @@ package com.zimbra.oauth.resources;
 import static org.easymock.EasyMock.expect;
 
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
 
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -66,18 +67,16 @@ public class OAuth2ResourceTest {
 	@Test
 	public void testAuthenticate() throws Exception {
 		final String client = "yahoo";
-		final String code = "test-code";
-		final String error = null;
-		final String relay = null;
 		final String zmAuthToken = "token-cookie";
 		final Response mockResponse = EasyMock.createMock(Response.class);
+		final UriInfo mockUriInfo = EasyMock.createMock(UriInfo.class);
 
-		expect(OAuth2ResourceUtilities.authenticate(client, code, error, relay, zmAuthToken))
+		expect(OAuth2ResourceUtilities.authenticate(client, mockUriInfo, zmAuthToken))
 			.andReturn(mockResponse);
 
 		PowerMock.replay(OAuth2ResourceUtilities.class);
 
-		resource.authenticate(client, code, error, relay, zmAuthToken);
+		resource.authenticate(client, mockUriInfo, zmAuthToken);
 
 		PowerMock.verify(OAuth2ResourceUtilities.class);
 	}

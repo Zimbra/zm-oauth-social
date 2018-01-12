@@ -72,22 +72,26 @@ public class OAuth2ResourceUtilities {
 			errorParams.put(OAuth2Constants.QUERY_ERROR, e.getMessage());
 		}
 
-		// if there is no zimbra auth code, the zimbra account cannot be identified
-		// this happens if the request has no zimbra cookie identifying a session
-		if (StringUtils.isEmpty(zmAuthToken)) {
-			errorParams.put(OAuth2Constants.QUERY_ERROR, OAuth2Constants.ERROR_INVALID_ZM_AUTH_CODE);
-			errorParams.put(OAuth2Constants.QUERY_ERROR_MSG, OAuth2Constants.ERROR_INVALID_ZM_AUTH_CODE_MSG);
-		} else {
-			try {
-				final OAuthInfo authInfo = new OAuthInfo(params);
-				authInfo.setZmAuthToken(zmAuthToken);
-				oauth2Handler.authenticate(authInfo);
-			} catch (final UserUnauthorizedException e) {
-				// unauthorized does not have an error message associated with it
-				errorParams.put(OAuth2Constants.QUERY_ERROR, OAuth2Constants.ERROR_ACCESS_DENIED);
-			} catch (final GenericOAuthException e) {
-				errorParams.put(OAuth2Constants.QUERY_ERROR, OAuth2Constants.ERROR_AUTHENTICATION_ERROR);
-				errorParams.put(OAuth2Constants.QUERY_ERROR_MSG, e.getMessage());
+		if (errorParams.isEmpty()) {
+			// if there is no zimbra auth code, the zimbra account cannot be identified
+			// this happens if the request has no zimbra cookie identifying a session
+			if (StringUtils.isEmpty(zmAuthToken)) {
+				errorParams.put(OAuth2Constants.QUERY_ERROR, OAuth2Constants.ERROR_INVALID_ZM_AUTH_CODE);
+				errorParams.put(OAuth2Constants.QUERY_ERROR_MSG, OAuth2Constants.ERROR_INVALID_ZM_AUTH_CODE_MSG);
+			} else {
+				try {
+					// no errors and auth token exists
+					// attempt to authenticate
+					final OAuthInfo authInfo = new OAuthInfo(params);
+					authInfo.setZmAuthToken(zmAuthToken);
+					oauth2Handler.authenticate(authInfo);
+				} catch (final UserUnauthorizedException e) {
+					// unauthorized does not have an error message associated with it
+					errorParams.put(OAuth2Constants.QUERY_ERROR, OAuth2Constants.ERROR_ACCESS_DENIED);
+				} catch (final GenericOAuthException e) {
+					errorParams.put(OAuth2Constants.QUERY_ERROR, OAuth2Constants.ERROR_AUTHENTICATION_ERROR);
+					errorParams.put(OAuth2Constants.QUERY_ERROR_MSG, e.getMessage());
+				}
 			}
 		}
 
