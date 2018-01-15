@@ -7,9 +7,13 @@ import static org.easymock.EasyMock.matches;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
+import java.util.Arrays;
 import java.util.Map;
 
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriInfo;
 
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -84,23 +88,33 @@ public class OAuth2ResourceUtilitiesTest {
 	public void testAuthenticate() throws Exception {
 		final String client = "test-client";
 		final String code = "test-code";
-		final String error = null;
-		final String relay = "test-relay";
+		final String state = "test-relay";
 		final String zmAuthToken = "test-zm-auth-token";
+		final UriInfo mockUriInfo = EasyMock.createMock(UriInfo.class);
+		final MultivaluedMap<String, String> params = new MultivaluedHashMap<String, String>(3);
+		params.putSingle("code", code);
+		params.putSingle("state", state);
 
 		expect(ClassManager.getHandler(matches(client))).andReturn(mockHandler);
+		expect(mockUriInfo.getQueryParameters()).andReturn(params);
+		expect(mockHandler.getAuthenticateParamKeys()).andReturn(Arrays.asList("code", "error", "state"));
+		mockHandler.verifyAuthenticateParams(anyObject());
+		EasyMock.expectLastCall();
 		expect(mockHandler.authenticate(anyObject(OAuthInfo.class))).andReturn(true);
+		expect(mockHandler.getRelay(anyObject())).andReturn(state);
 		expect(OAuth2Utilities.buildResponse(anyObject(), eq(Status.SEE_OTHER), EasyMock.<Map<String, Object>> anyObject())).andReturn(null);
 
 		PowerMock.replay(ClassManager.class);
 		replay(mockHandler);
+		replay(mockUriInfo);
 		PowerMock.replay(OAuth2Utilities.class);
 
-		OAuth2ResourceUtilities.authenticate(client, code, error, relay, zmAuthToken);
+		OAuth2ResourceUtilities.authenticate(client, mockUriInfo, zmAuthToken);
 
 		PowerMock.verify(ClassManager.class);
 		PowerMock.verify(OAuth2Utilities.class);
 		verify(mockHandler);
+		verify(mockUriInfo);
 	}
 
 	/**
@@ -114,21 +128,33 @@ public class OAuth2ResourceUtilitiesTest {
 		final String client = "test-client";
 		final String code = "test-code";
 		final String error = "access_denied";
-		final String relay = "test-relay";
+		final String state = "test-relay";
+		final UriInfo mockUriInfo = EasyMock.createMock(UriInfo.class);
 		final String zmAuthToken = "test-zm-auth-token";
+		final MultivaluedMap<String, String> params = new MultivaluedHashMap<String, String>(3);
+		params.putSingle("code", code);
+		params.putSingle("error", error);
+		params.putSingle("state", state);
 
 		expect(ClassManager.getHandler(matches(client))).andReturn(mockHandler);
+		expect(mockUriInfo.getQueryParameters()).andReturn(params);
+		expect(mockHandler.getAuthenticateParamKeys()).andReturn(Arrays.asList("code", "error", "state"));
+		mockHandler.verifyAuthenticateParams(anyObject());
+		EasyMock.expectLastCall().andThrow(new UserUnauthorizedException(error));
+		expect(mockHandler.getRelay(anyObject())).andReturn(state);
 		expect(OAuth2Utilities.buildResponse(anyObject(), eq(Status.SEE_OTHER), EasyMock.<Map<String, Object>> anyObject())).andReturn(null);
 
 		PowerMock.replay(ClassManager.class);
 		replay(mockHandler);
+		replay(mockUriInfo);
 		PowerMock.replay(OAuth2Utilities.class);
 
-		OAuth2ResourceUtilities.authenticate(client, code, error, relay, zmAuthToken);
+		OAuth2ResourceUtilities.authenticate(client, mockUriInfo, zmAuthToken);
 
 		PowerMock.verify(ClassManager.class);
 		PowerMock.verify(OAuth2Utilities.class);
 		verify(mockHandler);
+		verify(mockUriInfo);
 	}
 
 	/**
@@ -143,23 +169,35 @@ public class OAuth2ResourceUtilitiesTest {
 		final String client = "test-client";
 		final String code = "test-code";
 		final String error = null;
-		final String relay = "test-relay";
+		final String state = "test-relay";
+		final UriInfo mockUriInfo = EasyMock.createMock(UriInfo.class);
 		final String zmAuthToken = "test-zm-auth-token";
+		final MultivaluedMap<String, String> params = new MultivaluedHashMap<String, String>(3);
+		params.putSingle("code", code);
+		params.putSingle("error", error);
+		params.putSingle("state", state);
 
 		expect(ClassManager.getHandler(matches(client))).andReturn(mockHandler);
+		expect(mockUriInfo.getQueryParameters()).andReturn(params);
+		expect(mockHandler.getAuthenticateParamKeys()).andReturn(Arrays.asList("code", "error", "state"));
+		mockHandler.verifyAuthenticateParams(anyObject());
+		EasyMock.expectLastCall();
+		expect(mockHandler.getRelay(anyObject())).andReturn(state);
 		expect(OAuth2Utilities.buildResponse(anyObject(), eq(Status.SEE_OTHER), EasyMock.<Map<String, Object>> anyObject())).andReturn(null);
 		expect(mockHandler.authenticate(anyObject(OAuthInfo.class)))
 			.andThrow(new UserUnauthorizedException("Access was denied during get_token!"));
 
 		PowerMock.replay(ClassManager.class);
 		replay(mockHandler);
+		replay(mockUriInfo);
 		PowerMock.replay(OAuth2Utilities.class);
 
-		OAuth2ResourceUtilities.authenticate(client, code, error, relay, zmAuthToken);
+		OAuth2ResourceUtilities.authenticate(client, mockUriInfo, zmAuthToken);
 
 		PowerMock.verify(ClassManager.class);
 		PowerMock.verify(OAuth2Utilities.class);
 		verify(mockHandler);
+		verify(mockUriInfo);
 	}
 
 }
