@@ -16,6 +16,7 @@ public class OAuth2Constants {
 	public static final String HEADER_LOCATION = "Location";
 	public static final String QUERY_ERROR = "error";
 	public static final String QUERY_ERROR_MSG = "error_msg";
+	public static final String COOKIE_AUTH_TOKEN = "ZM_AUTH_TOKEN";
 
 	// http query error related
 	public static final String ERROR_ACCESS_DENIED = "access_denied";

@@ -9,11 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriInfo;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -26,6 +23,13 @@ import com.zimbra.oauth.managers.ClassManager;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.models.ResponseObject;
 
+/**
+ * The OAuth2ResourceUtilities class.
+ *
+ * @author Zimbra API Team
+ * @package com.zimbra.oauth.utilities
+ * @copyright Copyright © 2018
+ */
 public class OAuth2ResourceUtilities {
 
 	/**
@@ -33,32 +37,27 @@ public class OAuth2ResourceUtilities {
 	 *
 	 * @param client The client
 	 * @param relay The relay state
-	 * @return HTTP Response
+	 * @return Location to redirect to
 	 * @throws GenericOAuthException If there are issues
 	 */
-	public static final Response authorize(String client, String relay) throws GenericOAuthException {
+	public static final String authorize(String client, String relay) throws GenericOAuthException {
 		final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
-		final String authorizeEndpoint = oauth2Handler.authorize(relay);
-
-		final Map<String, Object> headers = new HashMap<String, Object>();
-		headers.put(OAuth2Constants.HEADER_LOCATION, authorizeEndpoint);
-
-		return OAuth2Utilities.buildResponse(null, Status.SEE_OTHER, headers);
+		return oauth2Handler.authorize(relay);
 	}
 
 	/**
 	 * Handles client manager acquisition, and input organization for the authenticate call.
 	 *
 	 * @param client The client
-	 * @param uriInfo The context
+	 * @param queryParams Map of query params
 	 * @param zmAuthToken The Zimbra auth token
-	 * @return HTTP Response
+	 * @return Location to redirect to
 	 * @throws GenericOAuthException If there are issues
 	 */
-	public static Response authenticate(String client, UriInfo uriInfo, String zmAuthToken) throws GenericOAuthException {
+	public static String authenticate(String client, Map<String, String[]> queryParams, String zmAuthToken) throws GenericOAuthException {
 		final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
 		final Map<String, String> errorParams = new HashMap<String, String>();
-		final Map<String, String> params = getParams(oauth2Handler.getAuthenticateParamKeys(), uriInfo);
+		final Map<String, String> params = getParams(oauth2Handler.getAuthenticateParamKeys(), queryParams);
 
 		// verify the expected params exist, with no errors
 		try {
@@ -97,10 +96,7 @@ public class OAuth2ResourceUtilities {
 
 		// validate relay, then add error params if there are any, then redirect
 		final String relay = oauth2Handler.getRelay(params);
-		final Map<String, Object> headers = new HashMap<String, Object>();
-		headers.put(OAuth2Constants.HEADER_LOCATION, addQueryParams(getValidatedRelay(relay), errorParams));
-
-		return OAuth2Utilities.buildResponse(null, Status.SEE_OTHER, headers);
+		return addQueryParams(getValidatedRelay(relay), errorParams);
 	}
 
 	public static Response refresh(String client, String username, String zmAuthToken) throws GenericOAuthException {
@@ -116,17 +112,19 @@ public class OAuth2ResourceUtilities {
 	 * Retrieves a map of query params expected for the client.
 	 *
 	 * @param expectedParams A list of params this client is looking for
-	 * @param uriInfo The context to check for request params
+	 * @param queryParams Map of request query parameters
 	 * @return Map of params found
 	 */
-	private static Map<String, String> getParams(List<String> expectedParams, UriInfo uriInfo) {
+	private static Map<String, String> getParams(List<String> expectedParams, Map<String, String[]> queryParams) {
 		final Map<String, String> foundParams = new HashMap<String, String>(expectedParams.size());
-		final MultivaluedMap<String, String> queryParams = uriInfo.getQueryParameters();
 
 		// check for every expected param, add if it exists
 		for (final String key : expectedParams) {
 			if (queryParams.containsKey(key)) {
-				foundParams.put(key, queryParams.getFirst(key));
+			    final String[] values = queryParams.get(key);
+			    if (values != null) {
+			        foundParams.put(key, values[0]);
+			    }
 			}
 		}
 
