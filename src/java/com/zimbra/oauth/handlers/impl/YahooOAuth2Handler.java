@@ -5,9 +5,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -192,9 +192,8 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 		final JsonNode credentials = authenticateRequest(oauthInfo, clientRedirectUri, context);
 
 		final String accessToken = credentials.get("access_token").asText();
-		final JsonNode profileContainer = getUserProfile(credentials.get("xoauth_yahoo_guid").asText(), accessToken, context);
-		final JsonNode profile = profileContainer.get("profile");
-		final String username = profile.get("emails").get(0).get("handle").asText();
+		final String username = getPrimaryEmail(credentials.get("xoauth_yahoo_guid").asText(), accessToken, context);
+		;
 
 		// get zimbra mailbox
 		final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken());
@@ -245,7 +244,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 	protected JsonNode authenticateRequest(OAuthInfo authInfo, String redirectUri, HttpClientContext context) throws GenericOAuthException {
 		final String clientId = authInfo.getClientId();
 		final String clientSecret = authInfo.getClientSecret();
-		final String basicToken = Base64.encodeBase64String(new String(clientId + ":" + clientSecret).getBytes());
+		final String basicToken = Base64.getEncoder().encodeToString(new String(clientId + ":" + clientSecret).getBytes());
 		final String code = authInfo.getParam("code");
 		final String refreshToken = authInfo.getRefreshToken();
 		final HttpPost request = new HttpPost(authenticateUri);
@@ -334,15 +333,15 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 	}
 
 	/**
-	 * Retrieves the profile of the user with the specified guid and auth token.
+	 * Retrieves the primary email of the user with the specified guid and auth token.
 	 *
 	 * @param guid The identifier for the user
 	 * @param authToken The auth for the user
 	 * @param context The http context
-	 * @return A profile object
-	 * @throws ScapiException If there are issues
+	 * @return The user's primary email
+	 * @throws GenericOAuthExcpetion If there are issues
 	 */
-	protected JsonNode getUserProfile(String guid, String authToken, HttpClientContext context) throws GenericOAuthException
+	protected String getPrimaryEmail(String guid, String authToken, HttpClientContext context) throws GenericOAuthException
 	{
 		final String url = String.format(profileUriTemplate, guid);
 		final HttpGet request = new HttpGet(url);
@@ -361,7 +360,20 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 			throw new GenericOAuthException("There was an issue acquiring the user's profile.");
 		}
 
-		return json;
+		final JsonNode profile = json.get("profile");
+		if (profile != null) {
+			final JsonNode profileEmails = profile.get("emails");
+			if (profileEmails != null && profileEmails.has(0)) {
+				final JsonNode profileHandle = profileEmails.get(0);
+				if (profileHandle.has("handle")) {
+					return profileHandle.get("handle").asText();
+				}
+			}
+		}
+		// if we couldn't retrieve the handle email, the response from downstream is missing data
+		// this could be the result of a misconfigured application id/secret (not enough scopes)
+		ZimbraLog.extensions.error("The primary email could not be retrieved from the profile api.");
+		throw new InvalidResponseException("The primary email could not be retrieved from the profile api.");
 	}
 
 }

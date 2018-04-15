@@ -1,129 +1,27 @@
 <?xml version="1.0"?>
-<project name="zm-oauth2" default="run" xmlns:ivy="antlib:org.apache.ivy.ant">
+<project name="zm-oauth2" default="jar" xmlns:ivy="antlib:org.apache.ivy.ant">
   <import file="../zm-zcs/ant-global.xml" />
   <!-- Properties -->
-  <property name="src.dir" location="src"/>
-  <property name="lib.dir" location="lib"/>
-  <property name="test.src.dir" location="src/java-test"/>
+  <property name="ext.class" value="com.zimbra.oauth.resources.OAuth2Extension" />
+  <property name="ext.name" value="zm-oauth2" />
   <property name="build.dir" location="build"/>
   <property name="classes.dir" location="${build.dir}/classes"/>
-  <property name="test.classes.dir" location="${build.dir}/test-classes"/>
-  <property name="ivy.reports.dir"  location="${build.dir}/ivy-reports"/>
-  <property name="test.reports.dir"  location="${build.dir}/test-reports"/>
-	
-  <!-- Config -->
-  <target name="init" depends="init-ivy">
-  	<ivy:configure file="eclipse-ivysettings.xml" />
-  	<ivy:resolve/>
-  	<ivy:retrieve type="jar,bundle" sync="true" />
-
-    <ivy:report todir='${ivy.reports.dir}' graph='false' xml='false'/>
-
-    <ivy:cachepath pathid="compile.path" conf="compile"/>
-    <ivy:cachepath pathid="runtime.path" conf="runtime"/>
-    <ivy:cachepath pathid="test.path" conf="test"/>
-    <ivy:cachepath pathid="doclet.path" conf="doclet"/>
-
-    <mkdir dir="${classes.dir}"/>
-    <mkdir dir="${test.classes.dir}"/>
-    <mkdir dir="${test.reports.dir}"/>
-  </target>
-
-  <!-- Compile -->  	
-  <target name="compile" depends="init">
-    <javac srcdir="${src.dir}" destdir="${classes.dir}" includeantruntime="false" debug="true" classpathref="compile.path">
-        <include name="java/**/*.java"/>
-	</javac>
-  </target>
-
-  <target name="compile-tests" depends="compile">
-    <javac srcdir="${test.src.dir}" destdir="${test.classes.dir}" includeantruntime="false" debug="true">
-      <classpath>
-        <path refid="test.path"/>
-        <pathelement path="${classes.dir}"/>
-      </classpath>
-    </javac>
-  </target>
-
-  <!-- Test -->
-  <target name="test" depends="compile-tests">
-    <junit printsummary="yes" haltonfailure="no">
-      <classpath>
-        <path refid="test.path"/>
-        <pathelement path="${classes.dir}"/>
-        <pathelement path="${test.classes.dir}"/>
-      </classpath>
-      <formatter type="xml"/>
-      <batchtest fork="yes" todir="${test.reports.dir}">
-        <fileset dir="${test.src.dir}">
-          <include name="**/*Test*.java"/>
-          <exclude name="**/AllTests.java"/>
-        </fileset>
-      </batchtest>
-    </junit>
-  </target>
-	
-  <!-- Run -->
-  <target name="build" depends="test"/>
-
-  <target name="run" depends="build">
-    <java classname="com.zimbra.oauth.server.JettyServer">
-      <classpath>
-        <path refid="runtime.path"/>
-          <pathelement location="${classes.dir}"/>
-      </classpath>
-    </java>
-  </target>
-
-  <!-- Tar -->
-  <target name="tar" depends="jar,set-dev-version">
-    <echo append="false" file="${build.dir}/run.sh">java -cp "${ant.project.name}.jar:./lib/*" com.zimbra.oauth.server.JettyServer</echo>
-    <copy file="${build.dir}/${jar.file}" tofile="${build.dir}/${ant.project.name}.jar"/>
-    <tar destfile="${build.dir}/zm-oauth2-${dev.version}.tar">
-      <tarfileset dir="${build.dir}" preserveLeadingSlashes="true">
-        <include name="${ant.project.name}.jar"/>
-      	<include name="run.sh"/>
-      </tarfileset>
-      <tarfileset dir="${lib.dir}" prefix="lib" preserveLeadingSlashes="true">
-        <include name="*"/>
-      </tarfileset>
-    </tar>
-  </target>
 
   <!-- Doclet -->
   <target name="doclet" depends="jar,set-dev-version">
-    <javadoc destdir="build/javadoc" classpathref="doclet.path">
+    <javadoc destdir="build/javadoc" classpathref="class.path">
       <packageset dir="src/java" defaultexcludes="yes">
         <include name="com/zimbra/oauth/**" />
       </packageset>
-      <doclet name="com.tenxerconsulting.swagger.doclet.ServiceDoclet" pathref="doclet.path">
+      <doclet name="com.tenxerconsulting.swagger.doclet.ServiceDoclet" pathref="class.path">
         <param name="-docBasePath" value="/zm-oauth2-docs-latest"/>
         <param name="-apiBasePath" value="/"/>
         <param name="-apiVersion" value="${dev.version}"/>
       </doclet>
     </javadoc>
   </target>
-
-  <target name="stop-authserver">
-    <exec executable="zmoauth2">
-      <arg value="stop"/>
-    </exec>
-  </target>
-
-  <target name="start-authserver">
-    <exec executable="zmoauth2">
-      <arg value="start"/>
-    </exec>
-  </target>
-  
-  <target name="restart-authserver">
-    <exec executable="zmoauth2">
-      <arg value="restart"/>
-    </exec>
-  </target>
 	
   <target name="deploy" depends="jar,set-dev-version">
-    <ant dir="${server.dir}" target="stop-authserver" inheritAll="false"/>
     <delete verbose="true">
       <fileset dir="${extension.deploy.dir}" includes="${ant.project.name}*.jar" />
     </delete>
@@ -131,7 +29,6 @@
     <copy todir="${extension.deploy.dir}">
       <fileset dir="${build.dir}" includes="${jar.file}" />
     </copy>
-    <ant dir="${server.dir}" target="start-authserver" inheritAll="false"/>
   </target>
 
   <!-- Clean Targets -->
@@ -141,13 +38,6 @@
 
   <target name="clean-all" depends="clean">
     <ivy:cleancache/>
-  </target>
-	
-	
-  <target name="undeploy" depends="jar">
-    <ant dir="${server.dir}" target="stop-authserver" inheritAll="false"/>
-    <delete dir="${extension.deploy.dir}"/>
-    <ant dir="${server.dir}" target="start-authserver" inheritAll="false"/>
   </target>
 
   <target name="dist" depends="jar" description="Copies jar to dist dir">
@@ -159,7 +49,7 @@
   <target name="jar" depends="compile" description="Creates the jar file">
     <antcall target="zimbra-jar">
       <param name="implementation.title" value="${ext.name}" />
-      <param name="zimbra.extension.class" value="com.zimbra.oauth.OAuth2Extension" />
+      <param name="zimbra.extension.class" value="${ext.class}" />
     </antcall>
   </target>
 </project>

@@ -5,9 +5,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -247,7 +247,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 	protected JsonNode authenticateRequest(OAuthInfo authInfo, String redirectUri, HttpClientContext context) throws GenericOAuthException {
 		final String clientId = authInfo.getClientId();
 		final String clientSecret = authInfo.getClientSecret();
-		final String basicToken = Base64.encodeBase64String(new String(clientId + ":" + clientSecret).getBytes());
+		final String basicToken = Base64.getEncoder().encodeToString(new String(clientId + ":" + clientSecret).getBytes());
 		final String code = authInfo.getParam("code");
 		final String refreshToken = authInfo.getRefreshToken();
 		final HttpPost request = new HttpPost(authenticateUri);
