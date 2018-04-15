@@ -11,11 +11,13 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.message.BasicNameValuePair;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.Claim;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.common.util.ZimbraLog;
@@ -198,13 +200,8 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 		oauthInfo.setClientSecret(clientSecret);
 		final HttpClientContext context = HttpClientContext.create();
 		final JsonNode credentials = authenticateRequest(oauthInfo, clientRedirectUri, context);
-
-		final String accessToken = credentials.get("access_token").asText();
-		ZimbraLog.extensions.info(credentials);
-		final JsonNode profileContainer = getUserProfile(accessToken, context);
-		final JsonNode profile = profileContainer.get("profile");
-		final String username = profile.get("emails").get(0).get("handle").asText();
-
+		final String username = getPrimaryEmail(credentials);
+		ZimbraLog.extensions.debug("Authentication performed for:" + username);
 		// get zimbra mailbox
 		final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken());
 
@@ -343,33 +340,19 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 	}
 
 	/**
-	 * Retrieves the profile of the user with the specified auth token.
-	 *
-	 * @param authToken The auth for the user
-	 * @param context The http context
-	 * @return A profile object
-	 * @throws ScapiException If there are issues
-	 */
-	protected JsonNode getUserProfile(String authToken, HttpClientContext context) throws GenericOAuthException
-	{
-		final String url = String.format(profileUriTemplate);
-		final HttpGet request = new HttpGet(url);
-		request.setHeader("Content-Type", "application/x-www-form-urlencoded");
-		request.setHeader("Accept", "application/json");
-		request.setHeader("Authorization", "Bearer " + authToken);
-
-		JsonNode json = null;
-		try
-		{
-			json = executeRequestForJson(request, context);
-		}
-		catch (final IOException e)
-		{
-			ZimbraLog.extensions.error("There was an issue acquiring the user's profile.", e);
-			throw new GenericOAuthException("There was an issue acquiring the user's profile.");
-		}
-
-		return json;
-	}
+     * Retrieves the user's email address.
+     *
+     * @param credentials The json response from token call
+     * @return The primary email address for the user
+     * @throws InvalidResponseException If the email address is missing
+     */
+    protected String getPrimaryEmail(JsonNode credentials) throws InvalidResponseException {
+        final DecodedJWT jwt = JWT.decode(credentials.get("id_token").asText());
+        final Claim emailClaim = jwt.getClaim("email");
+        if (emailClaim == null) {
+            throw new InvalidResponseException("Authentication response is missing primary email.");
+        }
+        return jwt.getClaim("email").asString();
+    }
 
 }

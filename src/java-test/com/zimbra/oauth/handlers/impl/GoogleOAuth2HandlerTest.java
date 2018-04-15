@@ -167,8 +167,6 @@ public class GoogleOAuth2HandlerTest {
 		final String zmAuthToken = "zm-auth-token";
 		final OAuthInfo mockOAuthInfo = EasyMock.createMock(OAuthInfo.class);
 		final ZMailbox mockZMailbox = EasyMock.createMock(ZMailbox.class);
-		final JsonNode mockProfile = EasyMock.createMock(JsonNode.class);
-		final JsonNode mockProfileValue = EasyMock.createMock(JsonNode.class);
 		final JsonNode mockCredentials = EasyMock.createMock(JsonNode.class);
 		final JsonNode mockCredentialsAToken = EasyMock.createMock(JsonNode.class);
 		final JsonNode mockCredentialsRToken = EasyMock.createMock(JsonNode.class);
@@ -180,12 +178,6 @@ public class GoogleOAuth2HandlerTest {
 		expect(mockCredentials.get("refresh_token")).andReturn(mockCredentialsRToken);
 		expect(mockCredentialsRToken.asText()).andReturn(refreshToken);
 
-		expect(handler.getUserProfile(matches(accessToken), anyObject(HttpClientContext.class))).andReturn(mockProfile);
-		expect(mockProfile.get("profile")).andReturn(mockProfileValue);
-		expect(mockProfileValue.get("emails")).andReturn(mockProfileValue);
-		expect(mockProfileValue.get(0)).andReturn(mockProfileValue);
-		expect(mockProfileValue.get("handle")).andReturn(mockProfileValue);
-		expect(mockProfileValue.asText()).andReturn(username);
 		PowerMock.mockStatic(HttpClientContext.class);
 		expect(HttpClientContext.create()).andReturn(PowerMock.createMock(HttpClientContext.class));
 
@@ -207,8 +199,6 @@ public class GoogleOAuth2HandlerTest {
 		replay(mockCredentials);
 		replay(mockCredentialsAToken);
 		replay(mockCredentialsRToken);
-		replay(mockProfile);
-		replay(mockProfileValue);
 		replay(mockDataSource);
 
 		handler.authenticate(mockOAuthInfo);
