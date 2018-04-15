@@ -15,21 +15,12 @@ The `zm-mailbox` project must be built and deployed to the `.zcs-deps` folder.
 The `zm-build` and `zm-zcs` projects should also reside in the same local parent folder as this project.
 
 
-**Running from CLI**
+**Building a Jar from CLI**
 
-After building `zm-mailbox` run the following:
-
-```sh
-ant run
-```
-
-
-**Building a Tar from CLI**
-
-For testing purposes you can build a tar of this project inependent of the `zm-build` scripts by running the following:
+For testing purposes you can build a jar of this project by running the following, and deploying to `/opt/zimbra/lib/ext/zm-oauth2` along with the `java-jwt-3.2.0.jar`:
 
 ```sh
-ant tar
+ant jar
 ```
 
 
