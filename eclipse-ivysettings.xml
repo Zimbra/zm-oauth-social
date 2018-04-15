@@ -4,7 +4,7 @@
   <caches defaultCacheDir="${user.home}/.ivy2/cache" />
   <resolvers>
     <chain name="chain-resolver" returnFirst="true">
-      <ibiblio name="maven" m2compatible="true" usepoms="false"/>
+      <ibiblio name="maven" m2compatible="true"/>
       <filesystem name="local">
       	<ivy pattern= "${user.home}/.zcs-deps/[organisation]/[module]/[module]-[revision].xml" />
         <artifact pattern= "${user.home}/.zcs-deps/[organisation]/[module]/[module]-[revision].[ext]" />
