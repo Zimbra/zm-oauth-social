@@ -168,8 +168,6 @@ public class YahooOAuth2HandlerTest {
 		final String guid = "guid";
 		final OAuthInfo mockOAuthInfo = EasyMock.createMock(OAuthInfo.class);
 		final ZMailbox mockZMailbox = EasyMock.createMock(ZMailbox.class);
-		final JsonNode mockProfile = EasyMock.createMock(JsonNode.class);
-		final JsonNode mockProfileValue = EasyMock.createMock(JsonNode.class);
 		final JsonNode mockCredentials = EasyMock.createMock(JsonNode.class);
 		final JsonNode mockCredentialsAToken = EasyMock.createMock(JsonNode.class);
 		final JsonNode mockCredentialsGuid = EasyMock.createMock(JsonNode.class);
@@ -184,12 +182,7 @@ public class YahooOAuth2HandlerTest {
 		expect(mockCredentials.get("refresh_token")).andReturn(mockCredentialsRToken);
 		expect(mockCredentialsRToken.asText()).andReturn(refreshToken);
 
-		expect(handler.getUserProfile(matches(guid), matches(accessToken), anyObject(HttpClientContext.class))).andReturn(mockProfile);
-		expect(mockProfile.get("profile")).andReturn(mockProfileValue);
-		expect(mockProfileValue.get("emails")).andReturn(mockProfileValue);
-		expect(mockProfileValue.get(0)).andReturn(mockProfileValue);
-		expect(mockProfileValue.get("handle")).andReturn(mockProfileValue);
-		expect(mockProfileValue.asText()).andReturn(username);
+		expect(handler.getPrimaryEmail(matches(guid), matches(accessToken), anyObject(HttpClientContext.class))).andReturn(username);
 		PowerMock.mockStatic(HttpClientContext.class);
 		expect(HttpClientContext.create()).andReturn(PowerMock.createMock(HttpClientContext.class));
 
@@ -212,8 +205,6 @@ public class YahooOAuth2HandlerTest {
 		replay(mockCredentialsAToken);
 		replay(mockCredentialsGuid);
 		replay(mockCredentialsRToken);
-		replay(mockProfile);
-		replay(mockProfileValue);
 		replay(mockDataSource);
 
 		handler.authenticate(mockOAuthInfo);

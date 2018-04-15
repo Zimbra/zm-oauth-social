@@ -12,6 +12,7 @@ import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.extension.ExtensionHttpHandler;
 import com.zimbra.oauth.exceptions.GenericOAuthException;
 import com.zimbra.oauth.utilities.OAuth2Constants;
@@ -58,6 +59,7 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
 					return;
 			}
 		} catch (final GenericOAuthException e) {
+			ZimbraLog.extensions.error(e);
 			resp.setStatus(e.getStatus().getStatusCode());
 			return;
 		}
