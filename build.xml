@@ -14,7 +14,7 @@
         <include name="com/zimbra/oauth/**" />
       </packageset>
       <doclet name="com.tenxerconsulting.swagger.doclet.ServiceDoclet" pathref="class.path">
-        <param name="-docBasePath" value="/zm-oauth-social-docs-latest"/>
+        <param name="-docBasePath" value="/${ant.project.name}-docs-latest"/>
         <param name="-apiBasePath" value="/"/>
         <param name="-apiVersion" value="${dev.version}"/>
       </doclet>
