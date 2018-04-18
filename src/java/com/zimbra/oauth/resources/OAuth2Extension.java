@@ -4,6 +4,7 @@ import com.zimbra.common.service.ServiceException;
 import com.zimbra.cs.extension.ExtensionDispatcherServlet;
 import com.zimbra.cs.extension.ExtensionException;
 import com.zimbra.cs.extension.ZimbraExtension;
+import com.zimbra.oauth.utilities.OAuth2Constants;
 
 /**
  * The OAuth2Extension class.<br>
@@ -22,7 +23,7 @@ public class OAuth2Extension implements ZimbraExtension {
 
 	@Override
 	public String getName() {
-		return "zm-oauth2";
+		return OAuth2Constants.API_NAME;
 	}
 
 	@Override
