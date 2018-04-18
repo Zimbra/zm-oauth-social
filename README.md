@@ -15,14 +15,15 @@ The `zm-mailbox` project must be built and deployed to the `.zcs-deps` folder.
 The `zm-build` and `zm-zcs` projects should also reside in the same local parent folder as this project.
 
 
-**Building a Jar from CLI**
+**Deploying the extension from CLI**
 
-For testing purposes you can build a jar of this project by running the following, and deploying to `/opt/zimbra/lib/ext/zm-oauth-social` along with the `java-jwt-3.2.0.jar`:
+For testing purposes you can build and and deploy the extension to `/opt/zimbra/lib/ext/zm-oauth-social` by running the following:
 
 ```sh
-ant jar
+ant deploy
 ```
 
+Afterwards, add the necessary configuration to the `/opt/zimbra/conf/localconfig.xml` file, then become the `zimbra` user, and perform a `zmmailboxdctl restart`.
 
 **Testing from CLI**
 
