@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
-<project name="zm-oauth2" default="jar" xmlns:ivy="antlib:org.apache.ivy.ant">
+<project name="zm-oauth-social" default="jar" xmlns:ivy="antlib:org.apache.ivy.ant">
   <import file="../zm-zcs/ant-global.xml" />
   <!-- Properties -->
   <property name="ext.class" value="com.zimbra.oauth.resources.OAuth2Extension" />
-  <property name="ext.name" value="zm-oauth2" />
+  <property name="ext.name" value="${ant.project.name}" />
   <property name="build.dir" location="build"/>
   <property name="classes.dir" location="${build.dir}/classes"/>
 
@@ -14,7 +14,7 @@
         <include name="com/zimbra/oauth/**" />
       </packageset>
       <doclet name="com.tenxerconsulting.swagger.doclet.ServiceDoclet" pathref="class.path">
-        <param name="-docBasePath" value="/zm-oauth2-docs-latest"/>
+        <param name="-docBasePath" value="/zm-oauth-social-docs-latest"/>
         <param name="-apiBasePath" value="/"/>
         <param name="-apiVersion" value="${dev.version}"/>
       </doclet>

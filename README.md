@@ -1,6 +1,6 @@
-# `zm-oauth2`
+# `zm-oauth-social`
 
-> Zimbra OAuth2 Service
+> Zimbra OAuth2 Social Service
 
 This service provides an interface for users to provide credentials for storage and use by other Zimbra products. (e.g. daily contacts import from non-zimbra accounts).
 
@@ -17,7 +17,7 @@ The `zm-build` and `zm-zcs` projects should also reside in the same local parent
 
 **Building a Jar from CLI**
 
-For testing purposes you can build a jar of this project by running the following, and deploying to `/opt/zimbra/lib/ext/zm-oauth2` along with the `java-jwt-3.2.0.jar`:
+For testing purposes you can build a jar of this project by running the following, and deploying to `/opt/zimbra/lib/ext/zm-oauth-social` along with the `java-jwt-3.2.0.jar`:
 
 ```sh
 ant jar
@@ -90,4 +90,4 @@ This service's configuration can all be found in Zimbra's `localconfig.xml` file
 | zm_oauth_google_relay_key | Google's relay key name | | `state` |
 
 
-[documentation for api usage]: http://tools.email.dev.opal.synacor.com/zm-oauth2-docs-latest/
+[documentation for api usage]: http://tools.email.dev.opal.synacor.com/zm-oauth-social-docs-latest/
