@@ -30,7 +30,7 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
 
 	@Override
 	public String getPath() {
-		return "/oauth2";
+		return OAuth2Constants.DEFAULT_SERVER_PATH;
 	}
 
 	@Override

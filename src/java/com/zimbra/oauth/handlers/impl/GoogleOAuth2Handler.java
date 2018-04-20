@@ -36,21 +36,6 @@ import com.zimbra.oauth.utilities.OAuth2Constants;
 public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
 
 	/**
-	 * The authorize endpoint for Google.
-	 */
-	protected final String authorizeUriTemplate;
-
-	/**
-	 * The authenticate endpoint for Google.
-	 */
-	protected final String authenticateUri;
-
-	/**
-	 * The profile endpoint for Google.
-	 */
-	protected final String profileUriTemplate;
-
-	/**
 	 * Google client id.
 	 */
 	protected final String clientId;
@@ -64,11 +49,6 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 	 * Google redirect uri.
 	 */
 	protected final String clientRedirectUri;
-
-	/**
-	 * Default relay key.
-	 */
-	protected final String relayKey;
 
 	/**
 	 * Google token scope.
@@ -130,16 +110,38 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 		 */
 		protected static final String RESPONSE_ERROR_TOKEN_EXPIRED = "TOKEN_EXPIRED";
 
+
+		/**
+		 * The authorize endpoint for Google.
+		 */
+		protected static final String AUTHORIZE_URI_TEMPLATE = "https://accounts.google.com/o/oauth2/v2/auth?prompt=consent&access_type=offline&client_id=%s&redirect_uri=%s&response_type=%s&scope=%s";
+
+		/**
+		 * The profile endpoint for Google.
+		 */
+		protected static final String PROFILE_URI = "https://www.googleapis.com/plus/v1/people/me";
+
+		/**
+		 * The authenticate endpoint for Google.
+		 */
+		protected static final String AUTHENTICATE_URI = "https://www.googleapis.com/oauth2/v4/token";
+
+		/**
+		 * The scope required for Google.
+		 */
+		protected static final String REQUIRED_SCOPES = "email";
+
+		/**
+		 * The relay key for Google.
+		 */
+		protected static final String RELAY_KEY = "state";
+
 		// LC Google
-		public static final String LC_OAUTH_AUTHORIZE_URI_TEMPLATE = "zm_oauth_google_authorize_uri_template";
-		public static final String LC_OAUTH_PROFILE_URI_TEMPLATE = "zm_oauth_google_profile_uri_template";
-		public static final String LC_OAUTH_AUTHENTICATE_URI = "zm_oauth_google_authenticate_uri";
 		public static final String LC_OAUTH_CLIENT_ID = "zm_oauth_google_client_id";
 		public static final String LC_OAUTH_CLIENT_SECRET = "zm_oauth_google_client_secret";
 		public static final String LC_OAUTH_CLIENT_REDIRECT_URI = "zm_oauth_google_client_redirect_uri";
-		public static final String LC_OAUTH_SCOPE = "zm_oauth_google_scope";
 		public static final String LC_OAUTH_IMPORT_CLASS = "zm_oauth_google_import_class";
-		public static final String LC_OAUTH_RELAY_KEY = "zm_oauth_google_relay_key";
+		public static final String LC_OAUTH_SCOPE = "zm_oauth_google_scope";
 
 		public static final String HOST_GOOGLE = "googleapis.com";
 	}
@@ -151,14 +153,10 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 	 */
 	public GoogleOAuth2Handler(Configuration config) {
 		super(config);
-		authorizeUriTemplate = config.getString(GoogleConstants.LC_OAUTH_AUTHORIZE_URI_TEMPLATE);
-		authenticateUri = config.getString(GoogleConstants.LC_OAUTH_AUTHENTICATE_URI);
-		profileUriTemplate = config.getString(GoogleConstants.LC_OAUTH_PROFILE_URI_TEMPLATE);
 		clientId = config.getString(GoogleConstants.LC_OAUTH_CLIENT_ID);
 		clientSecret = config.getString(GoogleConstants.LC_OAUTH_CLIENT_SECRET);
 		clientRedirectUri = config.getString(GoogleConstants.LC_OAUTH_CLIENT_REDIRECT_URI);
-		relayKey = config.getString(GoogleConstants.LC_OAUTH_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY);
-		scope = config.getString(GoogleConstants.LC_OAUTH_SCOPE);
+		scope = StringUtils.join(new String[] {GoogleConstants.REQUIRED_SCOPES, config.getString(GoogleConstants.LC_OAUTH_SCOPE)}, "+");
 		dataSource = OAuthDataSource.createDataSource(GoogleConstants.HOST_GOOGLE);
 	}
 
@@ -185,13 +183,13 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 			}
 
 			try {
-				relayParam = "&" + relayKey + "=%s";
+				relayParam = "&" + GoogleConstants.RELAY_KEY + "=%s";
 				relayValue = URLEncoder.encode(relay, OAuth2Constants.ENCODING);
 			} catch (final UnsupportedEncodingException e) {
 				throw new InvalidOperationException("Unable to encode relay parameter.");
 			}
 		}
-		return String.format(authorizeUriTemplate + relayParam, clientId, encodedRedirectUri, responseType, relayValue, scope);
+		return String.format(GoogleConstants.AUTHORIZE_URI_TEMPLATE + relayParam, clientId, encodedRedirectUri, responseType, scope, relayValue);
 	}
 
 	@Override
@@ -254,7 +252,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 		final String basicToken = Base64.getEncoder().encodeToString(new String(clientId + ":" + clientSecret).getBytes());
 		final String code = authInfo.getParam("code");
 		final String refreshToken = authInfo.getRefreshToken();
-		final HttpPost request = new HttpPost(authenticateUri);
+		final HttpPost request = new HttpPost(GoogleConstants.AUTHENTICATE_URI);
 		final List<NameValuePair> params = new ArrayList<NameValuePair>();
 		if (!StringUtils.isEmpty(refreshToken)) {
 			// set refresh token if we have one
@@ -340,19 +338,19 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 	}
 
 	/**
-     * Retrieves the user's email address.
-     *
-     * @param credentials The json response from token call
-     * @return The primary email address for the user
-     * @throws InvalidResponseException If the email address is missing
-     */
-    protected String getPrimaryEmail(JsonNode credentials) throws InvalidResponseException {
-        final DecodedJWT jwt = JWT.decode(credentials.get("id_token").asText());
-        final Claim emailClaim = jwt.getClaim("email");
-        if (emailClaim == null) {
-            throw new InvalidResponseException("Authentication response is missing primary email.");
-        }
-        return jwt.getClaim("email").asString();
-    }
+	 * Retrieves the user's email address.
+	 *
+	 * @param credentials The json response from token call
+	 * @return The primary email address for the user
+	 * @throws InvalidResponseException If the email address is missing
+	 */
+	protected String getPrimaryEmail(JsonNode credentials) throws InvalidResponseException {
+		final DecodedJWT jwt = JWT.decode(credentials.get("id_token").asText());
+		final Claim emailClaim = jwt.getClaim("email");
+		if (emailClaim == null) {
+			throw new InvalidResponseException("Authentication response is missing primary email.");
+		}
+		return jwt.getClaim("email").asString();
+	}
 
 }

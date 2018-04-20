@@ -35,21 +35,6 @@ import com.zimbra.oauth.utilities.OAuth2Constants;
 public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
 
 	/**
-	 * The authorize endpoint for Yahoo.
-	 */
-	protected final String authorizeUriTemplate;
-
-	/**
-	 * The authenticate endpoint for Yahoo.
-	 */
-	protected final String authenticateUri;
-
-	/**
-	 * The profile endpoint for Yahoo.
-	 */
-	protected final String profileUriTemplate;
-
-	/**
 	 * Yahoo client id.
 	 */
 	protected final String clientId;
@@ -60,14 +45,9 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 	protected final String clientSecret;
 
 	/**
-	 * Yahoo redirect uri.
-	 */
+	* Yahoo redirect uri.
+	*/
 	protected final String clientRedirectUri;
-
-	/**
-	 * Default yahoo relay key.
-	 */
-	protected final String relayKey;
 
 	/**
 	 * DataSource handler for Yahoo.
@@ -124,15 +104,31 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 		 */
 		protected static final String RESPONSE_ERROR_TOKEN_EXPIRED = "TOKEN_EXPIRED";
 
+		/**
+		 * The authorize endpoint for Yahoo.
+		 */
+		protected static final String AUTHORIZE_URI_TEMPLATE = "https://api.login.yahoo.com/oauth2/request_auth?client_id=%s&redirect_uri=%s&response_type=%s";
+
+		/**
+		 * The profile endpoint for Yahoo.
+		 */
+		protected static final String PROFILE_URI = "https://social.yahooapis.com/v1/user/%s/profile";
+
+		/**
+		 * The authenticate endpoint for Yahoo.
+		 */
+		protected static final String AUTHENTICATE_URI = "https://api.login.yahoo.com/oauth2/get_token";
+
+		/**
+		 * The relay key for Yahoo.
+		 */
+		protected static final String RELAY_KEY = "state";
+
 		// LC Yahoo
-		public static final String LC_OAUTH_AUTHORIZE_URI_TEMPLATE = "zm_oauth_yahoo_authorize_uri_template";
-		public static final String LC_OAUTH_PROFILE_URI_TEMPLATE = "zm_oauth_yahoo_profile_uri_template";
-		public static final String LC_OAUTH_AUTHENTICATE_URI = "zm_oauth_yahoo_authenticate_uri";
 		public static final String LC_OAUTH_CLIENT_ID = "zm_oauth_yahoo_client_id";
 		public static final String LC_OAUTH_CLIENT_SECRET = "zm_oauth_yahoo_client_secret";
 		public static final String LC_OAUTH_CLIENT_REDIRECT_URI = "zm_oauth_yahoo_client_redirect_uri";
 		public static final String LC_OAUTH_IMPORT_CLASS = "zm_oauth_yahoo_import_class";
-		public static final String LC_OAUTH_RELAY_KEY = "zm_oauth_yahoo_relay_key";
 	}
 
 	/**
@@ -142,13 +138,9 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 	 */
 	public YahooOAuth2Handler(Configuration config) {
 		super(config);
-		authorizeUriTemplate = config.getString(YahooConstants.LC_OAUTH_AUTHORIZE_URI_TEMPLATE);
-		authenticateUri = config.getString(YahooConstants.LC_OAUTH_AUTHENTICATE_URI);
-		profileUriTemplate = config.getString(YahooConstants.LC_OAUTH_PROFILE_URI_TEMPLATE);
 		clientId = config.getString(YahooConstants.LC_OAUTH_CLIENT_ID);
 		clientSecret = config.getString(YahooConstants.LC_OAUTH_CLIENT_SECRET);
 		clientRedirectUri = config.getString(YahooConstants.LC_OAUTH_CLIENT_REDIRECT_URI);
-		relayKey = config.getString(YahooConstants.LC_OAUTH_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY);
 		dataSource = OAuthDataSource.createDataSource(ZDataSource.SOURCE_HOST_YAHOO);
 	}
 
@@ -175,13 +167,13 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 			}
 
 			try {
-				relayParam = "&" + relayKey + "=%s";
+				relayParam = "&" + YahooConstants.RELAY_KEY + "=%s";
 				relayValue = URLEncoder.encode(relay, OAuth2Constants.ENCODING);
 			} catch (final UnsupportedEncodingException e) {
 				throw new InvalidOperationException("Unable to encode relay parameter.");
 			}
 		}
-		return String.format(authorizeUriTemplate + relayParam, clientId, encodedRedirectUri, responseType, relayValue);
+		return String.format(YahooConstants.AUTHORIZE_URI_TEMPLATE + relayParam, clientId, encodedRedirectUri, responseType, relayValue);
 	}
 
 	@Override
@@ -247,7 +239,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 		final String basicToken = Base64.getEncoder().encodeToString(new String(clientId + ":" + clientSecret).getBytes());
 		final String code = authInfo.getParam("code");
 		final String refreshToken = authInfo.getRefreshToken();
-		final HttpPost request = new HttpPost(authenticateUri);
+		final HttpPost request = new HttpPost(YahooConstants.AUTHENTICATE_URI);
 		final List<NameValuePair> params = new ArrayList<NameValuePair>();
 		if (!StringUtils.isEmpty(refreshToken)) {
 			// set refresh token if we have one
@@ -343,7 +335,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 	 */
 	protected String getPrimaryEmail(String guid, String authToken, HttpClientContext context) throws GenericOAuthException
 	{
-		final String url = String.format(profileUriTemplate, guid);
+		final String url = String.format(YahooConstants.PROFILE_URI, guid);
 		final HttpGet request = new HttpGet(url);
 		request.setHeader("Content-Type", "application/x-www-form-urlencoded");
 		request.setHeader("Accept", "application/json");
