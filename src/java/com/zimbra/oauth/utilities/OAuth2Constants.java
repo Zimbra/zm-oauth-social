@@ -3,9 +3,7 @@ package com.zimbra.oauth.utilities;
 public class OAuth2Constants {
 	public static final String API_NAME = "zm-oauth-social";
 	public static final String ENCODING = "utf-8";
-	public static final String DEFAULT_LOG_LEVEL = "INFO";
-	public static final Integer DEFAULT_SERVER_PORT = 8080;
-	public static final String DEFAULT_SERVER_CONTEXT_PATH = "/*";
+	public static final String DEFAULT_SERVER_PATH = "/oauth2";
 
 	public static final String OAUTH2_RELAY_KEY = "state";
 	public static final String DEFAULT_SUCCESS_REDIRECT = "/";
