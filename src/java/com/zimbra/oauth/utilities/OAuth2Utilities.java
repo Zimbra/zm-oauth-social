@@ -1,3 +1,19 @@
+/*
+ * ***** BEGIN LICENSE BLOCK *****
+ * Zimbra OAuth Social Extension
+ * Copyright (C) 2018 Synacor, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software Foundation,
+ * version 2 of the License.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <https://www.gnu.org/licenses/>.
+ * ***** END LICENSE BLOCK *****
+ */
 package com.zimbra.oauth.utilities;
 
 import java.io.ByteArrayOutputStream;
@@ -17,8 +33,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.zimbra.oauth.models.ResponseObject;
 
+/**
+ * The OAuth2Utilities class.
+ *
+ * @author Zimbra API Team
+ * @package com.zimbra.oauth.utilities
+ * @copyright Copyright © 2018
+ */
 public class OAuth2Utilities {
 
+	/**
+	 * Decodes given stream with a size boundary.
+	 *
+	 * @param input An InputStream object
+	 * @param size A boundary limit
+	 * @return The the current contents of this output stream, as a byte array.
+	 * @throws IOException
+	 */
 	public static byte[] decodeStream(InputStream input, long size) throws IOException {
 		final long MIN_BUFFER_SIZE = 100;
 		final long MAX_BUFFER_SIZE = 4080;
@@ -42,6 +73,11 @@ public class OAuth2Utilities {
 		return buffer.toByteArray();
 	}
 
+	/**
+	 * Creates a mapper that can convert between Java <-> JSON objects.
+	 *
+	 * @return mapper A mapper object
+	 */
 	public static ObjectMapper createDefaultMapper() {
 		final ObjectMapper mapper = new ObjectMapper();
 		mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
