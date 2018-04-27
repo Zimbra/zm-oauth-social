@@ -1,3 +1,19 @@
+/*
+ * ***** BEGIN LICENSE BLOCK *****
+ * Zimbra OAuth Social Extension
+ * Copyright (C) 2018 Synacor, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software Foundation,
+ * version 2 of the License.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <https://www.gnu.org/licenses/>.
+ * ***** END LICENSE BLOCK *****
+ */
 package com.zimbra.oauth.models;
 
 import org.apache.commons.lang.StringUtils;
@@ -12,7 +28,12 @@ import com.zimbra.oauth.exceptions.InvalidResponseException;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 
 /**
+ * The OAuthDataSource class.<br>
  * ZDataSource wrapper for storing oauth credentials.
+ *
+ * @author Zimbra API Team
+ * @package com.zimbra.oauth.models
+ * @copyright Copyright © 2018
  */
 public class OAuthDataSource {
 
@@ -21,6 +42,11 @@ public class OAuthDataSource {
 	 */
 	protected final String host;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param host A host
+	 */
 	protected OAuthDataSource(String host) {
 		this.host = host;
 	}
