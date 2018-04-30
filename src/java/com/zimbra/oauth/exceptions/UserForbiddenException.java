@@ -22,7 +22,7 @@ import com.zimbra.oauth.utilities.OAuth2Error;
 
 /**
  * The UserForbiddenException class.<br>
- * Indicates that a user did not provide authorization for this service.
+ * Requesting user has insufficient privileges/permission to perform requested action.
  *
  * @author Zimbra API Team
  * @package com.zimbra.oauth.exceptions
@@ -45,7 +45,7 @@ public class UserForbiddenException extends GenericOAuthException {
 	 * Constructor.
 	 *
 	 * @param throwable A throwable object
-     */
+	 */
 	public UserForbiddenException(Throwable throwable) {
 		this(null, throwable);
 	}
@@ -55,7 +55,7 @@ public class UserForbiddenException extends GenericOAuthException {
 	 *
 	 * @param message An error message
 	 * @param throwable A throwable object
-     */
+	 */
 	public UserForbiddenException(String message, Throwable throwable) {
 		super(message, throwable);
 		setError(OAuth2Error.USER_FORBIDDEN_ERROR);

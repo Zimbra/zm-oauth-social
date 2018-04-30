@@ -22,7 +22,7 @@ import com.zimbra.oauth.utilities.OAuth2Error;
 
 /**
  * The UserUnauthorizedException class.<br>
- * Indicates that the user is unauthorized to perform the operation.
+ * User is not authenticated (missing authorization headers on request), or social service has declined the token request.
  *
  * @author Zimbra API Team
  * @package com.zimbra.oauth.exceptions
