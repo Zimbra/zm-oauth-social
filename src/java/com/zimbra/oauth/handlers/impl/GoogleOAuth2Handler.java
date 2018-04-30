@@ -66,34 +66,9 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 	protected class GoogleConstants {
 
 		/**
-		 * Unauthorized response code from Google.
-		 */
-		protected static final String RESPONSE_ERROR_ACCOUNT_NOT_AUTHORIZED = "ACCOUNT_NOT_AUTHORIZED";
-
-		/**
-		 * Invalid client response code from Google.
-		 */
-		protected static final String RESPONSE_ERROR_INVALID_CLIENT = "INVALID_CLIENT";
-
-		/**
-		 * Invalid client secret response code from Google.
-		 */
-		protected static final String RESPONSE_ERROR_INVALID_CLIENT_SECRET = "INVALID_CLIENT_SECRET";
-
-		/**
 		 * Invalid redirect response code from Google.
 		 */
-		protected static final String RESPONSE_ERROR_INVALID_REDIRECT_URI = "INVALID_REDIRECT_URI";
-
-		/**
-		 * Invalid callback response code from Google.
-		 */
-		protected static final String RESPONSE_ERROR_INVALID_CALLBACK = "INVALID_CALLBACK";
-
-		/**
-		 * Invalid refresh token response code from Google.
-		 */
-		protected static final String RESPONSE_ERROR_INVALID_REFRESH_TOKEN = "INVALID_REFRESH_TOKEN";
+		protected static final String RESPONSE_ERROR_INVALID_REDIRECT_URI = "REDIRECT_URI_MISMATCH";
 
 		/**
 		 * Invalid authorization code response code from Google.
@@ -106,9 +81,20 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 		protected static final String RESPONSE_ERROR_INVALID_GRANT = "INVALID_GRANT";
 
 		/**
-		 * Token expired response code from Google.
+		 * Unsupported grant type response code from Google.
 		 */
-		protected static final String RESPONSE_ERROR_TOKEN_EXPIRED = "TOKEN_EXPIRED";
+		protected static final String RESPONSE_ERROR_UNSUPPORTED_GRANT_TYPE = "UNSUPPORTED_GRANT_TYPE";
+
+		/**
+		 * Invalid client response code from Google.
+		 */
+		protected static final String RESPONSE_ERROR_INVALID_CLIENT = "INVALID_CLIENT";
+
+		/**
+		 * Invalid request code from Google.
+		 */
+		protected static final String RESPONSE_ERROR_INVALID_REQUEST = "INVALID_REQUEST";
+
 
 
 		/**
@@ -300,30 +286,23 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 		if (response.has("error")) {
 			final String error = response.get("error").asText();
 			final JsonNode errorMsg = response.get("error_description");
-			switch (error) {
-				case GoogleConstants.RESPONSE_ERROR_ACCOUNT_NOT_AUTHORIZED:
-					ZimbraLog.extensions.info("User did not provide authorization for this service: " + errorMsg);
-					throw new UserForbiddenException("User did not provide authorization for this service.");
+			switch (error.toUpperCase()) {
 				case GoogleConstants.RESPONSE_ERROR_INVALID_REDIRECT_URI:
 					ZimbraLog.extensions.info("Redirect does not match the one found in authorization request: " + errorMsg);
 					throw new InvalidOperationException("Redirect does not match the one found in authorization request.");
-				case GoogleConstants.RESPONSE_ERROR_INVALID_CALLBACK:
-					ZimbraLog.extensions.warn("Redirect does not match the configured one expected by the server: " + errorMsg);
-					throw new InvalidOperationException("Redirect does not match the configured one expected by the server.");
-				case GoogleConstants.RESPONSE_ERROR_INVALID_REFRESH_TOKEN:
-					ZimbraLog.extensions.debug("Invalid refresh token used: " + errorMsg);
-					throw new InvalidOperationException("Refresh token is invalid.");
 				case GoogleConstants.RESPONSE_ERROR_INVALID_AUTHORIZATION_CODE:
 				case GoogleConstants.RESPONSE_ERROR_INVALID_GRANT:
-					ZimbraLog.extensions.debug("Invalid authorization token used: " + errorMsg);
-					throw new UserUnauthorizedException("Authorization token is expired or invalid. Unable to authenticate the user.");
-				case GoogleConstants.RESPONSE_ERROR_TOKEN_EXPIRED:
-					ZimbraLog.extensions.debug("Refresh token is expired: " + errorMsg);
-					throw new UserUnauthorizedException("Refresh token is expired. Unable to authenticate the user.");
+					ZimbraLog.extensions.debug("Invalid authorization / refresh token used: " + errorMsg);
+					throw new UserUnauthorizedException("Authorization or refresh token is expired or invalid. Unable to authenticate the user.");
+				case GoogleConstants.RESPONSE_ERROR_UNSUPPORTED_GRANT_TYPE:
+					ZimbraLog.extensions.debug("Unsupported grant type used: " + errorMsg);
+					throw new UserUnauthorizedException("Unsupported grant type used. Unable to authenticate the user.");
 				case GoogleConstants.RESPONSE_ERROR_INVALID_CLIENT:
-				case GoogleConstants.RESPONSE_ERROR_INVALID_CLIENT_SECRET:
-					ZimbraLog.extensions.warn("Invalid client or client secret provided to mail server: " + errorMsg );
+					ZimbraLog.extensions.warn("Invalid client or client secret provided to mail server: " + errorMsg);
 					throw new ConfigurationException("Invalid client details provided to mail server.");
+				case GoogleConstants.RESPONSE_ERROR_INVALID_REQUEST:
+					ZimbraLog.extensions.warn("Invalid request parameter was provided: " + errorMsg);
+					throw new ConfigurationException("An invalid request parameter was provided.");
 				default:
 					ZimbraLog.extensions.warn("Unexpected error while trying to authenticate the user: " + errorMsg);
 					throw new UserUnauthorizedException("Unable to authenticate the user.");
