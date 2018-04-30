@@ -1,3 +1,19 @@
+/*
+ * ***** BEGIN LICENSE BLOCK *****
+ * Zimbra OAuth Social Extension
+ * Copyright (C) 2018 Synacor, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software Foundation,
+ * version 2 of the License.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <https://www.gnu.org/licenses/>.
+ * ***** END LICENSE BLOCK *****
+ */
 package com.zimbra.oauth.utilities;
 
 import java.util.Collections;
@@ -11,6 +27,13 @@ import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.exceptions.ConfigurationException;
 import com.zimbra.oauth.exceptions.InvalidClientException;
 
+/**
+ * The Configuration class for this project.
+ *
+ * @author Zimbra API Team
+ * @package com.zimbra.oauth.utilities
+ * @copyright Copyright © 2018
+ */
 public class Configuration {
 
 	/**
@@ -23,26 +46,61 @@ public class Configuration {
 	 */
 	private String clientId = null;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param clientId A client id
+	 */
 	protected Configuration(String clientId) {
 		setClientId(clientId);
 	}
 
+	/**
+	 * Set the client id.
+	 *
+	 * @param clientId A client id
+	 */
 	public void setClientId(String clientId) {
 		this.clientId = clientId;
 	}
 
+	/**
+	 * Get the client id.
+	 *
+	 * @return A client id
+	 */
 	public String getClientId() {
 		return clientId;
 	}
 
+	/**
+	 * Get the associated value with the key.
+	 *
+	 * @param key A key to lookup
+	 * @return A value for a given key
+	 */
 	public String getString(String key) {
 		return getString(key, null);
 	}
 
+	/**
+	 * Get the associated value with the key or the default value.
+	 *
+	 * @param key A key to lookup
+	 * @param defaultValue A default value to use if value for key is empty
+	 * @return A value for the given key or the default value
+	 */
 	public String getString(String key, String defaultValue) {
 		return StringUtils.defaultIfEmpty(LC.get(key), defaultValue);
 	}
 
+	/**
+	 * Gets integer value from the local configuration for the given key or the default value.
+	 *
+	 * @param key A key to lookup
+	 * @param defaultValue A default value to use if value for key is empty
+	 * @return A value for the given key or the default value
+	 */
 	public Integer getInt(String key, Integer defaultValue) {
 		final String stringValue = LC.get(key);
 		Integer value = defaultValue;
