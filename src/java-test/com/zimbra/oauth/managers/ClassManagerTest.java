@@ -64,12 +64,12 @@ public class ClassManagerTest {
 	/**
 	 * Handler cache map for testing.
 	 */
-	protected final Map<String, IOAuth2Handler> handlerCacheMap = new HashMap<String, IOAuth2Handler>();
+	protected Map<String, IOAuth2Handler> handlerCacheMap;
 
 	/**
 	 * Http client cache map for testing.
 	 */
-	protected final Map<String, CloseableHttpClient> httpClients = new HashMap<String, CloseableHttpClient>();
+	protected Map<String, CloseableHttpClient> httpClients;
 
 	/**
 	 * Test client.
@@ -114,11 +114,13 @@ public class ClassManagerTest {
 		PowerMock.mockStatic(Configuration.class);
 
 		// set the handler cache for reference during tests
+		handlerCacheMap = new HashMap<String, IOAuth2Handler>();
 		Whitebox.setInternalState(ClassManager.class, "handlersCache", handlerCacheMap);
 
 		mockConfig = EasyMock.createMock(Configuration.class);
 
 		// skip creating the http client
+		httpClients = new HashMap<String, CloseableHttpClient>();
 		httpClients.put(client, EasyMock.createMock(CloseableHttpClient.class));
 		Whitebox.setInternalState(OAuth2Handler.class, "clients", httpClients);
 	}
@@ -132,7 +134,7 @@ public class ClassManagerTest {
 	@Test
 	public void testGetHandler() throws Exception {
 		expect(Configuration.buildConfiguration(anyObject(String.class))).andReturn(mockConfig);
-		expect(mockConfig.getString(matches("zm_oauth_classes_handlers_" + client)))
+		expect(mockConfig.getString(matches(OAuth2Constants.LC_HANDLER_CLASS_PREFIX + client)))
 			.andReturn("com.zimbra.oauth.handlers.impl.YahooOAuth2Handler");
 		expect(mockConfig.getClientId()).andReturn(client);
 		expect(mockConfig.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE, OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
@@ -140,7 +142,6 @@ public class ClassManagerTest {
 		expect(mockConfig.getString(matches(OAuth2Constants.LC_OAUTH_FOLDER_ID))).andReturn(folderId);
 		// expect some properties to be read at least once
 		expect(mockConfig.getString(anyObject(String.class))).andReturn(null).atLeastOnce();
-		expect(mockConfig.getString(anyObject(String.class), anyObject(String.class))).andReturn(null).atLeastOnce();
 
 		PowerMock.replay(Configuration.class);
 		replay(mockConfig);

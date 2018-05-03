@@ -106,9 +106,9 @@ public class OutlookOAuth2HandlerTest {
 		handler = PowerMock
 			.createPartialMockForAllMethodsExcept(OutlookOAuth2Handler.class, "authorize", "authenticate");
 		Whitebox.setInternalState(handler, "clientRedirectUri", clientRedirectUri);
-		Whitebox.setInternalState(handler, "authorizeUriTemplate", "%s %s %s");
 		Whitebox.setInternalState(handler, "clientId", clientId);
 		Whitebox.setInternalState(handler, "clientSecret", clientSecret);
+		Whitebox.setInternalState(handler, "scope", OutlookConstants.REQUIRED_SCOPES);
 		Whitebox.setInternalState(handler, "dataSource", mockDataSource);
 		Whitebox.setInternalState(handler, "storageFolderId", storageFolderId);
 
@@ -133,13 +133,9 @@ public class OutlookOAuth2HandlerTest {
 		expect(mockConfig.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE, OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
 			.andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
 		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_FOLDER_ID)).andReturn(storageFolderId);
-		expect(mockConfig.getString(OutlookConstants.LC_OAUTH_AUTHORIZE_URI_TEMPLATE)).andReturn(null);
-		expect(mockConfig.getString(OutlookConstants.LC_OAUTH_AUTHENTICATE_URI)).andReturn(null);
-		expect(mockConfig.getString(OutlookConstants.LC_OAUTH_PROFILE_URI_TEMPLATE)).andReturn(null);
 		expect(mockConfig.getString(OutlookConstants.LC_OAUTH_CLIENT_ID)).andReturn(null);
 		expect(mockConfig.getString(OutlookConstants.LC_OAUTH_CLIENT_SECRET)).andReturn(null);
 		expect(mockConfig.getString(OutlookConstants.LC_OAUTH_CLIENT_REDIRECT_URI)).andReturn(null);
-		expect(mockConfig.getString(OutlookConstants.LC_OAUTH_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY)).andReturn(null);
 		expect(mockConfig.getString(OutlookConstants.LC_OAUTH_SCOPE)).andReturn(null);
 		PowerMock.mockStatic(OAuthDataSource.class);
 		expect(OAuthDataSource.createDataSource(OutlookConstants.HOST_OUTLOOK)).andReturn(mockDataSource);
@@ -166,7 +162,7 @@ public class OutlookOAuth2HandlerTest {
 		final String authorizeLocation = handler.authorize(null);
 
 		assertNotNull(authorizeLocation);
-		assertEquals(clientId + " " + encodedUri + " code", authorizeLocation);
+		assertEquals(String.format(OutlookConstants.AUTHORIZE_URI_TEMPLATE, clientId, encodedUri, "code", OutlookConstants.REQUIRED_SCOPES), authorizeLocation);
 	}
 
 	/**
