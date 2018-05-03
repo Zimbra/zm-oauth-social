@@ -26,9 +26,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.exceptions.GenericOAuthException;
@@ -189,7 +189,7 @@ public class OAuth2ResourceUtilities {
 	 *
 	 * @param path The path to add to
 	 * @param params The params to add
-	 * @return The path with added query parameters
+	 * @return The path with added query parameters, or the original path if we failed to add the params
 	 */
 	private static String addQueryParams(String path, Map<String, String> params) {
 		// do nothing for empty path, or param map
@@ -197,15 +197,21 @@ public class OAuth2ResourceUtilities {
 			return path;
 		}
 
-		final UriBuilder pathUri = UriBuilder.fromPath(path);
-		// add each param if the key and value are not empty
-		for (final Entry<String, String> param : params.entrySet()) {
-			final String key = param.getKey();
-			final String value = param.getValue();
-			if (!StringUtils.isEmpty(key) && !StringUtils.isEmpty(value)) {
-				pathUri.queryParam(key, value);
+		try {
+			final URIBuilder pathUri = new URIBuilder(path);
+			// add each param if the key and value are not empty
+			for (final Entry<String, String> param : params.entrySet()) {
+				final String key = param.getKey();
+				final String value = param.getValue();
+				if (!StringUtils.isEmpty(key) && !StringUtils.isEmpty(value)) {
+					pathUri.addParameter(key, value);
+				}
 			}
+			return pathUri.build().toString();
+		} catch (final URISyntaxException e) {
+			ZimbraLog.extensions.warn("There was an issue adding query parameters to the path: " + path);
 		}
-		return pathUri.build().toString();
+		// return the original path without the added params if we failed
+		return path;
 	}
 }
