@@ -52,9 +52,6 @@ This service's configuration can all be found in Zimbra's `localconfig.xml` file
 
 | Key | Description | Optional | Example Options |
 | --- | ----------- | -------- | --------------- |
-| zm_oauth_log_level | The log level for this service |  | `DEBUG`, `INFO`, `WARN`, `ERROR` |
-| zm_oauth_server_port | The port to run this service |  | `4040` |
-| zm_oauth_server_context_path | The base path of this service |  | `/` |
 | host_uri_template | The host uri to connect via ZMailbox | Yes | `https://%s:443` |
 | zm_oauth_source_folder_id | The id of the folder to store the user's oauth info | Yes | `247` |
 | zm_oauth_classes_handlers_yahoo<sup>1</sup> | The handler implementation class for the client | | `com.zimbra.oauth.handlers.impl.YahooOAuth2Handler` |
