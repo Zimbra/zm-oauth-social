@@ -88,6 +88,11 @@ public class YahooOAuth2HandlerTest {
 	protected final String clientSecret = "test-secret";
 
 	/**
+	 * Hostname for testing.
+	 */
+	protected final String hostname = "localhost";
+
+	/**
 	 * Redirect URI for testing.
 	 */
 	protected final String clientRedirectUri = "http://localhost/oauth2/authenticate";
@@ -132,6 +137,7 @@ public class YahooOAuth2HandlerTest {
 
 		expect(mockConfig.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE, OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
 			.andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
+		expect(mockConfig.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME)).andReturn(hostname);
 		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_FOLDER_ID)).andReturn(storageFolderId);
 		expect(mockConfig.getString(YahooConstants.LC_OAUTH_CLIENT_ID)).andReturn(null);
 		expect(mockConfig.getString(YahooConstants.LC_OAUTH_CLIENT_SECRET)).andReturn(null);

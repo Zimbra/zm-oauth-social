@@ -31,17 +31,13 @@ import java.util.Map;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.easymock.EasyMock;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.api.easymock.PowerMock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.core.classloader.annotations.SuppressStaticInitializationFor;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.powermock.reflect.Whitebox;
 
-import com.zimbra.common.localconfig.KnownKey;
-import com.zimbra.common.localconfig.LC;
 import com.zimbra.oauth.exceptions.InvalidClientException;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.handlers.impl.OAuth2Handler;
@@ -52,8 +48,7 @@ import com.zimbra.oauth.utilities.OAuth2Constants;
  * Test class for {@link ClassManager}.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({CloseableHttpClient.class, ClassManager.class, Configuration.class, LC.class, OAuth2Handler.class})
-@SuppressStaticInitializationFor("com.zimbra.common.localconfig.LC")
+@PrepareForTest({CloseableHttpClient.class, ClassManager.class, Configuration.class, OAuth2Handler.class})
 public class ClassManagerTest {
 
 	/**
@@ -85,24 +80,6 @@ public class ClassManagerTest {
 	 * Test hostname.
 	 */
 	protected static final String hostname = "zcs-dev.test";
-
-	/**
-	 * Setup the static LC properties used during testing once.
-	 *
-	 * @throws Exception If there are issues during setup
-	 */
-	@BeforeClass
-	public static void setUpOnce() throws Exception {
-		PowerMock.mockStatic(LC.class);
-		// set the LC keys that are used
-		expect(LC.get(matches("zimbra_server_hostname"))).andReturn(hostname);
-		final KnownKey hostnameKey = KnownKey.newKey(hostname);
-		hostnameKey.setKey("zimbra_server_hostname");
-		Whitebox.setInternalState(LC.class, "zimbra_server_hostname", hostnameKey);
-		Whitebox.setInternalState(LC.class, "zimbra_zmprov_default_soap_server", KnownKey.newKey(hostname));
-		Whitebox.setInternalState(LC.class, "ssl_allow_accept_untrusted_certs", KnownKey.newKey("true"));
-		Whitebox.setInternalState(LC.class, "ssl_allow_untrusted_certs", KnownKey.newKey("true"));
-	}
 
 	/**
 	 * Setup for tests.
@@ -137,6 +114,7 @@ public class ClassManagerTest {
 		expect(mockConfig.getString(matches(OAuth2Constants.LC_HANDLER_CLASS_PREFIX + client)))
 			.andReturn("com.zimbra.oauth.handlers.impl.YahooOAuth2Handler");
 		expect(mockConfig.getClientId()).andReturn(client);
+		expect(mockConfig.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME)).andReturn(hostname);
 		expect(mockConfig.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE, OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
 			.andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
 		expect(mockConfig.getString(matches(OAuth2Constants.LC_OAUTH_FOLDER_ID))).andReturn(folderId);
@@ -145,7 +123,6 @@ public class ClassManagerTest {
 
 		PowerMock.replay(Configuration.class);
 		replay(mockConfig);
-		PowerMock.replay(LC.class);
 
 		ClassManager.getHandler(client);
 

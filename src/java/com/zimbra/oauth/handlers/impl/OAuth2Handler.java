@@ -41,7 +41,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.common.auth.ZAuthToken;
-import com.zimbra.common.localconfig.LC;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.exceptions.GenericOAuthException;
@@ -104,8 +103,8 @@ public class OAuth2Handler {
 		this.config = config;
 		client = buildHttpClientIfAbsent(config);
 
-		synchronized (LC.zimbra_server_hostname) {
-			final String zimbraHostname = LC.zimbra_server_hostname.value();
+		synchronized (OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME) {
+			final String zimbraHostname = config.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
 			// warn if missing hostname
 			if (StringUtils.isEmpty(zimbraHostname)) {
 				ZimbraLog.extensions.warn("The zimbra server hostname is not configured.");
@@ -115,10 +114,6 @@ public class OAuth2Handler {
 				config.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE, OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE),
 				zimbraHostname
 			);
-			// set the zmprov soap server
-			LC.zimbra_zmprov_default_soap_server.setDefault(zimbraHostname);
-			LC.ssl_allow_accept_untrusted_certs.setDefault("true");
-			LC.ssl_allow_untrusted_certs.setDefault("true");
 		}
 		storageFolderId = config.getString(OAuth2Constants.LC_OAUTH_FOLDER_ID);
 	}
