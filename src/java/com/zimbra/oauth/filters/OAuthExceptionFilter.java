@@ -1,3 +1,19 @@
+/*
+ * ***** BEGIN LICENSE BLOCK *****
+ * Zimbra OAuth Social Extension
+ * Copyright (C) 2018 Synacor, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software Foundation,
+ * version 2 of the License.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <https://www.gnu.org/licenses/>.
+ * ***** END LICENSE BLOCK *****
+ */
 package com.zimbra.oauth.filters;
 
 import java.io.CharArrayWriter;
@@ -22,6 +38,14 @@ import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2Error;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
 
+/**
+ * The OAuthExceptionFilter class.<br>
+ * Filters exceptions for this project.
+ *
+ * @author Zimbra API Team
+ * @package com.zimbra.oauth.filters
+ * @copyright Copyright © 2018
+ */
 public class OAuthExceptionFilter implements Filter {
 
 	/**
@@ -78,26 +102,35 @@ public class OAuthExceptionFilter implements Filter {
 	 * Wrapper for response. Used to delay sending response out during errors.
 	 */
 	protected class CharResponseWrapper extends HttpServletResponseWrapper {
-	    private final CharArrayWriter output;
 
-	    @Override
+		/**
+		 * Character buffer object.
+		 */
+		private final CharArrayWriter output;
+
+		@Override
 		public String toString() {
-	        return output.toString();
-	    }
+			return output.toString();
+		}
 
-	    public CharResponseWrapper(HttpServletResponse response) {
-	        super(response);
-	        output = new CharArrayWriter();
-	    }
+		/**
+		 * Constructor.
+		 *
+		 * @param response A HttpServletResponse object
+		 */
+		public CharResponseWrapper(HttpServletResponse response) {
+			super(response);
+			output = new CharArrayWriter();
+		}
 
-	    @Override
+		@Override
 		public PrintWriter getWriter() {
-	        return new PrintWriter(output);
-	    }
+			return new PrintWriter(output);
+		}
 
-	    @Override
-	    public void sendError(int sc, String msg) throws IOException {
-	    	// don't send errors yet
-	    }
+		@Override
+		public void sendError(int sc, String msg) throws IOException {
+			// don't send errors yet
+		}
 	}
 }

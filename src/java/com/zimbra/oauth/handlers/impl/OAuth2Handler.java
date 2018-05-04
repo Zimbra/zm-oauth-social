@@ -1,3 +1,19 @@
+/*
+ * ***** BEGIN LICENSE BLOCK *****
+ * Zimbra OAuth2 Extension
+ * Copyright (C) 2018 Synacor, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software Foundation,
+ * version 2 of the License.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <https://www.gnu.org/licenses/>.
+ * ***** END LICENSE BLOCK *****
+ */
 package com.zimbra.oauth.handlers.impl;
 
 import java.io.IOException;
@@ -25,7 +41,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.common.auth.ZAuthToken;
-import com.zimbra.common.localconfig.LC;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.exceptions.GenericOAuthException;
@@ -39,26 +54,57 @@ import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
 
+/**
+ * The OAuth2Handler class.<br>
+ * Base OAuth operations handler.
+ *
+ * @author Zimbra API Team
+ * @package com.zimbra.oauth.handlers.impl
+ * @copyright Copyright © 2018
+ */
 public class OAuth2Handler {
 
+	/**
+	 * Map of HTTP clients.
+	 */
 	protected static final Map<String, CloseableHttpClient> clients = Collections.synchronizedMap(new HashMap<String, CloseableHttpClient>(1));
 
+	/**
+	 * HTTP client.
+	 */
 	protected final CloseableHttpClient client;
 
+	/**
+	 * Configuration object.
+	 */
 	protected final Configuration config;
 
+	/**
+	 * A mapper object that can convert between Java <-> JSON objects.
+	 */
 	protected static final ObjectMapper mapper = OAuth2Utilities.createDefaultMapper();
 
+	/**
+	 * A URI string for the Zimbra host.
+	 */
 	protected final String zimbraHostUri;
 
+	/**
+	 * A storage folder identifier string.
+	 */
 	protected final String storageFolderId;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param config A configuration object
+	 */
 	public OAuth2Handler(Configuration config) {
 		this.config = config;
 		client = buildHttpClientIfAbsent(config);
 
-		synchronized (LC.zimbra_server_hostname) {
-			final String zimbraHostname = LC.zimbra_server_hostname.value();
+		synchronized (OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME) {
+			final String zimbraHostname = config.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
 			// warn if missing hostname
 			if (StringUtils.isEmpty(zimbraHostname)) {
 				ZimbraLog.extensions.warn("The zimbra server hostname is not configured.");
@@ -68,10 +114,6 @@ public class OAuth2Handler {
 				config.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE, OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE),
 				zimbraHostname
 			);
-			// set the zmprov soap server
-			LC.zimbra_zmprov_default_soap_server.setDefault(zimbraHostname);
-			LC.ssl_allow_accept_untrusted_certs.setDefault("true");
-			LC.ssl_allow_untrusted_certs.setDefault("true");
 		}
 		storageFolderId = config.getString(OAuth2Constants.LC_OAUTH_FOLDER_ID);
 	}

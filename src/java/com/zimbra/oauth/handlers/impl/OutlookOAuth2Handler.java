@@ -1,3 +1,19 @@
+/*
+ * ***** BEGIN LICENSE BLOCK *****
+ * Zimbra OAuth2 Extension
+ * Copyright (C) 2018 Synacor, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software Foundation,
+ * version 2 of the License.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <https://www.gnu.org/licenses/>.
+ * ***** END LICENSE BLOCK *****
+ */
 package com.zimbra.oauth.handlers.impl;
 
 import java.io.IOException;
@@ -33,22 +49,15 @@ import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 
+/**
+ * The OutlookOAuth2Handler class.<br>
+ * Outlook OAuth operations handler.
+ *
+ * @author Zimbra API Team
+ * @package com.zimbra.oauth.handlers.impl
+ * @copyright Copyright © 2018
+ */
 public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
-
-	/**
-	 * The authorize endpoint for Outlook.
-	 */
-	protected final String authorizeUriTemplate;
-
-	/**
-	 * The authenticate endpoint for Outlook.
-	 */
-	protected final String authenticateUri;
-
-	/**
-	 * The profile endpoint for Outlook.
-	 */
-	protected final String profileUriTemplate;
 
 	/**
 	 * Outlook client id.
@@ -66,13 +75,8 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 	protected final String clientRedirectUri;
 
 	/**
-	 * Default outlook relay key.
-	 */
-	protected final String relayKey;
-
-	/**
-	 * Outlook token scope.
-	 */
+	* Outlook token scope.
+	*/
 	protected final String scope;
 
 	/**
@@ -127,16 +131,37 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 		 */
 		protected static final String RESPONSE_ERROR_RESPONSE_TYPE = "unsupported_response_type";
 
+		/**
+		 * The authorize endpoint for Outlook.
+		 */
+		protected static final String AUTHORIZE_URI_TEMPLATE = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s";
+
+		/**
+		 * The profile endpoint for Outlook.
+		 */
+		protected static final String PROFILE_URI = "https://www.outlookapis.com/auth/userinfo.email";
+
+		/**
+		 * The authenticate endpoint for Outlook.
+		 */
+		protected static final String AUTHENTICATE_URI = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
+
+		/**
+		 * The relay key for Outlook.
+		 */
+		protected static final String RELAY_KEY = "state";
+
+		/**
+		 * The scope required for Outlook.
+		 */
+		protected static final String REQUIRED_SCOPES = "email";
+
 		// LC Outlook
-		public static final String LC_OAUTH_AUTHORIZE_URI_TEMPLATE = "zm_oauth_outlook_authorize_uri_template";
-		public static final String LC_OAUTH_PROFILE_URI_TEMPLATE = "zm_oauth_outlook_profile_uri_template";
-		public static final String LC_OAUTH_AUTHENTICATE_URI = "zm_oauth_outlook_authenticate_uri";
 		public static final String LC_OAUTH_CLIENT_ID = "zm_oauth_outlook_client_id";
 		public static final String LC_OAUTH_CLIENT_SECRET = "zm_oauth_outlook_client_secret";
 		public static final String LC_OAUTH_CLIENT_REDIRECT_URI = "zm_oauth_outlook_client_redirect_uri";
-		public static final String LC_OAUTH_SCOPE = "zm_oauth_outlook_scope";
 		public static final String LC_OAUTH_IMPORT_CLASS = "zm_oauth_outlook_import_class";
-		public static final String LC_OAUTH_RELAY_KEY = "zm_oauth_outlook_relay_key";
+		public static final String LC_OAUTH_SCOPE = "zm_oauth_outlook_scope";
 
 		public static final String HOST_OUTLOOK = "microsoftonline.com";
 	}
@@ -148,14 +173,10 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 	 */
 	public OutlookOAuth2Handler(Configuration config) {
 		super(config);
-		authorizeUriTemplate = config.getString(OutlookConstants.LC_OAUTH_AUTHORIZE_URI_TEMPLATE);
-		authenticateUri = config.getString(OutlookConstants.LC_OAUTH_AUTHENTICATE_URI);
-		profileUriTemplate = config.getString(OutlookConstants.LC_OAUTH_PROFILE_URI_TEMPLATE);
 		clientId = config.getString(OutlookConstants.LC_OAUTH_CLIENT_ID);
 		clientSecret = config.getString(OutlookConstants.LC_OAUTH_CLIENT_SECRET);
 		clientRedirectUri = config.getString(OutlookConstants.LC_OAUTH_CLIENT_REDIRECT_URI);
-		relayKey = config.getString(OutlookConstants.LC_OAUTH_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY);
-		scope = config.getString(OutlookConstants.LC_OAUTH_SCOPE);
+		scope = StringUtils.join(new String[] {OutlookConstants.REQUIRED_SCOPES, config.getString(OutlookConstants.LC_OAUTH_SCOPE)}, "+");
 		dataSource = OAuthDataSource.createDataSource(OutlookConstants.HOST_OUTLOOK);
 	}
 
@@ -182,13 +203,13 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 			}
 
 			try {
-				relayParam = "&" + relayKey + "=%s";
+				relayParam = "&" + OutlookConstants.RELAY_KEY + "=%s";
 				relayValue = URLEncoder.encode(relay, OAuth2Constants.ENCODING);
 			} catch (final UnsupportedEncodingException e) {
 				throw new InvalidOperationException("Unable to encode relay parameter.");
 			}
 		}
-		return String.format(authorizeUriTemplate + relayParam, clientId, encodedRedirectUri, responseType, relayValue, scope);
+		return String.format(OutlookConstants.AUTHORIZE_URI_TEMPLATE + relayParam, clientId, encodedRedirectUri, responseType, scope, relayValue);
 	}
 
 	@Override
@@ -250,7 +271,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 		final String basicToken = Base64.getEncoder().encodeToString(new String(clientId + ":" + clientSecret).getBytes());
 		final String code = authInfo.getParam("code");
 		final String refreshToken = authInfo.getRefreshToken();
-		final HttpPost request = new HttpPost(authenticateUri);
+		final HttpPost request = new HttpPost(OutlookConstants.AUTHENTICATE_URI);
 		final List<NameValuePair> params = new ArrayList<NameValuePair>();
 		if (!StringUtils.isEmpty(refreshToken)) {
 			// set refresh token if we have one

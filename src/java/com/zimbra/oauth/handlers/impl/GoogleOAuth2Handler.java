@@ -1,3 +1,19 @@
+/*
+ * ***** BEGIN LICENSE BLOCK *****
+ * Zimbra OAuth2 Extension
+ * Copyright (C) 2018 Synacor, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software Foundation,
+ * version 2 of the License.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <https://www.gnu.org/licenses/>.
+ * ***** END LICENSE BLOCK *****
+ */
 package com.zimbra.oauth.handlers.impl;
 
 import java.io.IOException;
@@ -33,22 +49,15 @@ import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 
+/**
+ * The GoogleOAuth2Handler class.<br>
+ * Google OAuth operations handler.
+ *
+ * @author Zimbra API Team
+ * @package com.zimbra.oauth.handlers.impl
+ * @copyright Copyright © 2018
+ */
 public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
-
-	/**
-	 * The authorize endpoint for Google.
-	 */
-	protected final String authorizeUriTemplate;
-
-	/**
-	 * The authenticate endpoint for Google.
-	 */
-	protected final String authenticateUri;
-
-	/**
-	 * The profile endpoint for Google.
-	 */
-	protected final String profileUriTemplate;
 
 	/**
 	 * Google client id.
@@ -66,11 +75,6 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 	protected final String clientRedirectUri;
 
 	/**
-	 * Default relay key.
-	 */
-	protected final String relayKey;
-
-	/**
 	 * Google token scope.
 	 */
 	protected final String scope;
@@ -86,34 +90,9 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 	protected class GoogleConstants {
 
 		/**
-		 * Unauthorized response code from Google.
-		 */
-		protected static final String RESPONSE_ERROR_ACCOUNT_NOT_AUTHORIZED = "ACCOUNT_NOT_AUTHORIZED";
-
-		/**
-		 * Invalid client response code from Google.
-		 */
-		protected static final String RESPONSE_ERROR_INVALID_CLIENT = "INVALID_CLIENT";
-
-		/**
-		 * Invalid client secret response code from Google.
-		 */
-		protected static final String RESPONSE_ERROR_INVALID_CLIENT_SECRET = "INVALID_CLIENT_SECRET";
-
-		/**
 		 * Invalid redirect response code from Google.
 		 */
-		protected static final String RESPONSE_ERROR_INVALID_REDIRECT_URI = "INVALID_REDIRECT_URI";
-
-		/**
-		 * Invalid callback response code from Google.
-		 */
-		protected static final String RESPONSE_ERROR_INVALID_CALLBACK = "INVALID_CALLBACK";
-
-		/**
-		 * Invalid refresh token response code from Google.
-		 */
-		protected static final String RESPONSE_ERROR_INVALID_REFRESH_TOKEN = "INVALID_REFRESH_TOKEN";
+		protected static final String RESPONSE_ERROR_INVALID_REDIRECT_URI = "REDIRECT_URI_MISMATCH";
 
 		/**
 		 * Invalid authorization code response code from Google.
@@ -126,20 +105,53 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 		protected static final String RESPONSE_ERROR_INVALID_GRANT = "INVALID_GRANT";
 
 		/**
-		 * Token expired response code from Google.
+		 * Unsupported grant type response code from Google.
 		 */
-		protected static final String RESPONSE_ERROR_TOKEN_EXPIRED = "TOKEN_EXPIRED";
+		protected static final String RESPONSE_ERROR_UNSUPPORTED_GRANT_TYPE = "UNSUPPORTED_GRANT_TYPE";
+
+		/**
+		 * Invalid client response code from Google.
+		 */
+		protected static final String RESPONSE_ERROR_INVALID_CLIENT = "INVALID_CLIENT";
+
+		/**
+		 * Invalid request code from Google.
+		 */
+		protected static final String RESPONSE_ERROR_INVALID_REQUEST = "INVALID_REQUEST";
+
+
+
+		/**
+		 * The authorize endpoint for Google.
+		 */
+		protected static final String AUTHORIZE_URI_TEMPLATE = "https://accounts.google.com/o/oauth2/v2/auth?prompt=consent&access_type=offline&client_id=%s&redirect_uri=%s&response_type=%s&scope=%s";
+
+		/**
+		 * The profile endpoint for Google.
+		 */
+		protected static final String PROFILE_URI = "https://www.googleapis.com/plus/v1/people/me";
+
+		/**
+		 * The authenticate endpoint for Google.
+		 */
+		protected static final String AUTHENTICATE_URI = "https://www.googleapis.com/oauth2/v4/token";
+
+		/**
+		 * The scope required for Google.
+		 */
+		protected static final String REQUIRED_SCOPES = "email";
+
+		/**
+		 * The relay key for Google.
+		 */
+		protected static final String RELAY_KEY = "state";
 
 		// LC Google
-		public static final String LC_OAUTH_AUTHORIZE_URI_TEMPLATE = "zm_oauth_google_authorize_uri_template";
-		public static final String LC_OAUTH_PROFILE_URI_TEMPLATE = "zm_oauth_google_profile_uri_template";
-		public static final String LC_OAUTH_AUTHENTICATE_URI = "zm_oauth_google_authenticate_uri";
 		public static final String LC_OAUTH_CLIENT_ID = "zm_oauth_google_client_id";
 		public static final String LC_OAUTH_CLIENT_SECRET = "zm_oauth_google_client_secret";
 		public static final String LC_OAUTH_CLIENT_REDIRECT_URI = "zm_oauth_google_client_redirect_uri";
-		public static final String LC_OAUTH_SCOPE = "zm_oauth_google_scope";
 		public static final String LC_OAUTH_IMPORT_CLASS = "zm_oauth_google_import_class";
-		public static final String LC_OAUTH_RELAY_KEY = "zm_oauth_google_relay_key";
+		public static final String LC_OAUTH_SCOPE = "zm_oauth_google_scope";
 
 		public static final String HOST_GOOGLE = "googleapis.com";
 	}
@@ -151,14 +163,10 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 	 */
 	public GoogleOAuth2Handler(Configuration config) {
 		super(config);
-		authorizeUriTemplate = config.getString(GoogleConstants.LC_OAUTH_AUTHORIZE_URI_TEMPLATE);
-		authenticateUri = config.getString(GoogleConstants.LC_OAUTH_AUTHENTICATE_URI);
-		profileUriTemplate = config.getString(GoogleConstants.LC_OAUTH_PROFILE_URI_TEMPLATE);
 		clientId = config.getString(GoogleConstants.LC_OAUTH_CLIENT_ID);
 		clientSecret = config.getString(GoogleConstants.LC_OAUTH_CLIENT_SECRET);
 		clientRedirectUri = config.getString(GoogleConstants.LC_OAUTH_CLIENT_REDIRECT_URI);
-		relayKey = config.getString(GoogleConstants.LC_OAUTH_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY);
-		scope = config.getString(GoogleConstants.LC_OAUTH_SCOPE);
+		scope = StringUtils.join(new String[] {GoogleConstants.REQUIRED_SCOPES, config.getString(GoogleConstants.LC_OAUTH_SCOPE)}, "+");
 		dataSource = OAuthDataSource.createDataSource(GoogleConstants.HOST_GOOGLE);
 	}
 
@@ -185,13 +193,13 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 			}
 
 			try {
-				relayParam = "&" + relayKey + "=%s";
+				relayParam = "&" + GoogleConstants.RELAY_KEY + "=%s";
 				relayValue = URLEncoder.encode(relay, OAuth2Constants.ENCODING);
 			} catch (final UnsupportedEncodingException e) {
 				throw new InvalidOperationException("Unable to encode relay parameter.");
 			}
 		}
-		return String.format(authorizeUriTemplate + relayParam, clientId, encodedRedirectUri, responseType, relayValue, scope);
+		return String.format(GoogleConstants.AUTHORIZE_URI_TEMPLATE + relayParam, clientId, encodedRedirectUri, responseType, scope, relayValue);
 	}
 
 	@Override
@@ -254,7 +262,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 		final String basicToken = Base64.getEncoder().encodeToString(new String(clientId + ":" + clientSecret).getBytes());
 		final String code = authInfo.getParam("code");
 		final String refreshToken = authInfo.getRefreshToken();
-		final HttpPost request = new HttpPost(authenticateUri);
+		final HttpPost request = new HttpPost(GoogleConstants.AUTHENTICATE_URI);
 		final List<NameValuePair> params = new ArrayList<NameValuePair>();
 		if (!StringUtils.isEmpty(refreshToken)) {
 			// set refresh token if we have one
@@ -302,30 +310,23 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 		if (response.has("error")) {
 			final String error = response.get("error").asText();
 			final JsonNode errorMsg = response.get("error_description");
-			switch (error) {
-				case GoogleConstants.RESPONSE_ERROR_ACCOUNT_NOT_AUTHORIZED:
-					ZimbraLog.extensions.info("User did not provide authorization for this service: " + errorMsg);
-					throw new UserForbiddenException("User did not provide authorization for this service.");
+			switch (error.toUpperCase()) {
 				case GoogleConstants.RESPONSE_ERROR_INVALID_REDIRECT_URI:
 					ZimbraLog.extensions.info("Redirect does not match the one found in authorization request: " + errorMsg);
 					throw new InvalidOperationException("Redirect does not match the one found in authorization request.");
-				case GoogleConstants.RESPONSE_ERROR_INVALID_CALLBACK:
-					ZimbraLog.extensions.warn("Redirect does not match the configured one expected by the server: " + errorMsg);
-					throw new InvalidOperationException("Redirect does not match the configured one expected by the server.");
-				case GoogleConstants.RESPONSE_ERROR_INVALID_REFRESH_TOKEN:
-					ZimbraLog.extensions.debug("Invalid refresh token used: " + errorMsg);
-					throw new InvalidOperationException("Refresh token is invalid.");
 				case GoogleConstants.RESPONSE_ERROR_INVALID_AUTHORIZATION_CODE:
 				case GoogleConstants.RESPONSE_ERROR_INVALID_GRANT:
-					ZimbraLog.extensions.debug("Invalid authorization token used: " + errorMsg);
-					throw new UserUnauthorizedException("Authorization token is expired or invalid. Unable to authenticate the user.");
-				case GoogleConstants.RESPONSE_ERROR_TOKEN_EXPIRED:
-					ZimbraLog.extensions.debug("Refresh token is expired: " + errorMsg);
-					throw new UserUnauthorizedException("Refresh token is expired. Unable to authenticate the user.");
+					ZimbraLog.extensions.debug("Invalid authorization / refresh token used: " + errorMsg);
+					throw new UserUnauthorizedException("Authorization or refresh token is expired or invalid. Unable to authenticate the user.");
+				case GoogleConstants.RESPONSE_ERROR_UNSUPPORTED_GRANT_TYPE:
+					ZimbraLog.extensions.debug("Unsupported grant type used: " + errorMsg);
+					throw new UserUnauthorizedException("Unsupported grant type used. Unable to authenticate the user.");
 				case GoogleConstants.RESPONSE_ERROR_INVALID_CLIENT:
-				case GoogleConstants.RESPONSE_ERROR_INVALID_CLIENT_SECRET:
-					ZimbraLog.extensions.warn("Invalid client or client secret provided to mail server: " + errorMsg );
+					ZimbraLog.extensions.warn("Invalid client or client secret provided to mail server: " + errorMsg);
 					throw new ConfigurationException("Invalid client details provided to mail server.");
+				case GoogleConstants.RESPONSE_ERROR_INVALID_REQUEST:
+					ZimbraLog.extensions.warn("Invalid request parameter was provided: " + errorMsg);
+					throw new ConfigurationException("An invalid request parameter was provided.");
 				default:
 					ZimbraLog.extensions.warn("Unexpected error while trying to authenticate the user: " + errorMsg);
 					throw new UserUnauthorizedException("Unable to authenticate the user.");
@@ -340,19 +341,19 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 	}
 
 	/**
-     * Retrieves the user's email address.
-     *
-     * @param credentials The json response from token call
-     * @return The primary email address for the user
-     * @throws InvalidResponseException If the email address is missing
-     */
-    protected String getPrimaryEmail(JsonNode credentials) throws InvalidResponseException {
-        final DecodedJWT jwt = JWT.decode(credentials.get("id_token").asText());
-        final Claim emailClaim = jwt.getClaim("email");
-        if (emailClaim == null) {
-            throw new InvalidResponseException("Authentication response is missing primary email.");
-        }
-        return jwt.getClaim("email").asString();
-    }
+	 * Retrieves the user's email address.
+	 *
+	 * @param credentials The json response from token call
+	 * @return The primary email address for the user
+	 * @throws InvalidResponseException If the email address is missing
+	 */
+	protected String getPrimaryEmail(JsonNode credentials) throws InvalidResponseException {
+		final DecodedJWT jwt = JWT.decode(credentials.get("id_token").asText());
+		final Claim emailClaim = jwt.getClaim("email");
+		if (emailClaim == null) {
+			throw new InvalidResponseException("Authentication response is missing primary email.");
+		}
+		return jwt.getClaim("email").asString();
+	}
 
 }
