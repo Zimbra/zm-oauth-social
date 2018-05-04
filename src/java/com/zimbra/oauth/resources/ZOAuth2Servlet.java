@@ -44,91 +44,93 @@ import com.zimbra.oauth.utilities.OAuth2ResourceUtilities;
  */
 public class ZOAuth2Servlet extends ExtensionHttpHandler {
 
-	@Override
-	public String getPath() {
-		return OAuth2Constants.DEFAULT_SERVER_PATH;
-	}
+    @Override
+    public String getPath() {
+        return OAuth2Constants.DEFAULT_SERVER_PATH;
+    }
 
-	@Override
-	public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
-		final String path = StringUtils.removeEndIgnoreCase(req.getPathInfo(), "/");
-		if (!isValidPath(path)) {
-			// invalid location - not part of this service
-			resp.sendError(Status.BAD_REQUEST.getStatusCode());
-			return;
-		}
-		final Map<String, String> pathParams = parseRequestPath(path);
-		final String client = pathParams.get("client");
-		String location = OAuth2Constants.DEFAULT_SUCCESS_REDIRECT;
+    @Override
+    public void doGet(HttpServletRequest req, HttpServletResponse resp)
+        throws IOException, ServletException {
+        final String path = StringUtils.removeEndIgnoreCase(req.getPathInfo(), "/");
+        if (!isValidPath(path)) {
+            // invalid location - not part of this service
+            resp.sendError(Status.BAD_REQUEST.getStatusCode());
+            return;
+        }
+        final Map<String, String> pathParams = parseRequestPath(path);
+        final String client = pathParams.get("client");
+        String location = OAuth2Constants.DEFAULT_SUCCESS_REDIRECT;
 
-		try {
-			switch (pathParams.get("action")) {
-				case "authorize":
-					location = OAuth2ResourceUtilities.authorize(client, req.getParameter("relay"));
-					break;
-				case "authenticate":
-					location = OAuth2ResourceUtilities.authenticate(client, req.getParameterMap(), getAuthToken(req.getCookies()));
-					break;
-				default:
-					// missing valid action - bad request
-					resp.sendError(Status.BAD_REQUEST.getStatusCode());
-					return;
-			}
-		} catch (final GenericOAuthException e) {
-			ZimbraLog.extensions.error(e);
-			resp.setStatus(e.getStatus().getStatusCode());
-			return;
-		}
+        try {
+            switch (pathParams.get("action")) {
+            case "authorize":
+                location = OAuth2ResourceUtilities.authorize(client, req.getParameter("relay"));
+                break;
+            case "authenticate":
+                location = OAuth2ResourceUtilities.authenticate(client, req.getParameterMap(),
+                    getAuthToken(req.getCookies()));
+                break;
+            default:
+                // missing valid action - bad request
+                resp.sendError(Status.BAD_REQUEST.getStatusCode());
+                return;
+            }
+        } catch (final GenericOAuthException e) {
+            ZimbraLog.extensions.error(e);
+            resp.setStatus(e.getStatus().getStatusCode());
+            return;
+        }
 
-		// set response redirect location
-		resp.sendRedirect(location);
-	}
+        // set response redirect location
+        resp.sendRedirect(location);
+    }
 
-	/**
-	 * Determines if the path is one serviced by this extension.
-	 *
-	 * @param path The path to check
-	 * @return True if the op is serviceable
-	 */
-	protected boolean isValidPath(String path) {
-		return StringUtils.containsIgnoreCase(path, "authenticate/")
-			|| StringUtils.containsIgnoreCase(path, "authorize/");
-	}
+    /**
+     * Determines if the path is one serviced by this extension.
+     *
+     * @param path The path to check
+     * @return True if the op is serviceable
+     */
+    protected boolean isValidPath(String path) {
+        return StringUtils.containsIgnoreCase(path, "authenticate/")
+            || StringUtils.containsIgnoreCase(path, "authorize/");
+    }
 
-	/**
-	 * Retrieves the zm auth token from the request.
-	 *
-	 * @param cookies The request cookies
-	 * @return The zm auth token
-	 */
-	protected String getAuthToken(Cookie[] cookies) {
-		for (final Cookie cookie : cookies) {
-			if (StringUtils.equals(cookie.getName(), OAuth2Constants.COOKIE_AUTH_TOKEN)) {
-				return cookie.getValue();
-			}
-		}
-		return null;
-	}
+    /**
+     * Retrieves the zm auth token from the request.
+     *
+     * @param cookies The request cookies
+     * @return The zm auth token
+     */
+    protected String getAuthToken(Cookie[] cookies) {
+        for (final Cookie cookie : cookies) {
+            if (StringUtils.equals(cookie.getName(), OAuth2Constants.COOKIE_AUTH_TOKEN)) {
+                return cookie.getValue();
+            }
+        }
+        return null;
+    }
 
-	/**
-	 * Parses the path for the request path parameters.
-	 *
-	 * @param path The path to parse
-	 * @return Path parameters
-	 */
-	protected Map<String, String> parseRequestPath(String path) {
-		final Map<String, String> pathParams = new HashMap<String, String>();
-		final String[] parts = path.split("/");
-		// action
-		if (StringUtils.equalsIgnoreCase(parts[2], "authorize")
-			|| StringUtils.equalsIgnoreCase(parts[2], "authenticate")) {
-			pathParams.put("action", parts[2]);
-		}
-		// client
-		if (StringUtils.isNotEmpty(parts[3])) {
-			pathParams.put("client", parts[3]);
-		}
-		return pathParams;
-	}
+    /**
+     * Parses the path for the request path parameters.
+     *
+     * @param path The path to parse
+     * @return Path parameters
+     */
+    protected Map<String, String> parseRequestPath(String path) {
+        final Map<String, String> pathParams = new HashMap<String, String>();
+        final String[] parts = path.split("/");
+        // action
+        if (StringUtils.equalsIgnoreCase(parts[2], "authorize")
+            || StringUtils.equalsIgnoreCase(parts[2], "authenticate")) {
+            pathParams.put("action", parts[2]);
+        }
+        // client
+        if (StringUtils.isNotEmpty(parts[3])) {
+            pathParams.put("client", parts[3]);
+        }
+        return pathParams;
+    }
 
 }

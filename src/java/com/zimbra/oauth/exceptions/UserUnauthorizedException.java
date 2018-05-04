@@ -22,7 +22,8 @@ import com.zimbra.oauth.utilities.OAuth2Error;
 
 /**
  * The UserUnauthorizedException class.<br>
- * Indicates that the requester is not authenticated, or a social service has declined the token request.
+ * Indicates that the requester is not authenticated, or a social service has
+ * declined the token request.
  *
  * @author Zimbra API Team
  * @package com.zimbra.oauth.exceptions
@@ -30,36 +31,36 @@ import com.zimbra.oauth.utilities.OAuth2Error;
  */
 public class UserUnauthorizedException extends GenericOAuthException {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	/**
-	 * Constructor.
-	 *
-	 * @param message An error message
-	 */
-	public UserUnauthorizedException(String message) {
-		this(message, null);
-	}
+    /**
+     * Constructor.
+     *
+     * @param message An error message
+     */
+    public UserUnauthorizedException(String message) {
+        this(message, null);
+    }
 
-	/**
-	 * Constructor.
-	 *
-	 * @param throwable A throwable object
-	 */
-	public UserUnauthorizedException(Throwable throwable) {
-		this(null, throwable);
-	}
+    /**
+     * Constructor.
+     *
+     * @param throwable A throwable object
+     */
+    public UserUnauthorizedException(Throwable throwable) {
+        this(null, throwable);
+    }
 
-	/**
-	 * Constructor.
-	 *
-	 * @param message An error message
-	 * @param throwable A throwable object
-	 */
-	public UserUnauthorizedException(String message, Throwable throwable) {
-		super(message, throwable);
-		setError(OAuth2Error.USER_UNAUTHORIZED_ERROR);
-		setStatus(Status.UNAUTHORIZED);
-	}
+    /**
+     * Constructor.
+     *
+     * @param message An error message
+     * @param throwable A throwable object
+     */
+    public UserUnauthorizedException(String message, Throwable throwable) {
+        super(message, throwable);
+        setError(OAuth2Error.USER_UNAUTHORIZED_ERROR);
+        setStatus(Status.UNAUTHORIZED);
+    }
 
 }

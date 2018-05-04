@@ -30,36 +30,36 @@ import com.zimbra.oauth.utilities.OAuth2Error;
  */
 public class UnreachableHostException extends GenericOAuthException {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	/**
-	 * Constructor.
-	 *
-	 * @param message An error message
-	 */
-	public UnreachableHostException(String message) {
-		this(message, null);
-	}
+    /**
+     * Constructor.
+     *
+     * @param message An error message
+     */
+    public UnreachableHostException(String message) {
+        this(message, null);
+    }
 
-	/**
-	 * Constructor.
-	 *
-	 * @param throwable A throwable object
-	 */
-	public UnreachableHostException(Throwable throwable) {
-		this(null, throwable);
-	}
+    /**
+     * Constructor.
+     *
+     * @param throwable A throwable object
+     */
+    public UnreachableHostException(Throwable throwable) {
+        this(null, throwable);
+    }
 
-	/**
-	 * Constructor.
-	 *
-	 * @param message An error message
-	 * @param throwable A throwable object
-	 */
-	public UnreachableHostException(String message, Throwable throwable) {
-		super(message, throwable);
-		setError(OAuth2Error.UNREACHABLE_HOST_ERROR);
-		setStatus(Status.GATEWAY_TIMEOUT);
-	}
+    /**
+     * Constructor.
+     *
+     * @param message An error message
+     * @param throwable A throwable object
+     */
+    public UnreachableHostException(String message, Throwable throwable) {
+        super(message, throwable);
+        setError(OAuth2Error.UNREACHABLE_HOST_ERROR);
+        setStatus(Status.GATEWAY_TIMEOUT);
+    }
 
 }

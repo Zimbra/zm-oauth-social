@@ -30,67 +30,68 @@ import com.zimbra.oauth.utilities.OAuth2Constants;
 @XmlRootElement
 public class ResponseObject<E> {
 
-	/**
-	 * Data of type.
-	 */
-	protected E data;
+    /**
+     * Data of type.
+     */
+    protected E data;
 
-	/**
-	 * Meta instance.
-	 */
-	protected Meta _meta = new Meta();
+    /**
+     * Meta instance.
+     */
+    protected Meta _meta = new Meta();
 
-	/**
-	 * Constructor.
-	 *
-	 * @param data A data object
-	 */
-	public ResponseObject(E data) {
-		this.data = data;
-	}
+    /**
+     * Constructor.
+     *
+     * @param data A data object
+     */
+    public ResponseObject(E data) {
+        this.data = data;
+    }
 
-	/**
-	 * Get data.
-	 *
-	 * @return A data object
-	 */
-	public E getData() {
-		return data;
-	}
+    /**
+     * Get data.
+     *
+     * @return A data object
+     */
+    public E getData() {
+        return data;
+    }
 
-	/**
-	 * Set data.
-	 *
-	 * @param data A data object
-	 */
-	public void setData(E data) {
-		this.data = data;
-	}
+    /**
+     * Set data.
+     *
+     * @param data A data object
+     */
+    public void setData(E data) {
+        this.data = data;
+    }
 
-	/**
-	 * Get the Meta instance.
-	 *
-	 * @return The instance of Meta object
-	 */
-	public Meta get_meta() {
-		return _meta;
-	}
+    /**
+     * Get the Meta instance.
+     *
+     * @return The instance of Meta object
+     */
+    public Meta get_meta() {
+        return _meta;
+    }
 
-	/**
-	 * Set the Meta instance.
-	 *
-	 * @param _meta An instance of Meta object
-	 */
-	public void set_meta(Meta _meta) {
-		this._meta = _meta;
-	}
+    /**
+     * Set the Meta instance.
+     *
+     * @param _meta An instance of Meta object
+     */
+    public void set_meta(Meta _meta) {
+        this._meta = _meta;
+    }
 
-	@XmlRootElement
-	protected class Meta {
-		protected final String api = OAuth2Constants.API_NAME;
+    @XmlRootElement
+    protected class Meta {
 
-		public String getApi() {
-			return api;
-		}
-	}
+        protected final String api = OAuth2Constants.API_NAME;
+
+        public String getApi() {
+            return api;
+        }
+    }
 }

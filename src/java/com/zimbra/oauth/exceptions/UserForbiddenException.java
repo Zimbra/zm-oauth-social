@@ -22,7 +22,8 @@ import com.zimbra.oauth.utilities.OAuth2Error;
 
 /**
  * The UserForbiddenException class.<br>
- * Indicates that the requesting user has insufficient privileges to perform a requested action.
+ * Indicates that the requesting user has insufficient privileges to perform a
+ * requested action.
  *
  * @author Zimbra API Team
  * @package com.zimbra.oauth.exceptions
@@ -30,36 +31,36 @@ import com.zimbra.oauth.utilities.OAuth2Error;
  */
 public class UserForbiddenException extends GenericOAuthException {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	/**
-	 * Constructor.
-	 *
-	 * @param message An error message
-	 */
-	public UserForbiddenException(String message) {
-		this(message, null);
-	}
-
-	/**
-	 * Constructor.
-	 *
-	 * @param throwable A throwable object
+    /**
+     * Constructor.
+     *
+     * @param message An error message
      */
-	public UserForbiddenException(Throwable throwable) {
-		this(null, throwable);
-	}
+    public UserForbiddenException(String message) {
+        this(message, null);
+    }
 
-	/**
-	 * Constructor.
-	 *
-	 * @param message An error message
-	 * @param throwable A throwable object
+    /**
+     * Constructor.
+     *
+     * @param throwable A throwable object
      */
-	public UserForbiddenException(String message, Throwable throwable) {
-		super(message, throwable);
-		setError(OAuth2Error.USER_FORBIDDEN_ERROR);
-		setStatus(Status.FORBIDDEN);
-	}
+    public UserForbiddenException(Throwable throwable) {
+        this(null, throwable);
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param message An error message
+     * @param throwable A throwable object
+     */
+    public UserForbiddenException(String message, Throwable throwable) {
+        super(message, throwable);
+        setError(OAuth2Error.USER_FORBIDDEN_ERROR);
+        setStatus(Status.FORBIDDEN);
+    }
 
 }

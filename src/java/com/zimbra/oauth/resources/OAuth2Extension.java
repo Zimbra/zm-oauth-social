@@ -32,19 +32,19 @@ import com.zimbra.oauth.utilities.OAuth2Constants;
  */
 public class OAuth2Extension implements ZimbraExtension {
 
-	@Override
-	public void destroy() {
-		ExtensionDispatcherServlet.unregister(this);
-	}
+    @Override
+    public void destroy() {
+        ExtensionDispatcherServlet.unregister(this);
+    }
 
-	@Override
-	public String getName() {
-		return OAuth2Constants.API_NAME;
-	}
+    @Override
+    public String getName() {
+        return OAuth2Constants.API_NAME;
+    }
 
-	@Override
-	public void init() throws ExtensionException, ServiceException {
-		ExtensionDispatcherServlet.register(this, new ZOAuth2Servlet());
-	}
+    @Override
+    public void init() throws ExtensionException, ServiceException {
+        ExtensionDispatcherServlet.register(this, new ZOAuth2Servlet());
+    }
 
 }

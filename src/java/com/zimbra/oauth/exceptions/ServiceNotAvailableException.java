@@ -30,36 +30,36 @@ import com.zimbra.oauth.utilities.OAuth2Error;
  */
 public class ServiceNotAvailableException extends GenericOAuthException {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	/**
-	 * Constructor.
-	 *
-	 * @param message An error message
-	 */
-	public ServiceNotAvailableException(String message) {
-		this(message, null);
-	}
+    /**
+     * Constructor.
+     *
+     * @param message An error message
+     */
+    public ServiceNotAvailableException(String message) {
+        this(message, null);
+    }
 
-	/**
-	 * Constructor.
-	 *
-	 * @param throwable A throwable object
-	 */
-	public ServiceNotAvailableException(Throwable throwable) {
-		this(null, throwable);
-	}
+    /**
+     * Constructor.
+     *
+     * @param throwable A throwable object
+     */
+    public ServiceNotAvailableException(Throwable throwable) {
+        this(null, throwable);
+    }
 
-	/**
-	 * Constructor.
-	 *
-	 * @param message An error message
-	 * @param throwable A throwable object
-	 */
-	public ServiceNotAvailableException(String message, Throwable throwable) {
-		super(message, throwable);
-		setError(OAuth2Error.SERVICE_NOT_AVAILABLE_ERROR);
-		setStatus(Status.SERVICE_UNAVAILABLE);
-	}
+    /**
+     * Constructor.
+     *
+     * @param message An error message
+     * @param throwable A throwable object
+     */
+    public ServiceNotAvailableException(String message, Throwable throwable) {
+        super(message, throwable);
+        setError(OAuth2Error.SERVICE_NOT_AVAILABLE_ERROR);
+        setStatus(Status.SERVICE_UNAVAILABLE);
+    }
 
 }

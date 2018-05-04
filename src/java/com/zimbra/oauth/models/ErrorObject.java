@@ -30,61 +30,61 @@ import com.zimbra.oauth.utilities.OAuth2Error;
 @XmlRootElement
 public class ErrorObject {
 
-	/**
-	 * Error message.
-	 */
-	protected String errorMessage;
+    /**
+     * Error message.
+     */
+    protected String errorMessage;
 
-	/**
-	 * Error code.
-	 */
-	protected OAuth2Error errorCode;
+    /**
+     * Error code.
+     */
+    protected OAuth2Error errorCode;
 
-	/**
-	 * Constructor.
-	 *
-	 * @param code An error code
-	 * @param message An error message
-	 */
-	public ErrorObject(OAuth2Error code, String message) {
-		errorCode = code;
-		errorMessage = message;
-	}
+    /**
+     * Constructor.
+     *
+     * @param code An error code
+     * @param message An error message
+     */
+    public ErrorObject(OAuth2Error code, String message) {
+        errorCode = code;
+        errorMessage = message;
+    }
 
-	/**
-	 * Get the error message.
-	 *
-	 * @return errorMessage The error message
-	 */
-	public String getErrorMessage() {
-		return errorMessage;
-	}
+    /**
+     * Get the error message.
+     *
+     * @return errorMessage The error message
+     */
+    public String getErrorMessage() {
+        return errorMessage;
+    }
 
-	/**
-	 * Set the error message.
-	 *
-	 * @param errorMessage An error message
-	 */
-	public void setErrorMessage(String errorMessage) {
-		this.errorMessage = errorMessage;
-	}
+    /**
+     * Set the error message.
+     *
+     * @param errorMessage An error message
+     */
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
 
-	/**
-	 * Get the error code.
-	 *
-	 * @return errorCode An error code
-	 */
-	public OAuth2Error getErrorCode() {
-		return errorCode;
-	}
+    /**
+     * Get the error code.
+     *
+     * @return errorCode An error code
+     */
+    public OAuth2Error getErrorCode() {
+        return errorCode;
+    }
 
-	/**
-	 * Set the error code.
-	 *
-	 * @param errorCode An error code
-	 */
-	public void setErrorCode(OAuth2Error errorCode) {
-		this.errorCode = errorCode;
-	}
+    /**
+     * Set the error code.
+     *
+     * @param errorCode An error code
+     */
+    public void setErrorCode(OAuth2Error errorCode) {
+        this.errorCode = errorCode;
+    }
 
 }
