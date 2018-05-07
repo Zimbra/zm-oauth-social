@@ -20,29 +20,24 @@ import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.lang.StringUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.ConnectionPoolTimeoutException;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.common.auth.ZAuthToken;
+import com.zimbra.common.httpclient.HttpClientUtil;
 import com.zimbra.common.service.ServiceException;
+import com.zimbra.common.util.ZimbraHttpConnectionManager;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.httpclient.HttpProxyUtil;
 import com.zimbra.oauth.exceptions.GenericOAuthException;
 import com.zimbra.oauth.exceptions.InvalidOperationException;
 import com.zimbra.oauth.exceptions.InvalidResponseException;
@@ -65,15 +60,9 @@ import com.zimbra.oauth.utilities.OAuth2Utilities;
 public class OAuth2Handler {
 
     /**
-     * Map of HTTP clients.
+     * Client for Http requests.
      */
-    protected static final Map<String, CloseableHttpClient> clients = Collections
-        .synchronizedMap(new HashMap<String, CloseableHttpClient>(1));
-
-    /**
-     * HTTP client.
-     */
-    protected final CloseableHttpClient client;
+    protected final HttpClient client;
 
     /**
      * Configuration object.
@@ -97,8 +86,7 @@ public class OAuth2Handler {
      */
     public OAuth2Handler(Configuration config) {
         this.config = config;
-        client = buildHttpClientIfAbsent(config);
-
+        client = getHttpClient();
         synchronized (OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME) {
             final String zimbraHostname = config
                 .getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
@@ -110,6 +98,18 @@ public class OAuth2Handler {
             zimbraHostUri = String.format(config.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE,
                 OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE), zimbraHostname);
         }
+    }
+
+    /**
+     * Get an instance of HttpClient which is configured to use Zimbra proxy.
+     *
+     * @return HttpClient A HttpClient instance
+     */
+    protected static HttpClient getHttpClient() {
+        final HttpClient httpClient = ZimbraHttpConnectionManager.getExternalHttpConnMgr()
+            .newHttpClient();
+        HttpProxyUtil.configureProxy(httpClient);
+        return httpClient;
     }
 
     /**
@@ -156,18 +156,17 @@ public class OAuth2Handler {
     }
 
     /**
-     * Executes an HttpUriRequest and parses for json.
+     * Executes an Http Request and parses for json.
      *
      * @param request Request to execute
-     * @param context The context to use when executing
      * @return Json response
      * @throws GenericOAuthException If there are issues with the connection
      * @throws IOException If there are non connection related issues
      */
-    protected JsonNode executeRequestForJson(HttpUriRequest request, HttpClientContext context)
+    protected JsonNode executeRequestForJson(HttpMethod request)
         throws GenericOAuthException, IOException {
         JsonNode json = null;
-        final String responseBody = executeRequest(request, context);
+        final String responseBody = executeRequest(request);
 
         // try to parse json
         // throw if the upstream response
@@ -184,23 +183,18 @@ public class OAuth2Handler {
     }
 
     /**
-     * Executes an HttpUriRequest and returns the response body.
+     * Executes an Http Request and returns the response body.
      *
      * @param request Request to execute
-     * @param context The context to use when executing
      * @return Response body as a string
      * @throws GenericOAuthException If there are issues with the connection
      * @throws IOException If there are non connection related issues
      */
-    protected String executeRequest(HttpUriRequest request, HttpClientContext context)
-        throws GenericOAuthException, IOException {
-        CloseableHttpResponse response = null;
+    protected String executeRequest(HttpMethod request) throws GenericOAuthException, IOException {
         String responseBody = null;
         try {
-            response = client.execute(request, context);
-            final HttpEntity body = response.getEntity();
-            responseBody = new String(
-                OAuth2Utilities.decodeStream(body.getContent(), body.getContentLength()));
+            HttpClientUtil.executeMethod(client, request);
+            responseBody = request.getResponseBodyAsString();
         } catch (final UnknownHostException e) {
             ZimbraLog.extensions
                 .errorQuietly("The configured destination address is unknown: " + request.getURI(), e);
@@ -216,48 +210,11 @@ public class OAuth2Handler {
             throw new ServiceNotAvailableException(
                 "Too many active connections, not enough resources available.");
         } finally {
-            if (response != null) {
-                response.close();
+            if (request != null) {
+                request.releaseConnection();
             }
         }
         return responseBody;
-    }
-
-    /**
-     * Creates an http client that can be used by the app.
-     *
-     * @param config The config to load properties from
-     * @return A configured closeable http client
-     */
-    protected CloseableHttpClient buildHttpClientIfAbsent(Configuration config) {
-        final String clientId = config.getClientId();
-        CloseableHttpClient localClient = clients.get(clientId);
-        // do nothing if the client has already been set this
-        // method is only run in the constructor which is
-        // only run from a synchronized Manager#getInstance method
-        if (localClient == null) {
-            final PoolingHttpClientConnectionManager manager = new PoolingHttpClientConnectionManager();
-            // limit the authenticate route
-            manager.setDefaultMaxPerRoute(
-                config.getInt(OAuth2Constants.LC_OAUTH_HTTP_CLIENT_MAX_PER, 150));
-            manager.setMaxTotal(config.getInt(OAuth2Constants.LC_OAUTH_HTTP_CLIENT_MAX_TOTAL, 500));
-
-            final RequestConfig requestConfig = RequestConfig.custom()
-                // timeout for getting an http client
-                .setConnectionRequestTimeout(
-                    config.getInt(OAuth2Constants.LC_OAUTH_HTTP_CLIENT_TIMEOUT, 3000))
-                // timeout for host to answer an http request
-                .setConnectTimeout(
-                    config.getInt(OAuth2Constants.LC_OAUTH_HTTP_CLIENT_ANSWER_TIMEOUT, 6000))
-                .build();
-
-            // create a single instance of pooling http client
-            localClient = HttpClientBuilder.create().setConnectionManager(manager)
-                .setDefaultRequestConfig(requestConfig).build();
-            // cache for other daos
-            clients.put(clientId, localClient);
-        }
-        return localClient;
     }
 
     /**
@@ -279,4 +236,5 @@ public class OAuth2Handler {
                 "There was an issue acquiring the mailbox using the specified auth token", e);
         }
     }
+
 }

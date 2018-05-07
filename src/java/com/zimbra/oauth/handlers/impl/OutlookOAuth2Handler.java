@@ -20,16 +20,10 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.List;
 
+import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.lang.StringUtils;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.message.BasicNameValuePair;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.Claim;
@@ -223,8 +217,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
     public Boolean authenticate(OAuthInfo oauthInfo) throws GenericOAuthException {
         oauthInfo.setClientId(clientId);
         oauthInfo.setClientSecret(clientSecret);
-        final HttpClientContext context = HttpClientContext.create();
-        final JsonNode credentials = authenticateRequest(oauthInfo, clientRedirectUri, context);
+        final JsonNode credentials = authenticateRequest(oauthInfo, clientRedirectUri);
 
         // get zimbra mailbox
         final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken());
@@ -240,7 +233,6 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
     public Boolean refresh(OAuthInfo oauthInfo) throws GenericOAuthException {
         oauthInfo.setClientId(clientId);
         oauthInfo.setClientSecret(clientSecret);
-        final HttpClientContext context = HttpClientContext.create();
 
         // get zimbra mailbox
         final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken());
@@ -256,7 +248,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 
         // add refreshToken to oauthInfo, call authenticateRequest
         oauthInfo.setRefreshToken(refreshToken);
-        final JsonNode credentials = authenticateRequest(oauthInfo, clientRedirectUri, context);
+        final JsonNode credentials = authenticateRequest(oauthInfo, clientRedirectUri);
 
         // update credentials
         oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
@@ -269,39 +261,36 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
      *
      * @param authInfo Contains the auth info to use in the request
      * @param redirectUri The user's redirect uri
-     * @param context The HTTP context
      * @return Json response from the endpoint
      * @throws GenericOAuthException If there are issues performing the request
      *             or parsing for json
      */
-    protected JsonNode authenticateRequest(OAuthInfo authInfo, String redirectUri,
-        HttpClientContext context) throws GenericOAuthException {
+    protected JsonNode authenticateRequest(OAuthInfo authInfo, String redirectUri)
+        throws GenericOAuthException {
         final String clientId = authInfo.getClientId();
         final String clientSecret = authInfo.getClientSecret();
         final String basicToken = Base64.getEncoder()
             .encodeToString(new String(clientId + ":" + clientSecret).getBytes());
         final String code = authInfo.getParam("code");
         final String refreshToken = authInfo.getRefreshToken();
-        final HttpPost request = new HttpPost(OutlookConstants.AUTHENTICATE_URI);
-        final List<NameValuePair> params = new ArrayList<NameValuePair>();
+        final PostMethod request = new PostMethod(OutlookConstants.AUTHENTICATE_URI);
         if (!StringUtils.isEmpty(refreshToken)) {
             // set refresh token if we have one
-            params.add(new BasicNameValuePair("grant_type", "refresh_token"));
-            params.add(new BasicNameValuePair("refresh_token", refreshToken));
+            request.setParameter("grant_type", "refresh_token");
+            request.setParameter("refresh_token", refreshToken);
         } else {
             // otherwise use the code
-            params.add(new BasicNameValuePair("grant_type", "authorization_code"));
-            params.add(new BasicNameValuePair("code", code));
+            request.setParameter("grant_type", "authorization_code");
+            request.setParameter("code", code);
         }
-        params.add(new BasicNameValuePair("redirect_uri", redirectUri));
-        params.add(new BasicNameValuePair("client_secret", clientSecret));
-        params.add(new BasicNameValuePair("client_id", clientId));
-        request.setHeader("Content-Type", "application/x-www-form-urlencoded");
-        request.setHeader("Authorization", "Basic " + basicToken);
+        request.setParameter("redirect_uri", redirectUri);
+        request.setParameter("client_secret", clientSecret);
+        request.setParameter("client_id", clientId);
+        request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        request.setRequestHeader("Authorization", "Basic " + basicToken);
         JsonNode json = null;
         try {
-            request.setEntity(new UrlEncodedFormEntity(params));
-            json = executeRequestForJson(request, context);
+            json = executeRequestForJson(request);
         } catch (final IOException e) {
             ZimbraLog.extensions.errorQuietly("There was an issue acquiring the authorization token.", e);
             throw new UserUnauthorizedException(
