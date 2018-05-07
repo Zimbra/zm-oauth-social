@@ -97,11 +97,6 @@ public class OutlookOAuth2HandlerTest {
     protected final String clientRedirectUri = "http://localhost/oauth2/authenticate";
 
     /**
-     * FolderId for testing.
-     */
-    protected final String storageFolderId = "259";
-
-    /**
      * Setup for tests.
      *
      * @throws Exception If there are issues mocking
@@ -115,13 +110,11 @@ public class OutlookOAuth2HandlerTest {
         Whitebox.setInternalState(handler, "clientSecret", clientSecret);
         Whitebox.setInternalState(handler, "scope", OutlookConstants.REQUIRED_SCOPES);
         Whitebox.setInternalState(handler, "dataSource", mockDataSource);
-        Whitebox.setInternalState(handler, "storageFolderId", storageFolderId);
 
         expect(mockConfig.getClientId()).andReturn(clientId);
 
         // use mock http client for test client
-        final Map<String, CloseableHttpClient> clients = new HashMap<String, CloseableHttpClient>(
-            1);
+        final Map<String, CloseableHttpClient> clients = new HashMap<String, CloseableHttpClient>(1);
         clients.put(clientId, mockClient);
         Whitebox.setInternalState(OutlookOAuth2Handler.class, "clients", clients);
     }
@@ -140,14 +133,13 @@ public class OutlookOAuth2HandlerTest {
             OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
                 .andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
         expect(mockConfig.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME)).andReturn(hostname);
-        expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_FOLDER_ID)).andReturn(storageFolderId);
         expect(mockConfig.getString(OutlookConstants.LC_OAUTH_CLIENT_ID)).andReturn(null);
         expect(mockConfig.getString(OutlookConstants.LC_OAUTH_CLIENT_SECRET)).andReturn(null);
         expect(mockConfig.getString(OutlookConstants.LC_OAUTH_CLIENT_REDIRECT_URI)).andReturn(null);
         expect(mockConfig.getString(OutlookConstants.LC_OAUTH_SCOPE)).andReturn(null);
         PowerMock.mockStatic(OAuthDataSource.class);
-        expect(OAuthDataSource.createDataSource(OutlookConstants.HOST_OUTLOOK))
-            .andReturn(mockDataSource);
+        expect(OAuthDataSource.createDataSource(OutlookConstants.CLIENT_NAME,
+            OutlookConstants.HOST_OUTLOOK)).andReturn(mockDataSource);
 
         replay(mockConfig);
         PowerMock.replay(OAuthDataSource.class);
@@ -209,7 +201,7 @@ public class OutlookOAuth2HandlerTest {
         EasyMock.expectLastCall().once();
         mockOAuthInfo.setRefreshToken(refreshToken);
         EasyMock.expectLastCall().once();
-        mockDataSource.updateCredentials(mockZMailbox, mockOAuthInfo, storageFolderId);
+        mockDataSource.updateCredentials(mockZMailbox, mockOAuthInfo);
         EasyMock.expectLastCall().once();
 
         replay(handler);

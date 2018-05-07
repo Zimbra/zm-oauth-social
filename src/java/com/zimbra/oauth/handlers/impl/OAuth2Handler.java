@@ -91,11 +91,6 @@ public class OAuth2Handler {
     protected final String zimbraHostUri;
 
     /**
-     * A storage folder identifier string.
-     */
-    protected final String storageFolderId;
-
-    /**
      * Constructor.
      *
      * @param config A configuration object
@@ -115,7 +110,6 @@ public class OAuth2Handler {
             zimbraHostUri = String.format(config.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE,
                 OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE), zimbraHostname);
         }
-        storageFolderId = config.getString(OAuth2Constants.LC_OAUTH_FOLDER_ID);
     }
 
     /**

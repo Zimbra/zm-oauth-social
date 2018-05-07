@@ -151,6 +151,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         public static final String LC_OAUTH_IMPORT_CLASS = "zm_oauth_google_import_class";
         public static final String LC_OAUTH_SCOPE = "zm_oauth_google_scope";
 
+        public static final String CLIENT_NAME = "google";
         public static final String HOST_GOOGLE = "googleapis.com";
     }
 
@@ -166,7 +167,8 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         clientRedirectUri = config.getString(GoogleConstants.LC_OAUTH_CLIENT_REDIRECT_URI);
         scope = StringUtils.join(new String[] { GoogleConstants.REQUIRED_SCOPES,
             config.getString(GoogleConstants.LC_OAUTH_SCOPE) }, "+");
-        dataSource = OAuthDataSource.createDataSource(GoogleConstants.HOST_GOOGLE);
+        dataSource = OAuthDataSource.createDataSource(GoogleConstants.CLIENT_NAME,
+            GoogleConstants.HOST_GOOGLE);
     }
 
     @Override
@@ -216,7 +218,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         // store username, zimbraAccountId, refreshToken
         oauthInfo.setUsername(username);
         oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
-        dataSource.updateCredentials(mailbox, oauthInfo, storageFolderId);
+        dataSource.updateCredentials(mailbox, oauthInfo);
         return true;
     }
 
@@ -244,7 +246,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 
         // update credentials
         oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
-        dataSource.updateCredentials(mailbox, oauthInfo, storageFolderId);
+        dataSource.updateCredentials(mailbox, oauthInfo);
         return true;
     }
 
