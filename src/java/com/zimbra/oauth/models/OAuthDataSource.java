@@ -81,16 +81,8 @@ public class OAuthDataSource {
         throws InvalidResponseException {
         ZFolder folder = null;
         try {
-            // find user root folder
-            final ZFolder rootFolder = mailbox.getFolderById(ZFolder.ID_USER_ROOT);
-            if (rootFolder == null) {
-                ZimbraLog.extensions
-                    .debug("User root folder is missing, cannot create data source folder.");
-                throw new InvalidResponseException(
-                    "User root folder is missing, cannot create data source folder.");
-            }
             // find target folder
-            folder = rootFolder.getSubFolderByPath(folderName);
+            folder = mailbox.getFolderByPath(ZMailbox.PATH_SEPARATOR + folderName);
             // create target folder if it does not exist
             if (folder == null) {
                 ZimbraLog.extensions.debug("Creating oauth datasource folder : " + folderName);
