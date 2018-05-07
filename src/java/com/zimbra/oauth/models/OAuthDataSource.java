@@ -91,7 +91,7 @@ public class OAuthDataSource {
             }
         } catch (final ServiceException e) {
             ZimbraLog.extensions
-                .error("There was an issue acquiring or creating the datasource folder.", e);
+                .errorQuietly("There was an issue acquiring or creating the datasource folder.", e);
             throw new InvalidResponseException(
                 "There was an issue acquiring or creating the datasource folder.");
         }
@@ -132,7 +132,7 @@ public class OAuthDataSource {
                 mailbox.modifyDataSource(osource);
             }
         } catch (final ServiceException e) {
-            ZimbraLog.extensions.error("There was an issue storing the oauth credentials.", e);
+            ZimbraLog.extensions.errorQuietly("There was an issue storing the oauth credentials.", e);
             throw new InvalidResponseException("There was an issue storing the oauth credentials.",
                 e);
         }
@@ -159,7 +159,7 @@ public class OAuthDataSource {
                 refreshToken = osource.getRefreshToken();
             }
         } catch (final ServiceException e) {
-            ZimbraLog.extensions.error("There was an issue storing the oauth credentials.", e);
+            ZimbraLog.extensions.errorQuietly("There was an issue storing the oauth credentials.", e);
             throw new InvalidResponseException("There was an issue storing the oauth credentials.",
                 e);
         }

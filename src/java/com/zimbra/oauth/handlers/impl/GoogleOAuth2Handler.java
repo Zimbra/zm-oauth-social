@@ -178,7 +178,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         try {
             encodedRedirectUri = URLEncoder.encode(clientRedirectUri, OAuth2Constants.ENCODING);
         } catch (final UnsupportedEncodingException e) {
-            ZimbraLog.extensions.error("Invalid redirect URI found in client config.", e);
+            ZimbraLog.extensions.errorQuietly("Invalid redirect URI found in client config.", e);
             throw new ConfigurationException("Invalid redirect URI found in client config.");
         }
 
@@ -289,7 +289,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
             request.setEntity(new UrlEncodedFormEntity(params));
             json = executeRequestForJson(request, context);
         } catch (final IOException e) {
-            ZimbraLog.extensions.error("There was an issue acquiring the authorization token.", e);
+            ZimbraLog.extensions.errorQuietly("There was an issue acquiring the authorization token.", e);
             throw new UserUnauthorizedException(
                 "There was an issue acquiring an authorization token for this user.");
         }

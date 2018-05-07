@@ -175,7 +175,7 @@ public class OAuth2Handler {
         try {
             json = mapper.readTree(responseBody);
         } catch (final JsonParseException e) {
-            ZimbraLog.extensions.warn("The destination server responded with unexpected data.", e);
+            ZimbraLog.extensions.warn("The destination server responded with unexpected data.");
             throw new InvalidResponseException(
                 "The destination server responded with unexpected data.");
         }
@@ -203,16 +203,16 @@ public class OAuth2Handler {
                 OAuth2Utilities.decodeStream(body.getContent(), body.getContentLength()));
         } catch (final UnknownHostException e) {
             ZimbraLog.extensions
-                .error("The configured destination address is unknown: " + request.getURI(), e);
+                .errorQuietly("The configured destination address is unknown: " + request.getURI(), e);
             throw new UnreachableHostException("The configured destination address is unknown.");
         } catch (final SocketTimeoutException e) {
             ZimbraLog.extensions
-                .warn("The destination server took too long to respond to our request.", e);
+                .warn("The destination server took too long to respond to our request.");
             throw new UnreachableHostException(
                 "The destination server took too long to respond to our request.");
         } catch (final ConnectionPoolTimeoutException e) {
             ZimbraLog.extensions.warn(
-                "Too many active HTTP client connections, not enough resources available.", e);
+                "Too many active HTTP client connections, not enough resources available.");
             throw new ServiceNotAvailableException(
                 "Too many active connections, not enough resources available.");
         } finally {
@@ -273,7 +273,7 @@ public class OAuth2Handler {
         try {
             return ZMailbox.getByAuthToken(new ZAuthToken(zmAuthToken), zimbraHostUri, true, true);
         } catch (final ServiceException e) {
-            ZimbraLog.extensions.error(
+            ZimbraLog.extensions.errorQuietly(
                 "There was an issue acquiring the mailbox using the specified auth token.", e);
             throw new UserUnauthorizedException(
                 "There was an issue acquiring the mailbox using the specified auth token", e);
