@@ -16,8 +16,6 @@
  */
 package com.zimbra.oauth.models;
 
-import org.apache.commons.lang.StringUtils;
-
 import com.zimbra.client.ZDataSource;
 import com.zimbra.client.ZFolder;
 import com.zimbra.client.ZFolder.View;
@@ -38,6 +36,11 @@ import com.zimbra.oauth.utilities.OAuth2Constants;
 public class OAuthDataSource {
 
     /**
+     * The client that owns this source.
+     */
+    protected final String client;
+
+    /**
      * The host identifier for this source.
      */
     protected final String host;
@@ -45,66 +48,54 @@ public class OAuthDataSource {
     /**
      * Constructor.
      *
+     * @param client A client
      * @param host A host
      */
-    protected OAuthDataSource(String host) {
+    protected OAuthDataSource(String client, String host) {
+        this.client = client;
         this.host = host;
     }
 
     /**
      * Returns a new handler for a Zimbra DataSource.
      *
+     * @param client The client this source is for
      * @param host The host this source is for
      * @return OAuthDataSource handler instance
      */
-    public static OAuthDataSource createDataSource(String host) {
-        return new OAuthDataSource(host);
+    public static OAuthDataSource createDataSource(String client, String host) {
+        return new OAuthDataSource(client, host);
     }
 
     /**
-     * Ensures the specified folder exists, or create/get the default
-     * folder.<br>
-     * If folderId param is null, default folder path is used.
+     * Ensures a folder of the name exists, creating one if necessary.
      *
      * @param mailbox The mailbox to check
-     * @param folderId The folder id to check for (optional)
-     * @return Id of existing data source storage folder
-     * @throws InvalidResponseException
+     * @param folderName The folder name
+     * @param type The type of folder to create (appointment, contact, etc)
+     * @return Id of existing folder
+     * @throws InvalidResponseException If there are issues acquiring/creating
+     *             the folder
      */
-    protected String getStorageFolderId(ZMailbox mailbox, String folderId)
+    protected String ensureFolder(ZMailbox mailbox, String folderName, View type)
         throws InvalidResponseException {
         ZFolder folder = null;
         try {
-            // grab the specified folder
-            if (!StringUtils.isEmpty(folderId)) {
-                folder = mailbox.getFolderById(folderId);
-            }
-            // if folder does not exist or none specified
+            // find target folder
+            folder = mailbox.getFolderByPath(ZMailbox.PATH_SEPARATOR + folderName);
+            // create target folder if it does not exist
             if (folder == null) {
-                // check if default storage folder exists under Contacts
-                final ZFolder contactsFolder = mailbox.getFolderById(ZFolder.ID_CONTACTS);
-                if (contactsFolder == null) {
-                    ZimbraLog.extensions.debug(
-                        "Contacts folder is missing, cannot create default token storage folder.");
-                    throw new InvalidResponseException(
-                        "Contacts folder is missing, cannot create default token storage folder.");
-                }
-                folder = contactsFolder
-                    .getSubFolderByPath(OAuth2Constants.DEFAULT_OAUTH_FOLDER_PATH);
-                // create if it does not exist
-                if (folder == null) {
-                    ZimbraLog.extensions.debug("Creating default oauth datasource storage folder.");
-                    folder = mailbox.createFolder(ZFolder.ID_CONTACTS,
-                        OAuth2Constants.DEFAULT_OAUTH_FOLDER_PATH, View.contact, null, null, null);
-                }
+                ZimbraLog.extensions.debug("Creating oauth datasource folder : " + folderName);
+                folder = mailbox.createFolder(ZFolder.ID_USER_ROOT, folderName, type, null, null,
+                    null);
             }
         } catch (final ServiceException e) {
             ZimbraLog.extensions
-                .error("There was an issue acquiring or creating the token storage folder.", e);
+                .errorQuietly("There was an issue acquiring or creating the datasource folder.", e);
             throw new InvalidResponseException(
-                "There was an issue acquiring or creating the token storage folder.");
+                "There was an issue acquiring or creating the datasource folder.");
         }
-        // return the now existing folder's id
+        // return target folder's id
         return folder.getId();
     }
 
@@ -113,23 +104,23 @@ public class OAuthDataSource {
      * specified username.
      *
      * @param mailbox The user's mailbox
-     * @param credentials Credentials containing the username and refreshToken
-     * @param folderId The folder to store the data source
+     * @param credentials Credentials containing the username, and refreshToken
      * @throws InvalidResponseException If there are issues
      */
-    public void updateCredentials(ZMailbox mailbox, OAuthInfo credentials, String folderId)
+    public void updateCredentials(ZMailbox mailbox, OAuthInfo credentials)
         throws InvalidResponseException {
-        ZDataSource osource = null;
-        final String refreshToken = credentials.getRefreshToken();
         final String username = credentials.getUsername();
+        final String refreshToken = credentials.getRefreshToken();
+        final String folderName = String.format(OAuth2Constants.DEFAULT_OAUTH_FOLDER_TEMPLATE,
+            username, client);
+        ZDataSource osource = null;
         // get datasource
         try {
             osource = mailbox.getDataSourceByName(username);
             // create new datasource if missing
             if (osource == null) {
-                // ensure the specified storage folder exists, fetch/(create)
-                // default if not
-                final String storageFolderId = getStorageFolderId(mailbox, folderId);
+                // ensure the specified storage folder exists
+                final String storageFolderId = ensureFolder(mailbox, folderName, View.contact);
                 osource = new ZDataSource(username, true);
                 osource.setFolderId(storageFolderId);
                 osource.setRefreshToken(refreshToken);
@@ -141,7 +132,7 @@ public class OAuthDataSource {
                 mailbox.modifyDataSource(osource);
             }
         } catch (final ServiceException e) {
-            ZimbraLog.extensions.error("There was an issue storing the oauth credentials.", e);
+            ZimbraLog.extensions.errorQuietly("There was an issue storing the oauth credentials.", e);
             throw new InvalidResponseException("There was an issue storing the oauth credentials.",
                 e);
         }
@@ -168,7 +159,7 @@ public class OAuthDataSource {
                 refreshToken = osource.getRefreshToken();
             }
         } catch (final ServiceException e) {
-            ZimbraLog.extensions.error("There was an issue storing the oauth credentials.", e);
+            ZimbraLog.extensions.errorQuietly("There was an issue storing the oauth credentials.", e);
             throw new InvalidResponseException("There was an issue storing the oauth credentials.",
                 e);
         }

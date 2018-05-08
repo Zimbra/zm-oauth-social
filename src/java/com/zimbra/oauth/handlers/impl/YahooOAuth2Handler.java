@@ -153,6 +153,8 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         public static final String LC_OAUTH_CLIENT_SECRET = "zm_oauth_yahoo_client_secret";
         public static final String LC_OAUTH_CLIENT_REDIRECT_URI = "zm_oauth_yahoo_client_redirect_uri";
         public static final String LC_OAUTH_IMPORT_CLASS = "zm_oauth_yahoo_import_class";
+
+        public static final String CLIENT_NAME = "yahoo";
     }
 
     /**
@@ -165,7 +167,8 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         clientId = config.getString(YahooConstants.LC_OAUTH_CLIENT_ID);
         clientSecret = config.getString(YahooConstants.LC_OAUTH_CLIENT_SECRET);
         clientRedirectUri = config.getString(YahooConstants.LC_OAUTH_CLIENT_REDIRECT_URI);
-        dataSource = OAuthDataSource.createDataSource(ZDataSource.SOURCE_HOST_YAHOO);
+        dataSource = OAuthDataSource.createDataSource(YahooConstants.CLIENT_NAME,
+            ZDataSource.SOURCE_HOST_YAHOO);
     }
 
     @Override
@@ -175,7 +178,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         try {
             encodedRedirectUri = URLEncoder.encode(clientRedirectUri, OAuth2Constants.ENCODING);
         } catch (final UnsupportedEncodingException e) {
-            ZimbraLog.extensions.error("Invalid redirect URI found in client config.", e);
+            ZimbraLog.extensions.errorQuietly("Invalid redirect URI found in client config.", e);
             throw new ConfigurationException("Invalid redirect URI found in client config.");
         }
 
@@ -219,7 +222,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         // store username, zimbraAccountId, refreshToken
         oauthInfo.setUsername(username);
         oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
-        dataSource.updateCredentials(mailbox, oauthInfo, storageFolderId);
+        dataSource.updateCredentials(mailbox, oauthInfo);
         return true;
     }
 
@@ -247,7 +250,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 
         // update credentials
         oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
-        dataSource.updateCredentials(mailbox, oauthInfo, storageFolderId);
+        dataSource.updateCredentials(mailbox, oauthInfo);
         return true;
     }
 
@@ -290,7 +293,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
             request.setEntity(new UrlEncodedFormEntity(params));
             json = executeRequestForJson(request, context);
         } catch (final IOException e) {
-            ZimbraLog.extensions.error("There was an issue acquiring the authorization token.", e);
+            ZimbraLog.extensions.errorQuietly("There was an issue acquiring the authorization token.", e);
             throw new UserUnauthorizedException(
                 "There was an issue acquiring an authorization token for this user.");
         }
@@ -394,7 +397,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         try {
             json = executeRequestForJson(request, context);
         } catch (final IOException e) {
-            ZimbraLog.extensions.error("There was an issue acquiring the user's profile.", e);
+            ZimbraLog.extensions.errorQuietly("There was an issue acquiring the user's profile.", e);
             throw new GenericOAuthException("There was an issue acquiring the user's profile.");
         }
 

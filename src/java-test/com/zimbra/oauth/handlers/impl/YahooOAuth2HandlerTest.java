@@ -98,11 +98,6 @@ public class YahooOAuth2HandlerTest {
     protected final String clientRedirectUri = "http://localhost/oauth2/authenticate";
 
     /**
-     * FolderId for testing.
-     */
-    protected final String storageFolderId = "259";
-
-    /**
      * Setup for tests.
      *
      * @throws Exception If there are issues mocking
@@ -115,7 +110,6 @@ public class YahooOAuth2HandlerTest {
         Whitebox.setInternalState(handler, "clientId", clientId);
         Whitebox.setInternalState(handler, "clientSecret", clientSecret);
         Whitebox.setInternalState(handler, "dataSource", mockDataSource);
-        Whitebox.setInternalState(handler, "storageFolderId", storageFolderId);
 
         expect(mockConfig.getClientId()).andReturn(clientId);
 
@@ -139,13 +133,12 @@ public class YahooOAuth2HandlerTest {
             OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
                 .andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
         expect(mockConfig.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME)).andReturn(hostname);
-        expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_FOLDER_ID)).andReturn(storageFolderId);
         expect(mockConfig.getString(YahooConstants.LC_OAUTH_CLIENT_ID)).andReturn(null);
         expect(mockConfig.getString(YahooConstants.LC_OAUTH_CLIENT_SECRET)).andReturn(null);
         expect(mockConfig.getString(YahooConstants.LC_OAUTH_CLIENT_REDIRECT_URI)).andReturn(null);
         PowerMock.mockStatic(OAuthDataSource.class);
-        expect(OAuthDataSource.createDataSource(ZDataSource.SOURCE_HOST_YAHOO))
-            .andReturn(mockDataSource);
+        expect(OAuthDataSource.createDataSource(YahooConstants.CLIENT_NAME,
+            ZDataSource.SOURCE_HOST_YAHOO)).andReturn(mockDataSource);
 
         replay(mockConfig);
         PowerMock.replay(OAuthDataSource.class);
@@ -219,7 +212,7 @@ public class YahooOAuth2HandlerTest {
         EasyMock.expectLastCall().once();
         mockOAuthInfo.setRefreshToken(refreshToken);
         EasyMock.expectLastCall().once();
-        mockDataSource.updateCredentials(mockZMailbox, mockOAuthInfo, storageFolderId);
+        mockDataSource.updateCredentials(mockZMailbox, mockOAuthInfo);
         EasyMock.expectLastCall().once();
 
         replay(handler);

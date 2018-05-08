@@ -166,6 +166,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         public static final String LC_OAUTH_IMPORT_CLASS = "zm_oauth_outlook_import_class";
         public static final String LC_OAUTH_SCOPE = "zm_oauth_outlook_scope";
 
+        public static final String CLIENT_NAME = "outlook";
         public static final String HOST_OUTLOOK = "microsoftonline.com";
     }
 
@@ -181,7 +182,8 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         clientRedirectUri = config.getString(OutlookConstants.LC_OAUTH_CLIENT_REDIRECT_URI);
         scope = StringUtils.join(new String[] { OutlookConstants.REQUIRED_SCOPES,
             config.getString(OutlookConstants.LC_OAUTH_SCOPE) }, "+");
-        dataSource = OAuthDataSource.createDataSource(OutlookConstants.HOST_OUTLOOK);
+        dataSource = OAuthDataSource.createDataSource(OutlookConstants.CLIENT_NAME,
+            OutlookConstants.HOST_OUTLOOK);
     }
 
     @Override
@@ -191,7 +193,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         try {
             encodedRedirectUri = URLEncoder.encode(clientRedirectUri, OAuth2Constants.ENCODING);
         } catch (final UnsupportedEncodingException e) {
-            ZimbraLog.extensions.error("Invalid redirect URI found in client config.", e);
+            ZimbraLog.extensions.errorQuietly("Invalid redirect URI found in client config.", e);
             throw new ConfigurationException("Invalid redirect URI found in client config.");
         }
 
@@ -230,7 +232,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         // store username, zimbraAccountId, refreshToken
         oauthInfo.setUsername(getPrimaryEmail(credentials));
         oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
-        dataSource.updateCredentials(mailbox, oauthInfo, storageFolderId);
+        dataSource.updateCredentials(mailbox, oauthInfo);
         return true;
     }
 
@@ -258,7 +260,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
 
         // update credentials
         oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
-        dataSource.updateCredentials(mailbox, oauthInfo, storageFolderId);
+        dataSource.updateCredentials(mailbox, oauthInfo);
         return true;
     }
 
@@ -301,7 +303,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
             request.setEntity(new UrlEncodedFormEntity(params));
             json = executeRequestForJson(request, context);
         } catch (final IOException e) {
-            ZimbraLog.extensions.error("There was an issue acquiring the authorization token.", e);
+            ZimbraLog.extensions.errorQuietly("There was an issue acquiring the authorization token.", e);
             throw new UserUnauthorizedException(
                 "There was an issue acquiring an authorization token for this user.");
         }
