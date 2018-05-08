@@ -28,7 +28,6 @@ import static org.junit.Assert.fail;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.httpclient.HttpClient;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,7 +39,6 @@ import org.powermock.reflect.Whitebox;
 
 import com.zimbra.oauth.exceptions.InvalidClientException;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
-import com.zimbra.oauth.handlers.impl.OAuth2Handler;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 
@@ -48,7 +46,7 @@ import com.zimbra.oauth.utilities.OAuth2Constants;
  * Test class for {@link ClassManager}.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ ClassManager.class, Configuration.class, OAuth2Handler.class, HttpClient.class })
+@PrepareForTest({ ClassManager.class, Configuration.class })
 public class ClassManagerTest {
 
     /**
@@ -56,10 +54,6 @@ public class ClassManagerTest {
      */
     protected Configuration mockConfig;
 
-    /**
-     * Mock HttpClient for testing.
-     */
-    protected HttpClient mockHttpClient;
     /**
      * Handler cache map for testing.
      */
@@ -83,14 +77,12 @@ public class ClassManagerTest {
     @Before
     public void setUp() throws Exception {
         PowerMock.mockStatic(Configuration.class);
-        PowerMock.mockStatic(OAuth2Handler.class);
 
         // set the handler cache for reference during tests
         handlerCacheMap = new HashMap<String, IOAuth2Handler>();
         Whitebox.setInternalState(ClassManager.class, "handlersCache", handlerCacheMap);
 
         mockConfig = EasyMock.createMock(Configuration.class);
-        mockHttpClient = EasyMock.createMock(HttpClient.class);
     }
 
     /**
@@ -102,7 +94,6 @@ public class ClassManagerTest {
     @Test
     public void testGetHandler() throws Exception {
         expect(Configuration.buildConfiguration(anyObject(String.class))).andReturn(mockConfig);
-        PowerMock.expectPrivate(OAuth2Handler.class, "getHttpClient").andReturn(mockHttpClient);
         expect(mockConfig.getString(matches(OAuth2Constants.LC_HANDLER_CLASS_PREFIX + client)))
             .andReturn("com.zimbra.oauth.handlers.impl.YahooOAuth2Handler");
         expect(mockConfig.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME)).andReturn(hostname);
@@ -114,7 +105,6 @@ public class ClassManagerTest {
 
         PowerMock.replay(Configuration.class);
         replay(mockConfig);
-        PowerMock.replay(OAuth2Handler.class);
 
         ClassManager.getHandler(client);
 
@@ -122,7 +112,6 @@ public class ClassManagerTest {
         verify(mockConfig);
         assertEquals(1, handlerCacheMap.size());
         assertNotNull(handlerCacheMap.get(client));
-        PowerMock.verify(OAuth2Handler.class);
     }
 
     /**

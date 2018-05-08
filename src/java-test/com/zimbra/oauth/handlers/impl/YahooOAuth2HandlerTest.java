@@ -26,7 +26,6 @@ import static org.junit.Assert.assertNotNull;
 
 import java.net.URLEncoder;
 
-import org.apache.commons.httpclient.HttpClient;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,7 +49,7 @@ import com.zimbra.oauth.utilities.OAuth2Constants;
  * Test class for {@link YahooOAuth2Handler}.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ HttpClient.class, OAuthDataSource.class, OAuth2Handler.class, YahooOAuth2Handler.class, ZMailbox.class })
+@PrepareForTest({ OAuthDataSource.class, YahooOAuth2Handler.class, ZMailbox.class })
 @SuppressStaticInitializationFor("com.zimbra.client.ZMailbox")
 public class YahooOAuth2HandlerTest {
 
@@ -63,11 +62,6 @@ public class YahooOAuth2HandlerTest {
      * Mock configuration handler property.
      */
     protected Configuration mockConfig = EasyMock.createMock(Configuration.class);
-
-    /**
-     * Mock HttpClient.
-     */
-    protected HttpClient mockHttpClient;
 
     /**
      * Mock data source handler property.
@@ -101,15 +95,12 @@ public class YahooOAuth2HandlerTest {
      */
     @Before
     public void setUp() throws Exception {
-        PowerMock.mockStatic(OAuth2Handler.class);
         handler = PowerMock.createPartialMockForAllMethodsExcept(YahooOAuth2Handler.class,
             "authorize", "authenticate");
         Whitebox.setInternalState(handler, "clientRedirectUri", clientRedirectUri);
         Whitebox.setInternalState(handler, "clientId", clientId);
         Whitebox.setInternalState(handler, "clientSecret", clientSecret);
         Whitebox.setInternalState(handler, "dataSource", mockDataSource);
-
-        mockHttpClient = EasyMock.createMock(HttpClient.class);
     }
 
     /**
@@ -122,7 +113,6 @@ public class YahooOAuth2HandlerTest {
     public void testYahooOAuth2Handler() throws Exception {
         final OAuthDataSource mockDataSource = EasyMock.createMock(OAuthDataSource.class);
 
-        PowerMock.expectPrivate(OAuth2Handler.class, "getHttpClient").andReturn(mockHttpClient);
         expect(mockConfig.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE,
             OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
                 .andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
@@ -136,13 +126,11 @@ public class YahooOAuth2HandlerTest {
 
         replay(mockConfig);
         PowerMock.replay(OAuthDataSource.class);
-        PowerMock.replay(OAuth2Handler.class);
 
         new YahooOAuth2Handler(mockConfig);
 
         verify(mockConfig);
         PowerMock.verify(OAuthDataSource.class);
-        PowerMock.verify(OAuth2Handler.class);
     }
 
     /**

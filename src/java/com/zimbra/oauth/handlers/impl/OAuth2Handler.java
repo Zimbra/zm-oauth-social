@@ -60,11 +60,6 @@ import com.zimbra.oauth.utilities.OAuth2Utilities;
 public class OAuth2Handler {
 
     /**
-     * Client for Http requests.
-     */
-    protected final HttpClient client;
-
-    /**
      * Configuration object.
      */
     protected final Configuration config;
@@ -86,7 +81,6 @@ public class OAuth2Handler {
      */
     public OAuth2Handler(Configuration config) {
         this.config = config;
-        client = getHttpClient();
         synchronized (OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME) {
             final String zimbraHostname = config
                 .getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
@@ -193,6 +187,7 @@ public class OAuth2Handler {
     protected String executeRequest(HttpMethod request) throws GenericOAuthException, IOException {
         String responseBody = null;
         try {
+            final HttpClient client = getHttpClient();
             HttpClientUtil.executeMethod(client, request);
             responseBody = request.getResponseBodyAsString();
         } catch (final UnknownHostException e) {
