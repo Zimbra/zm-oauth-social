@@ -206,7 +206,7 @@ public class OAuth2ResourceUtilities {
      * @return The path with added query parameters, or the original path if we
      *         failed to add the params
      */
-    private static String addQueryParams(String path, Map<String, String> params) {
+    public static String addQueryParams(String path, Map<String, String> params) {
         // do nothing for empty path, or param map
         if (StringUtils.isEmpty(path) || params == null || params.size() < 1) {
             return path;

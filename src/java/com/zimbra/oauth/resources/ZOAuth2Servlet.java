@@ -77,8 +77,12 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
                 return;
             }
         } catch (final GenericOAuthException e) {
-            ZimbraLog.extensions.error(e);
-            resp.setStatus(e.getStatus().getStatusCode());
+            ZimbraLog.extensions.errorQuietly("An unhandled oauth application error occurred.", e);
+            final Map<String, String> errorParams = new HashMap<String, String>();
+            errorParams.put(OAuth2Constants.QUERY_ERROR,
+                OAuth2Constants.ERROR_UNHANDLED_ERROR);
+            resp.sendRedirect(OAuth2ResourceUtilities.addQueryParams(
+                OAuth2Constants.DEFAULT_SUCCESS_REDIRECT, errorParams));
             return;
         }
 

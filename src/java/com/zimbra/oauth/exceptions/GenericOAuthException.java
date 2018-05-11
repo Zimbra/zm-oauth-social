@@ -16,15 +16,9 @@
  */
 package com.zimbra.oauth.exceptions;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
-import com.zimbra.oauth.models.ErrorObject;
-import com.zimbra.oauth.models.ResponseObject;
 import com.zimbra.oauth.utilities.OAuth2Error;
-import com.zimbra.oauth.utilities.OAuth2Utilities;
 
 /**
  * The GenericOAuthException class.<br>
@@ -35,8 +29,7 @@ import com.zimbra.oauth.utilities.OAuth2Utilities;
  * @copyright Copyright © 2018
  */
 @Provider
-public class GenericOAuthException extends Exception
-    implements ExceptionMapper<GenericOAuthException> {
+public class GenericOAuthException extends Exception {
 
     private static final long serialVersionUID = 1L;
 
@@ -44,11 +37,6 @@ public class GenericOAuthException extends Exception
      * Error code of this exception.
      */
     protected OAuth2Error error = OAuth2Error.GENERIC_OAUTH_ERROR;
-
-    /**
-     * HTTP Status of this exception.
-     */
-    protected Status status = Status.INTERNAL_SERVER_ERROR;
 
     /**
      * Constructor.
@@ -101,31 +89,6 @@ public class GenericOAuthException extends Exception
      */
     public void setError(OAuth2Error error) {
         this.error = error;
-    }
-
-    /**
-     * Get the HTTP status for the exception.
-     *
-     * @return status The HTTP Status
-     */
-    public Status getStatus() {
-        return status;
-    }
-
-    /**
-     * Set the HTTP status.
-     *
-     * @param status The HTTP status
-     */
-    public void setStatus(Status status) {
-        this.status = status;
-    }
-
-    @Override
-    public Response toResponse(GenericOAuthException e) {
-        return OAuth2Utilities.buildResponse(
-            new ResponseObject<ErrorObject>(new ErrorObject(e.getError(), e.getMessage())),
-            e.getStatus(), null);
     }
 
 }
