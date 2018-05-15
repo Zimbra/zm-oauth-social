@@ -21,9 +21,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
-import com.zimbra.oauth.exceptions.ConfigurationException;
-import com.zimbra.oauth.exceptions.InvalidClientException;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
@@ -48,12 +47,12 @@ public class ClassManager {
      * Loads an IOAuth2Handler for a given client.<br>
      * Checks for cached instance before instantiating.
      *
-     * @param client The client to get a handler for (yahoo, gmail, etc)
+     * @param client The client to get a handler for (yahoo, google, etc)
      * @return An IOAuthHandler instance
-     * @throws ConfigurationException
+     * @throws ServiceException If there are issues
      */
     public static IOAuth2Handler getHandler(String client)
-        throws ConfigurationException, InvalidClientException {
+        throws ServiceException {
         // check the cache for a matching handler
         IOAuth2Handler handler = handlersCache.get(client);
 
@@ -75,23 +74,22 @@ public class ClassManager {
 
                         // cache the new handler
                         handlersCache.put(client, handler);
-                    } catch (ConfigurationException | InvalidClientException e) {
+                    } catch (final ServiceException e) {
                         ZimbraLog.extensions.debug(
                             "There was an issue loading the configuration for the client.", e);
                         throw e;
                     } catch (final ClassNotFoundException e) {
                         ZimbraLog.extensions
-                            .error("The specified client is not supported: " + client, e);
-                        throw new InvalidClientException(
-                            "The specified client is not supported: " + client, e);
+                            .warnQuietly("The specified client is not supported: " + client, e);
+                        throw ServiceException.UNSUPPORTED();
                     } catch (InstantiationException | IllegalAccessException
                         | IllegalArgumentException | InvocationTargetException
                         | NoSuchMethodException | SecurityException e) {
-                        ZimbraLog.extensions.error(
+                        ZimbraLog.extensions.errorQuietly(
                             "There was an issue instantiating the oauth2 handler class for client: "
                                 + client,
                             e);
-                        throw new ConfigurationException(
+                        throw ServiceException.FAILURE(
                             "There was an issue instantiating the oauth2 handler class for client: "
                                 + client,
                             e);

@@ -23,9 +23,8 @@ import java.util.Map;
 import org.apache.commons.lang.StringUtils;
 
 import com.zimbra.common.localconfig.LC;
+import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
-import com.zimbra.oauth.exceptions.ConfigurationException;
-import com.zimbra.oauth.exceptions.InvalidClientException;
 
 /**
  * The Configuration class for this project.
@@ -122,11 +121,9 @@ public class Configuration {
      * Does not cache the configuration object.
      *
      * @return The default Configuration object
-     * @throws InvalidClientException If the file does not exist
-     * @throws ConfigurationException If there are issues loading the file
+     * @throws ServiceException If there are issues
      */
-    public static Configuration getDefaultConfiguration()
-        throws InvalidClientException, ConfigurationException {
+    public static Configuration getDefaultConfiguration() throws ServiceException {
         return new Configuration(OAuth2Constants.PROPERTIES_NAME_APPLICATION);
     }
 
@@ -149,11 +146,9 @@ public class Configuration {
      *
      * @param name Name of the client
      * @return Configuration object
-     * @throws ConfigurationException If there are issues loading the file
-     * @throws InvalidClientException If the file does not exist
+     * @throws ServiceException If there are issues
      */
-    public static Configuration buildConfiguration(String name)
-        throws ConfigurationException, InvalidClientException {
+    public static Configuration buildConfiguration(String name) throws ServiceException {
         Configuration config = null;
 
         // try to find config in cache
@@ -165,7 +160,7 @@ public class Configuration {
         if (config == null) {
             // validate the client
             if (!isValidClient(name)) {
-                throw new InvalidClientException("The specified client is unsupported.");
+                throw ServiceException.UNSUPPORTED();
             }
             config = new Configuration(name);
         }

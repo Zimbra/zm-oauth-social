@@ -19,7 +19,7 @@ package com.zimbra.oauth.handlers;
 import java.util.List;
 import java.util.Map;
 
-import com.zimbra.oauth.exceptions.GenericOAuthException;
+import com.zimbra.common.service.ServiceException;
 import com.zimbra.oauth.models.OAuthInfo;
 
 /**
@@ -37,10 +37,10 @@ public interface IOAuth2Handler {
      *
      * @param relayState The location to direct the user after authenticating
      * @return The authorize endpoint
-     * @throws GenericOAuthException If there are issues determining the
+     * @throws ServiceException If there are issues determining the
      *             endpoint
      */
-    public String authorize(String relayState) throws GenericOAuthException;
+    public String authorize(String relayState) throws ServiceException;
 
     /**
      * Authenticates a user with the endpoint and stores credentials in
@@ -48,9 +48,9 @@ public interface IOAuth2Handler {
      *
      * @param oauthInfo Contains a code provided by authorizing endpoint
      * @return True on success
-     * @throws GenericOAuthException If there are issues in this process
+     * @throws ServiceException If there are issues in this process
      */
-    public Boolean authenticate(OAuthInfo oauthInfo) throws GenericOAuthException;
+    public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException;
 
     /**
      * Refreshes credentials for an endpoint user.
@@ -58,9 +58,9 @@ public interface IOAuth2Handler {
      * @param oauthInfo Contains the client and email address of the endpoint
      *            user to refresh (e.g. user@yahoo.com)
      * @return True on success
-     * @throws GenericOAuthException If there are issues in this process
+     * @throws ServiceException If there are issues in this process
      */
-    public Boolean refresh(OAuthInfo oauthInfo) throws GenericOAuthException;
+    public Boolean refresh(OAuthInfo oauthInfo) throws ServiceException;
 
     /**
      * Returns a list of keys to expect during authenticate callback.
@@ -73,9 +73,9 @@ public interface IOAuth2Handler {
      * Throws an exception if there are invalid params passed in.
      *
      * @param params The authenticate request params
-     * @throws GenericOAuthException If any params are invalid
+     * @throws ServiceException If any params are invalid
      */
-    public void verifyAuthenticateParams(Map<String, String> params) throws GenericOAuthException;
+    public void verifyAuthenticateParams(Map<String, String> params) throws ServiceException;
 
     /**
      * Returns the appropriate relay for this client.

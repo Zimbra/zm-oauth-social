@@ -17,8 +17,8 @@
 package com.zimbra.oauth.utilities;
 
 import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.matches;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.matches;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
@@ -34,7 +34,7 @@ import org.powermock.api.easymock.PowerMock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import com.zimbra.oauth.exceptions.UserUnauthorizedException;
+import com.zimbra.common.service.ServiceException;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.managers.ClassManager;
 import com.zimbra.oauth.models.OAuthInfo;
@@ -144,7 +144,7 @@ public class OAuth2ResourceUtilitiesTest {
         expect(mockHandler.getAuthenticateParamKeys())
             .andReturn(Arrays.asList("code", "error", "state"));
         mockHandler.verifyAuthenticateParams(anyObject());
-        EasyMock.expectLastCall().andThrow(new UserUnauthorizedException(error));
+        EasyMock.expectLastCall().andThrow(ServiceException.PERM_DENIED(error));
         expect(mockHandler.getRelay(anyObject())).andReturn(state);
 
         PowerMock.replay(ClassManager.class);
@@ -159,7 +159,7 @@ public class OAuth2ResourceUtilitiesTest {
     /**
      * Test method for {@link OAuth2ResourceUtilities#authenticate}<br>
      * Validates that authenticate responds with a Status.SEE_OTHER response
-     * when a UserUnauthorizedException is thrown during authentication.
+     * when a ServiceException is thrown during authentication.
      *
      * @throws Exception If there are issues testing
      */
@@ -182,7 +182,7 @@ public class OAuth2ResourceUtilitiesTest {
         EasyMock.expectLastCall();
         expect(mockHandler.getRelay(anyObject())).andReturn(state);
         expect(mockHandler.authenticate(anyObject(OAuthInfo.class)))
-            .andThrow(new UserUnauthorizedException("Access was denied during get_token!"));
+            .andThrow(ServiceException.PERM_DENIED("Access was denied during get_token!"));
 
         PowerMock.replay(ClassManager.class);
         replay(mockHandler);
