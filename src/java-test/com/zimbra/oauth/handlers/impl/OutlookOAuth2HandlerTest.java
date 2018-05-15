@@ -96,6 +96,8 @@ public class OutlookOAuth2HandlerTest {
     public void setUp() throws Exception {
         handler = PowerMock.createPartialMockForAllMethodsExcept(OutlookOAuth2Handler.class,
             "authorize", "authenticate");
+        Whitebox.setInternalState(handler, "authorizeUriTemplate", OutlookConstants.AUTHORIZE_URI_TEMPLATE);
+        Whitebox.setInternalState(handler, "relayKey", OutlookConstants.RELAY_KEY);
         Whitebox.setInternalState(handler, "clientRedirectUri", clientRedirectUri);
         Whitebox.setInternalState(handler, "clientId", clientId);
         Whitebox.setInternalState(handler, "clientSecret", clientSecret);
@@ -117,10 +119,10 @@ public class OutlookOAuth2HandlerTest {
             OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
                 .andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
         expect(mockConfig.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME)).andReturn(hostname);
-        expect(mockConfig.getString(OutlookConstants.LC_OAUTH_CLIENT_ID)).andReturn(null);
-        expect(mockConfig.getString(OutlookConstants.LC_OAUTH_CLIENT_SECRET)).andReturn(null);
-        expect(mockConfig.getString(OutlookConstants.LC_OAUTH_CLIENT_REDIRECT_URI)).andReturn(null);
-        expect(mockConfig.getString(OutlookConstants.LC_OAUTH_SCOPE)).andReturn(null);
+        expect(mockConfig.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, OutlookConstants.CLIENT_NAME))).andReturn(null);
+        expect(mockConfig.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, OutlookConstants.CLIENT_NAME))).andReturn(null);
+        expect(mockConfig.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, OutlookConstants.CLIENT_NAME))).andReturn(null);
+        expect(mockConfig.getString(String.format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, OutlookConstants.CLIENT_NAME))).andReturn(null);
         PowerMock.mockStatic(OAuthDataSource.class);
         expect(OAuthDataSource.createDataSource(OutlookConstants.CLIENT_NAME,
             OutlookConstants.HOST_OUTLOOK)).andReturn(mockDataSource);
@@ -149,7 +151,7 @@ public class OutlookOAuth2HandlerTest {
 
         assertNotNull(authorizeLocation);
         assertEquals(String.format(OutlookConstants.AUTHORIZE_URI_TEMPLATE, clientId, encodedUri,
-            "code", OutlookConstants.REQUIRED_SCOPES), authorizeLocation);
+            "code", "", OutlookConstants.REQUIRED_SCOPES), authorizeLocation);
     }
 
     /**

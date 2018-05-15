@@ -57,4 +57,10 @@ public class OAuth2Constants {
     public static final String LC_SOAP_HOST = "soap_host";
     public static final String LC_HOST_URI_TEMPLATE = "host_uri_template";
 
+    public static final String LC_OAUTH_CLIENT_ID_TEMPLATE = "zm_oauth_%s_client_id";
+    public static final String LC_OAUTH_CLIENT_SECRET_TEMPLATE = "zm_oauth_%s_client_secret";
+    public static final String LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE = "zm_oauth_%s_client_redirect_uri";
+    public static final String LC_OAUTH_SCOPE_TEMPLATE = "zm_oauth_%s_scope";
+    public static final String LC_OAUTH_IMPORT_CLASS_TEMPLATE = "zm_oauth_%s_import_class";
+
 }
