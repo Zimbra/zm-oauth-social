@@ -73,7 +73,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         /**
          * The authorize endpoint for Google.
          */
-        protected static final String AUTHORIZE_URI_TEMPLATE = "https://accounts.google.com/o/oauth2/v2/auth?prompt=consent&access_type=offline&client_id=%s&redirect_uri=%s&response_type=%s%s&scope=%s";
+        protected static final String AUTHORIZE_URI_TEMPLATE = "https://accounts.google.com/o/oauth2/v2/auth?prompt=consent&access_type=offline&client_id=%s&redirect_uri=%s&response_type=%s&scope=%s";
 
         /**
          * The profile endpoint for Google.
@@ -113,13 +113,14 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
      */
     public GoogleOAuth2Handler(Configuration config) {
         super(config, GoogleConstants.CLIENT_NAME, GoogleConstants.HOST_GOOGLE);
-        authenticateUri = GoogleConstants.AUTHENTICATE_URI;
-        authorizeUriTemplate = GoogleConstants.AUTHORIZE_URI_TEMPLATE;
-        relayKey = GoogleConstants.RELAY_KEY;
         scope = StringUtils.join(
             new String[] { GoogleConstants.REQUIRED_SCOPES, config.getString(String
                 .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, GoogleConstants.CLIENT_NAME)) },
             "+");
+        authenticateUri = GoogleConstants.AUTHENTICATE_URI;
+        authorizeUri = buildAuthorizeUri(GoogleConstants.AUTHORIZE_URI_TEMPLATE);
+        relayKey = GoogleConstants.RELAY_KEY;
+
     }
 
     /**

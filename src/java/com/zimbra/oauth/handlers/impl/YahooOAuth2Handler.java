@@ -90,7 +90,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         /**
          * The authorize endpoint for Yahoo.
          */
-        protected static final String AUTHORIZE_URI_TEMPLATE = "https://api.login.yahoo.com/oauth2/request_auth?client_id=%s&redirect_uri=%s&response_type=%s%s";
+        protected static final String AUTHORIZE_URI_TEMPLATE = "https://api.login.yahoo.com/oauth2/request_auth?client_id=%s&redirect_uri=%s&response_type=%s";
 
         /**
          * The profile endpoint for Yahoo.
@@ -121,7 +121,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
     public YahooOAuth2Handler(Configuration config) {
         super(config, YahooConstants.CLIENT_NAME, ZDataSource.SOURCE_HOST_YAHOO);
         authenticateUri = YahooConstants.AUTHENTICATE_URI;
-        authorizeUriTemplate = YahooConstants.AUTHORIZE_URI_TEMPLATE;
+        authorizeUri = buildAuthorizeUri(YahooConstants.AUTHORIZE_URI_TEMPLATE);
         relayKey = YahooConstants.RELAY_KEY;
     }
 

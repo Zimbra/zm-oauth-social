@@ -96,13 +96,13 @@ public class YahooOAuth2HandlerTest {
     @Before
     public void setUp() throws Exception {
         handler = PowerMock.createPartialMockForAllMethodsExcept(YahooOAuth2Handler.class,
-            "authorize", "authenticate");
-        Whitebox.setInternalState(handler, "authorizeUriTemplate", YahooConstants.AUTHORIZE_URI_TEMPLATE);
+            "authorize", "authenticate", "buildAuthorizeUri");
         Whitebox.setInternalState(handler, "relayKey", YahooConstants.RELAY_KEY);
         Whitebox.setInternalState(handler, "clientRedirectUri", clientRedirectUri);
         Whitebox.setInternalState(handler, "clientId", clientId);
         Whitebox.setInternalState(handler, "clientSecret", clientSecret);
         Whitebox.setInternalState(handler, "dataSource", mockDataSource);
+        Whitebox.setInternalState(handler, "authorizeUri", handler.buildAuthorizeUri(YahooConstants.AUTHORIZE_URI_TEMPLATE));
     }
 
     /**
@@ -119,9 +119,9 @@ public class YahooOAuth2HandlerTest {
             OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
                 .andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
         expect(mockConfig.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME)).andReturn(hostname);
-        expect(mockConfig.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, YahooConstants.CLIENT_NAME))).andReturn(null);
-        expect(mockConfig.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, YahooConstants.CLIENT_NAME))).andReturn(null);
-        expect(mockConfig.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, YahooConstants.CLIENT_NAME))).andReturn(null);
+        expect(mockConfig.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, YahooConstants.CLIENT_NAME))).andReturn(clientId);
+        expect(mockConfig.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, YahooConstants.CLIENT_NAME))).andReturn(clientSecret);
+        expect(mockConfig.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, YahooConstants.CLIENT_NAME))).andReturn(clientRedirectUri);
         PowerMock.mockStatic(OAuthDataSource.class);
         expect(OAuthDataSource.createDataSource(YahooConstants.CLIENT_NAME,
             ZDataSource.SOURCE_HOST_YAHOO)).andReturn(mockDataSource);
@@ -179,10 +179,6 @@ public class YahooOAuth2HandlerTest {
         expect(handler.getPrimaryEmail(anyObject(JsonNode.class))).andReturn(username);
 
         expect(mockOAuthInfo.getZmAuthToken()).andReturn(zmAuthToken);
-        mockOAuthInfo.setClientId(matches(clientId));
-        EasyMock.expectLastCall().once();
-        mockOAuthInfo.setClientSecret(matches(clientSecret));
-        EasyMock.expectLastCall().once();
         mockOAuthInfo.setUsername(username);
         EasyMock.expectLastCall().once();
         mockOAuthInfo.setRefreshToken(refreshToken);
