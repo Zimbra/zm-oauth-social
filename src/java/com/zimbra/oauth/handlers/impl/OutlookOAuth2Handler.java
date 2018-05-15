@@ -88,7 +88,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         /**
          * The authorize endpoint for Outlook.
          */
-        protected static final String AUTHORIZE_URI_TEMPLATE = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=%s&redirect_uri=%s&response_type=%s%s&scope=%s";
+        protected static final String AUTHORIZE_URI_TEMPLATE = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s";
 
         /**
          * The profile endpoint for Outlook.
@@ -128,13 +128,13 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
      */
     public OutlookOAuth2Handler(Configuration config) {
         super(config, OutlookConstants.CLIENT_NAME, OutlookConstants.HOST_OUTLOOK);
-        authenticateUri = OutlookConstants.AUTHENTICATE_URI;
-        authorizeUriTemplate = OutlookConstants.AUTHORIZE_URI_TEMPLATE;
-        relayKey = OutlookConstants.RELAY_KEY;
         scope = StringUtils.join(
             new String[] { OutlookConstants.REQUIRED_SCOPES, config.getString(String
                 .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, OutlookConstants.CLIENT_NAME)) },
             "+");
+        authenticateUri = OutlookConstants.AUTHENTICATE_URI;
+        authorizeUri = buildAuthorizeUri(OutlookConstants.AUTHORIZE_URI_TEMPLATE);
+        relayKey = OutlookConstants.RELAY_KEY;
     }
 
     /**

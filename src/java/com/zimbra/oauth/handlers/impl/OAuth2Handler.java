@@ -79,16 +79,22 @@ public abstract class OAuth2Handler {
     protected final String clientRedirectUri;
 
     /**
+     * Implementation Basic header.
+     */
+    protected final String basicToken;
+
+    /**
      * Implementation token scope.
      */
     protected String scope = "";
 
     /**
-     * Implementation authorize uri template.<br>
-     * Expected format pattern key order: {client_id}{redirect_uri}{response_type}{relay}{scope}<br>
-     * Relay is replaced with both key and param, remaining keys should expect only a value.
+     * Implementation authorize uri.<br>
+     * Expected template format pattern key order:
+     * {client_id}{redirect_uri}{response_type}{scope}<br>
+     * Relay is appended to the end by default.
      */
-    protected String authorizeUriTemplate;
+    protected String authorizeUri;
 
     /**
      * Implementation authenticate uri.
@@ -133,6 +139,8 @@ public abstract class OAuth2Handler {
             .getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client));
         clientRedirectUri = config.getString(
             String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client));
+        basicToken = Base64.getEncoder()
+            .encodeToString(new String(clientId + ":" + clientSecret).getBytes());
         dataSource = OAuthDataSource.createDataSource(client, clientHost);
         final String zimbraHostname = config.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
         // warn if missing hostname
@@ -165,16 +173,30 @@ public abstract class OAuth2Handler {
         return httpClient;
     }
 
-    public String authorize(String relayState) throws ServiceException {
+    /**
+     * Builds the passed in authorize uri with configured values.<br>
+     * Required configured implementation properties: `clientRedirectUri`, `clientId`,
+     * `scope`.
+     *
+     * @param template The authorize uri template for this implementation
+     * @return The authorize uri
+     */
+    protected String buildAuthorizeUri(String template) {
         final String responseType = "code";
         String encodedRedirectUri = "";
         try {
             encodedRedirectUri = URLEncoder.encode(clientRedirectUri, OAuth2Constants.ENCODING);
         } catch (final UnsupportedEncodingException e) {
             ZimbraLog.extensions.errorQuietly("Invalid redirect URI found in client config.", e);
-            throw ServiceException.PARSE_ERROR("Invalid redirect URI found in client config.", e);
         }
 
+        return String.format(template, clientId, encodedRedirectUri, responseType, scope);
+    }
+
+    /**
+     * @see IOAuth2Handler#authorize(String)
+     */
+    public String authorize(String relayState) throws ServiceException {
         String relayValue = "";
         String relay = StringUtils.defaultString(relayState, "");
 
@@ -192,13 +214,13 @@ public abstract class OAuth2Handler {
                 throw ServiceException.INVALID_REQUEST("Unable to encode relay parameter.", e);
             }
         }
-        return String.format(authorizeUriTemplate, clientId, encodedRedirectUri, responseType,
-            relayValue, scope);
+        return authorizeUri + relayValue;
     }
 
+    /**
+     * @see IOAuth2Handler#authenticate(OAuthInfo)
+     */
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
-        oauthInfo.setClientId(clientId);
-        oauthInfo.setClientSecret(clientSecret);
         final JsonNode credentials = authenticateRequest(oauthInfo, clientRedirectUri);
         final String username = getPrimaryEmail(credentials);
         ZimbraLog.extensions.debug("Authentication performed for:" + username);
@@ -212,9 +234,10 @@ public abstract class OAuth2Handler {
         return true;
     }
 
+    /**
+     * @see IOAuth2Handler#refresh(OAuthInfo)
+     */
     public Boolean refresh(OAuthInfo oauthInfo) throws ServiceException {
-        oauthInfo.setClientId(clientId);
-        oauthInfo.setClientSecret(clientSecret);
         // get zimbra mailbox
         final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken());
 
@@ -249,10 +272,7 @@ public abstract class OAuth2Handler {
      */
     protected JsonNode authenticateRequest(OAuthInfo authInfo, String redirectUri)
         throws ServiceException {
-        final String clientId = authInfo.getClientId();
-        final String clientSecret = authInfo.getClientSecret();
-        final String basicToken = Base64.getEncoder()
-            .encodeToString(new String(clientId + ":" + clientSecret).getBytes());
+        ;
         final String code = authInfo.getParam("code");
         final String refreshToken = authInfo.getRefreshToken();
         final PostMethod request = new PostMethod(authenticateUri);
@@ -285,8 +305,8 @@ public abstract class OAuth2Handler {
     }
 
     /**
-     * Retrieves the social service account primary email from the id_token.<br>
-     * Default implementation may be used by clients that return an id_token in
+     * Retrieves the social service account primary email from the `id_token`.<br>
+     * This default implementation may be used by clients that return an `id_token` in
      * the get_token request - otherwise overriding this method is required.
      *
      * @param credentials The get_token response containing an id_token
@@ -314,7 +334,7 @@ public abstract class OAuth2Handler {
      */
     public List<String> getAuthenticateParamKeys() {
         // code, error, state are default oauth2 keys
-        return Arrays.asList("code", "error", "state");
+        return Arrays.asList("code", "error", relayKey);
     }
 
     /**

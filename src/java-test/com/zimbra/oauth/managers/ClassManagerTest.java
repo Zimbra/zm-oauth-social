@@ -101,7 +101,7 @@ public class ClassManagerTest {
             OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
                 .andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
         // expect some properties to be read at least once
-        expect(mockConfig.getString(anyObject(String.class))).andReturn(null).atLeastOnce();
+        expect(mockConfig.getString(anyObject(String.class))).andReturn("").atLeastOnce();
 
         PowerMock.replay(Configuration.class);
         replay(mockConfig);
