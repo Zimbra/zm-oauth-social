@@ -18,7 +18,6 @@ package com.zimbra.oauth.utilities;
 
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.matches;
-import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -26,8 +25,6 @@ import static org.easymock.EasyMock.verify;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.ws.rs.core.Response.Status;
 
 import org.easymock.EasyMock;
 import org.junit.Before;

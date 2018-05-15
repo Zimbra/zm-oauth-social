@@ -41,6 +41,8 @@ public class OAuth2Constants {
     public static final String QUERY_ERROR_MSG = "error_msg";
     public static final String COOKIE_AUTH_TOKEN = "ZM_AUTH_TOKEN";
 
+    public static final String PROPERTIES_NAME_APPLICATION = "application";
+
     // http query error related
     public static final String ERROR_ACCESS_DENIED = "access_denied";
     public static final String ERROR_INVALID_AUTH_CODE = "invalid_auth_code";
@@ -48,18 +50,10 @@ public class OAuth2Constants {
     public static final String ERROR_INVALID_ZM_AUTH_CODE_MSG = "Invalid or missing Zimbra session.";
     public static final String ERROR_AUTHENTICATION_ERROR = "authentication_error";
 
-    // properties related
-    public static final String PROPERTIES_NAME_APPLICATION = "application";
-
     // LC properties related
     public static final String LC_ZIMBRA_SERVER_HOSTNAME = "zimbra_server_hostname";
     public static final String LC_HANDLER_CLASS_PREFIX = "zm_oauth_classes_handlers_";
     public static final String LC_SOAP_HOST = "soap_host";
     public static final String LC_HOST_URI_TEMPLATE = "host_uri_template";
-    // LC HTTP Client
-    public static final String LC_OAUTH_HTTP_CLIENT_MAX_PER = "zm_oauth_http_client_max_per";
-    public static final String LC_OAUTH_HTTP_CLIENT_MAX_TOTAL = "zm_oauth_http_client_max_total";
-    public static final String LC_OAUTH_HTTP_CLIENT_TIMEOUT = "zm_oauth_http_client_timeout";
-    public static final String LC_OAUTH_HTTP_CLIENT_ANSWER_TIMEOUT = "zm_oauth_http_client_answer_timeout";
 
 }

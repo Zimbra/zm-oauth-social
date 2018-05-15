@@ -28,7 +28,6 @@ import static org.junit.Assert.fail;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,7 +39,6 @@ import org.powermock.reflect.Whitebox;
 
 import com.zimbra.oauth.exceptions.InvalidClientException;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
-import com.zimbra.oauth.handlers.impl.OAuth2Handler;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 
@@ -48,7 +46,7 @@ import com.zimbra.oauth.utilities.OAuth2Constants;
  * Test class for {@link ClassManager}.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ CloseableHttpClient.class, ClassManager.class, Configuration.class, OAuth2Handler.class })
+@PrepareForTest({ ClassManager.class, Configuration.class })
 public class ClassManagerTest {
 
     /**
@@ -60,11 +58,6 @@ public class ClassManagerTest {
      * Handler cache map for testing.
      */
     protected Map<String, IOAuth2Handler> handlerCacheMap;
-
-    /**
-     * Http client cache map for testing.
-     */
-    protected Map<String, CloseableHttpClient> httpClients;
 
     /**
      * Test client.
@@ -90,11 +83,6 @@ public class ClassManagerTest {
         Whitebox.setInternalState(ClassManager.class, "handlersCache", handlerCacheMap);
 
         mockConfig = EasyMock.createMock(Configuration.class);
-
-        // skip creating the http client
-        httpClients = new HashMap<String, CloseableHttpClient>();
-        httpClients.put(client, EasyMock.createMock(CloseableHttpClient.class));
-        Whitebox.setInternalState(OAuth2Handler.class, "clients", httpClients);
     }
 
     /**
@@ -108,7 +96,6 @@ public class ClassManagerTest {
         expect(Configuration.buildConfiguration(anyObject(String.class))).andReturn(mockConfig);
         expect(mockConfig.getString(matches(OAuth2Constants.LC_HANDLER_CLASS_PREFIX + client)))
             .andReturn("com.zimbra.oauth.handlers.impl.YahooOAuth2Handler");
-        expect(mockConfig.getClientId()).andReturn(client);
         expect(mockConfig.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME)).andReturn(hostname);
         expect(mockConfig.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE,
             OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
@@ -150,4 +137,5 @@ public class ClassManagerTest {
         }
         fail("Expected exception to be thrown for bad client name.");
     }
+
 }

@@ -25,11 +25,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.net.URLEncoder;
-import java.util.HashMap;
-import java.util.Map;
 
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,7 +48,7 @@ import com.zimbra.oauth.utilities.OAuth2Constants;
  * Test class for {@link GoogleOAuth2Handler}.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ HttpClientContext.class, OAuthDataSource.class, OAuth2Handler.class, GoogleOAuth2Handler.class, ZMailbox.class })
+@PrepareForTest({ OAuthDataSource.class, GoogleOAuth2Handler.class, ZMailbox.class })
 @SuppressStaticInitializationFor("com.zimbra.client.ZMailbox")
 public class GoogleOAuth2HandlerTest {
 
@@ -60,11 +56,6 @@ public class GoogleOAuth2HandlerTest {
      * Class under test.
      */
     protected GoogleOAuth2Handler handler;
-
-    /**
-     * Mock client handler property.
-     */
-    protected CloseableHttpClient mockClient = EasyMock.createMock(CloseableHttpClient.class);
 
     /**
      * Mock configuration handler property.
@@ -110,13 +101,6 @@ public class GoogleOAuth2HandlerTest {
         Whitebox.setInternalState(handler, "clientSecret", clientSecret);
         Whitebox.setInternalState(handler, "scope", GoogleConstants.REQUIRED_SCOPES);
         Whitebox.setInternalState(handler, "dataSource", mockDataSource);
-
-        expect(mockConfig.getClientId()).andReturn(clientId);
-
-        // use mock http client for test client
-        final Map<String, CloseableHttpClient> clients = new HashMap<String, CloseableHttpClient>(1);
-        clients.put(clientId, mockClient);
-        Whitebox.setInternalState(GoogleOAuth2Handler.class, "clients", clients);
     }
 
     /**
@@ -185,14 +169,11 @@ public class GoogleOAuth2HandlerTest {
         final JsonNode mockCredentialsRToken = EasyMock.createMock(JsonNode.class);
 
         expect(handler.getZimbraMailbox(anyObject(String.class))).andReturn(mockZMailbox);
-        expect(handler.authenticateRequest(anyObject(OAuthInfo.class), matches(clientRedirectUri),
-            anyObject(HttpClientContext.class))).andReturn(mockCredentials);
+        expect(handler.authenticateRequest(anyObject(OAuthInfo.class), matches(clientRedirectUri)))
+            .andReturn(mockCredentials);
         expect(mockCredentials.get("refresh_token")).andReturn(mockCredentialsRToken);
         expect(mockCredentialsRToken.asText()).andReturn(refreshToken);
         expect(handler.getPrimaryEmail(anyObject(JsonNode.class))).andReturn(username);
-
-        PowerMock.mockStatic(HttpClientContext.class);
-        expect(HttpClientContext.create()).andReturn(PowerMock.createMock(HttpClientContext.class));
 
         expect(mockOAuthInfo.getZmAuthToken()).andReturn(zmAuthToken);
         mockOAuthInfo.setClientId(matches(clientId));
@@ -208,7 +189,6 @@ public class GoogleOAuth2HandlerTest {
 
         replay(handler);
         replay(mockOAuthInfo);
-        PowerMock.replay(HttpClientContext.class);
         replay(mockCredentials);
         replay(mockCredentialsRToken);
         replay(mockDataSource);
@@ -217,7 +197,6 @@ public class GoogleOAuth2HandlerTest {
 
         verify(handler);
         verify(mockOAuthInfo);
-        PowerMock.verify(HttpClientContext.class);
         verify(mockCredentials);
         verify(mockCredentialsRToken);
         verify(mockDataSource);
