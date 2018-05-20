@@ -49,11 +49,18 @@ public class OAuth2Constants {
     public static final String ERROR_INVALID_ZM_AUTH_CODE = "invalid_zm_auth_code";
     public static final String ERROR_INVALID_ZM_AUTH_CODE_MSG = "Invalid or missing Zimbra session.";
     public static final String ERROR_AUTHENTICATION_ERROR = "authentication_error";
+    public static final String ERROR_UNHANDLED_ERROR = "unhandled_error";
 
     // LC properties related
     public static final String LC_ZIMBRA_SERVER_HOSTNAME = "zimbra_server_hostname";
     public static final String LC_HANDLER_CLASS_PREFIX = "zm_oauth_classes_handlers_";
     public static final String LC_SOAP_HOST = "soap_host";
     public static final String LC_HOST_URI_TEMPLATE = "host_uri_template";
+
+    public static final String LC_OAUTH_CLIENT_ID_TEMPLATE = "zm_oauth_%s_client_id";
+    public static final String LC_OAUTH_CLIENT_SECRET_TEMPLATE = "zm_oauth_%s_client_secret";
+    public static final String LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE = "zm_oauth_%s_client_redirect_uri";
+    public static final String LC_OAUTH_SCOPE_TEMPLATE = "zm_oauth_%s_scope";
+    public static final String LC_OAUTH_IMPORT_CLASS_TEMPLATE = "zm_oauth_%s_import_class";
 
 }

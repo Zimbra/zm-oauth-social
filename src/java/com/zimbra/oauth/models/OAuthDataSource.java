@@ -22,7 +22,6 @@ import com.zimbra.client.ZFolder.View;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
-import com.zimbra.oauth.exceptions.InvalidResponseException;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 
 /**
@@ -78,7 +77,7 @@ public class OAuthDataSource {
      *             the folder
      */
     protected String ensureFolder(ZMailbox mailbox, String folderName, View type)
-        throws InvalidResponseException {
+        throws ServiceException {
         ZFolder folder = null;
         try {
             // find target folder
@@ -92,8 +91,7 @@ public class OAuthDataSource {
         } catch (final ServiceException e) {
             ZimbraLog.extensions
                 .errorQuietly("There was an issue acquiring or creating the datasource folder.", e);
-            throw new InvalidResponseException(
-                "There was an issue acquiring or creating the datasource folder.");
+            throw e;
         }
         // return target folder's id
         return folder.getId();
@@ -107,8 +105,7 @@ public class OAuthDataSource {
      * @param credentials Credentials containing the username, and refreshToken
      * @throws InvalidResponseException If there are issues
      */
-    public void updateCredentials(ZMailbox mailbox, OAuthInfo credentials)
-        throws InvalidResponseException {
+    public void updateCredentials(ZMailbox mailbox, OAuthInfo credentials) throws ServiceException {
         final String username = credentials.getUsername();
         final String refreshToken = credentials.getRefreshToken();
         final String folderName = String.format(OAuth2Constants.DEFAULT_OAUTH_FOLDER_TEMPLATE,
@@ -132,9 +129,9 @@ public class OAuthDataSource {
                 mailbox.modifyDataSource(osource);
             }
         } catch (final ServiceException e) {
-            ZimbraLog.extensions.errorQuietly("There was an issue storing the oauth credentials.", e);
-            throw new InvalidResponseException("There was an issue storing the oauth credentials.",
+            ZimbraLog.extensions.errorQuietly("There was an issue storing the oauth credentials.",
                 e);
+            throw e;
         }
     }
 
@@ -147,8 +144,7 @@ public class OAuthDataSource {
      * @return RefreshToken for specified username
      * @throws InvalidResponseException If there are issues
      */
-    public String getRefreshToken(ZMailbox mailbox, String username)
-        throws InvalidResponseException {
+    public String getRefreshToken(ZMailbox mailbox, String username) throws ServiceException {
         ZDataSource osource = null;
         String refreshToken = null;
         // get datasource
@@ -159,9 +155,9 @@ public class OAuthDataSource {
                 refreshToken = osource.getRefreshToken();
             }
         } catch (final ServiceException e) {
-            ZimbraLog.extensions.errorQuietly("There was an issue storing the oauth credentials.", e);
-            throw new InvalidResponseException("There was an issue storing the oauth credentials.",
+            ZimbraLog.extensions.errorQuietly("There was an issue storing the oauth credentials.",
                 e);
+            throw e;
         }
 
         return refreshToken;

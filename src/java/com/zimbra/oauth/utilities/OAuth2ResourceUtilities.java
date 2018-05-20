@@ -30,10 +30,8 @@ import javax.ws.rs.core.Response;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 
+import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
-import com.zimbra.oauth.exceptions.GenericOAuthException;
-import com.zimbra.oauth.exceptions.InvalidOperationException;
-import com.zimbra.oauth.exceptions.UserUnauthorizedException;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.managers.ClassManager;
 import com.zimbra.oauth.models.OAuthInfo;
@@ -54,9 +52,9 @@ public class OAuth2ResourceUtilities {
      * @param client The client
      * @param relay The relay state
      * @return Location to redirect to
-     * @throws GenericOAuthException If there are issues
+     * @throws ServiceException If there are issues
      */
-    public static final String authorize(String client, String relay) throws GenericOAuthException {
+    public static final String authorize(String client, String relay) throws ServiceException {
         final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
         return oauth2Handler.authorize(relay);
     }
@@ -69,10 +67,10 @@ public class OAuth2ResourceUtilities {
      * @param queryParams Map of query params
      * @param zmAuthToken The Zimbra auth token
      * @return Location to redirect to
-     * @throws GenericOAuthException If there are issues
+     * @throws ServiceException If there are issues
      */
     public static String authenticate(String client, Map<String, String[]> queryParams,
-        String zmAuthToken) throws GenericOAuthException {
+        String zmAuthToken) throws ServiceException {
         final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
         final Map<String, String> errorParams = new HashMap<String, String>();
         final Map<String, String> params = getParams(oauth2Handler.getAuthenticateParamKeys(),
@@ -81,13 +79,15 @@ public class OAuth2ResourceUtilities {
         // verify the expected params exist, with no errors
         try {
             oauth2Handler.verifyAuthenticateParams(params);
-        } catch (final UserUnauthorizedException e) {
-            // if unauthorized, pass along the error message
-            errorParams.put(OAuth2Constants.QUERY_ERROR, OAuth2Constants.ERROR_ACCESS_DENIED);
-            errorParams.put(OAuth2Constants.QUERY_ERROR_MSG, e.getMessage());
-        } catch (final InvalidOperationException e) {
-            // if invalid op, pass along the error message
-            errorParams.put(OAuth2Constants.QUERY_ERROR, e.getMessage());
+        } catch (final ServiceException e) {
+            if (StringUtils.equals(ServiceException.PERM_DENIED, e.getCode())) {
+                // if unauthorized, pass along the error message
+                errorParams.put(OAuth2Constants.QUERY_ERROR, OAuth2Constants.ERROR_ACCESS_DENIED);
+                errorParams.put(OAuth2Constants.QUERY_ERROR_MSG, e.getMessage());
+            } else {
+                // if invalid op, pass along the error message
+                errorParams.put(OAuth2Constants.QUERY_ERROR, e.getCode());
+            }
         }
 
         if (errorParams.isEmpty()) {
@@ -107,15 +107,17 @@ public class OAuth2ResourceUtilities {
                     final OAuthInfo authInfo = new OAuthInfo(params);
                     authInfo.setZmAuthToken(zmAuthToken);
                     oauth2Handler.authenticate(authInfo);
-                } catch (final UserUnauthorizedException e) {
+                } catch (final ServiceException e) {
                     // unauthorized does not have an error message associated
                     // with it
-                    errorParams.put(OAuth2Constants.QUERY_ERROR,
-                        OAuth2Constants.ERROR_ACCESS_DENIED);
-                } catch (final GenericOAuthException e) {
-                    errorParams.put(OAuth2Constants.QUERY_ERROR,
-                        OAuth2Constants.ERROR_AUTHENTICATION_ERROR);
-                    errorParams.put(OAuth2Constants.QUERY_ERROR_MSG, e.getMessage());
+                    if (StringUtils.equals(ServiceException.PERM_DENIED, e.getCode())) {
+                        errorParams.put(OAuth2Constants.QUERY_ERROR,
+                            OAuth2Constants.ERROR_ACCESS_DENIED);
+                    } else {
+                        errorParams.put(OAuth2Constants.QUERY_ERROR,
+                            OAuth2Constants.ERROR_AUTHENTICATION_ERROR);
+                        errorParams.put(OAuth2Constants.QUERY_ERROR_MSG, e.getMessage());
+                    }
                 }
             }
         }
@@ -132,10 +134,10 @@ public class OAuth2ResourceUtilities {
      * @param username A username
      * @param zmAuthToken A Zimbra auth token
      * @return An HTTP response
-     * @throws GenericOAuthException
+     * @throws ServiceException If there are issues
      */
     public static Response refresh(String client, String username, String zmAuthToken)
-        throws GenericOAuthException {
+        throws ServiceException {
         final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
         final OAuthInfo authInfo = new OAuthInfo(null);
         authInfo.setClientId(client);
@@ -206,7 +208,7 @@ public class OAuth2ResourceUtilities {
      * @return The path with added query parameters, or the original path if we
      *         failed to add the params
      */
-    private static String addQueryParams(String path, Map<String, String> params) {
+    public static String addQueryParams(String path, Map<String, String> params) {
         // do nothing for empty path, or param map
         if (StringUtils.isEmpty(path) || params == null || params.size() < 1) {
             return path;

@@ -37,7 +37,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.powermock.reflect.Whitebox;
 
-import com.zimbra.oauth.exceptions.InvalidClientException;
+import com.zimbra.common.service.ServiceException;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
@@ -101,7 +101,7 @@ public class ClassManagerTest {
             OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
                 .andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
         // expect some properties to be read at least once
-        expect(mockConfig.getString(anyObject(String.class))).andReturn(null).atLeastOnce();
+        expect(mockConfig.getString(anyObject(String.class))).andReturn("").atLeastOnce();
 
         PowerMock.replay(Configuration.class);
         replay(mockConfig);
@@ -116,7 +116,7 @@ public class ClassManagerTest {
 
     /**
      * Test method for {@link ClassManager#getHandler}<br>
-     * Validates that a client handler is created and cached.
+     * Validates that creating a handler for a bad client fails as expected.
      *
      * @throws Exception If there are issues testing
      */
@@ -124,15 +124,15 @@ public class ClassManagerTest {
     public void testGetHandlerBadClient() throws Exception {
         final String badClient = "not-a-client";
         expect(Configuration.buildConfiguration(matches(badClient)))
-            .andThrow(new InvalidClientException("The specified client is unsupported."));
+            .andThrow(ServiceException.UNSUPPORTED());
 
         PowerMock.replay(Configuration.class);
 
         try {
             ClassManager.getHandler(badClient);
-        } catch (final Exception e) {
+        } catch (final ServiceException e) {
             PowerMock.verify(Configuration.class);
-            assertEquals("The specified client is unsupported.", e.getMessage());
+            assertEquals(ServiceException.UNSUPPORTED, e.getCode());
             return;
         }
         fail("Expected exception to be thrown for bad client name.");
