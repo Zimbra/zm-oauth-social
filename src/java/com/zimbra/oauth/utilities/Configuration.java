@@ -121,9 +121,8 @@ public class Configuration {
      * Does not cache the configuration object.
      *
      * @return The default Configuration object
-     * @throws ServiceException If there are issues
      */
-    public static Configuration getDefaultConfiguration() throws ServiceException {
+    public static Configuration getDefaultConfiguration() {
         return new Configuration(OAuth2Constants.PROPERTIES_NAME_APPLICATION);
     }
 

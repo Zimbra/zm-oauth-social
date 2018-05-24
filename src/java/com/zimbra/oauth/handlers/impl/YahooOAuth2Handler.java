@@ -22,6 +22,7 @@ import org.apache.commons.httpclient.methods.GetMethod;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZDataSource;
+import com.zimbra.client.ZFolder.View;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
@@ -93,6 +94,11 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         protected static final String AUTHORIZE_URI_TEMPLATE = "https://api.login.yahoo.com/oauth2/request_auth?client_id=%s&redirect_uri=%s&response_type=%s";
 
         /**
+         * The contacts uri for Yahoo.
+         */
+        protected static final String CONTACTS_URI_TEMPLATE = "https://social.yahooapis.com/v1/user/%s/contacts?format=%s&view=sync&rev=%d";
+
+        /**
          * The profile endpoint for Yahoo.
          */
         protected static final String PROFILE_URI = "https://social.yahooapis.com/v1/user/%s/profile";
@@ -123,13 +129,16 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         authenticateUri = YahooConstants.AUTHENTICATE_URI;
         authorizeUri = buildAuthorizeUri(YahooConstants.AUTHORIZE_URI_TEMPLATE);
         relayKey = YahooConstants.RELAY_KEY;
+        // add associated import classes
+        dataSource.addImportClass(View.contact.name(),
+            YahooContactsImport.class.getCanonicalName());
     }
 
     /**
-     * Validates that the response from authenticate has no errors, and contains
-     * the requested access information.
+     * Validates that the token response has no errors, and contains the
+     * requested access information.
      *
-     * @param response The json response from authenticate
+     * @param response The json token response
      * @throws ServiceException<br>
      *             FORBIDDEN If the user has no authorization credentials.<br>
      *             OPERATION_DENIED If the refresh token was deemed invalid, or
@@ -141,7 +150,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
      *             general rejection.
      */
     @Override
-    protected void validateAuthenticateResponse(JsonNode response) throws ServiceException {
+    protected void validateTokenResponse(JsonNode response) throws ServiceException {
         // check for errors
         if (response.has("error")) {
             final String error = response.get("error").asText();
@@ -177,10 +186,10 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
                     .PERM_DENIED("Refresh token is expired. Unable to authenticate the user.");
             case YahooConstants.RESPONSE_ERROR_INVALID_CLIENT:
             case YahooConstants.RESPONSE_ERROR_INVALID_CLIENT_SECRET:
-                ZimbraLog.extensions
-                    .warn("Invalid client or client secret provided to mail server: " + errorMsg);
+                ZimbraLog.extensions.warn(
+                    "Invalid client or client secret provided to the social service: " + errorMsg);
                 throw ServiceException
-                    .OPERATION_DENIED("Invalid client details provided to Yahoo.");
+                    .OPERATION_DENIED("Invalid client details provided to the social service.");
             default:
                 ZimbraLog.extensions
                     .warn("Unexpected error while trying to authenticate the user: " + errorMsg);

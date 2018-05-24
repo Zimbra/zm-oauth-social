@@ -23,7 +23,6 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -47,11 +46,11 @@ import com.zimbra.common.util.ZimbraHttpConnectionManager;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.httpclient.HttpProxyUtil;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
-import com.zimbra.oauth.models.OAuthDataSource;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
+import com.zimbra.oauth.utilities.OAuthDataSource;
 
 /**
  * The OAuth2Handler class.<br>
@@ -139,8 +138,7 @@ public abstract class OAuth2Handler {
             .getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client));
         clientRedirectUri = config.getString(
             String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client));
-        basicToken = Base64.getEncoder()
-            .encodeToString(new String(clientId + ":" + clientSecret).getBytes());
+        basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
         dataSource = OAuthDataSource.createDataSource(client, clientHost);
         final String zimbraHostname = config.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
         // warn if missing hostname
@@ -153,13 +151,13 @@ public abstract class OAuth2Handler {
     }
 
     /**
-     * Validates that the response from authenticate has no errors, and contains
-     * the requested access information for this implementation.
+     * Validates that the token response has no errors, and contains the
+     * requested access information for this implementation.
      *
      * @param response The get_token response to validate
      * @throws ServiceException If there are issues with the response
      */
-    protected abstract void validateAuthenticateResponse(JsonNode response) throws ServiceException;
+    protected abstract void validateTokenResponse(JsonNode response) throws ServiceException;
 
     /**
      * Get an instance of HttpClient which is configured to use Zimbra proxy.
@@ -174,9 +172,50 @@ public abstract class OAuth2Handler {
     }
 
     /**
-     * Builds the passed in authorize uri with configured values.<br>
-     * Required configured implementation properties: `clientRedirectUri`, `clientId`,
-     * `scope`.
+     * Default get_token implementation, usable by standard oauth2 services.<br>
+     * Builds and executes the get_token HTTP request for the client.
+     *
+     * @param authInfo Contains the auth info to use in the request
+     * @param basicToken The basic authorization header
+     * @return Json response from the endpoint containing credentials
+     * @throws ServiceException If there are issues performing the request or
+     *             parsing for json
+     */
+    public static JsonNode getTokenRequest(OAuthInfo authInfo, String basicToken)
+        throws ServiceException {
+        final String refreshToken = authInfo.getRefreshToken();
+        final PostMethod request = new PostMethod(authInfo.getTokenUrl());
+        if (!StringUtils.isEmpty(refreshToken)) {
+            // set refresh token if we have one
+            request.setParameter("grant_type", "refresh_token");
+            request.setParameter("refresh_token", refreshToken);
+        } else {
+            // otherwise use the code
+            request.setParameter("grant_type", "authorization_code");
+            request.setParameter("code", authInfo.getParam("code"));
+        }
+        request.setParameter("redirect_uri", authInfo.getClientRedirectUri());
+        request.setParameter("client_secret", authInfo.getClientSecret());
+        request.setParameter("client_id", authInfo.getClientId());
+        request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        request.setRequestHeader("Authorization", "Basic " + basicToken);
+        JsonNode json = null;
+        try {
+            json = executeRequestForJson(request);
+        } catch (final IOException e) {
+            ZimbraLog.extensions
+                .errorQuietly("There was an issue acquiring the authorization token.", e);
+            throw ServiceException
+                .PERM_DENIED("There was an issue acquiring an authorization token for this user.");
+        }
+
+        return json;
+    }
+
+    /**
+     * Builds the passed in authorize uri template with configured values.<br>
+     * Required configured implementation properties: `clientRedirectUri`,
+     * `clientId`, `scope`.
      *
      * @param template The authorize uri template for this implementation
      * @return The authorize uri
@@ -221,13 +260,23 @@ public abstract class OAuth2Handler {
      * @see IOAuth2Handler#authenticate(OAuthInfo)
      */
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
-        final JsonNode credentials = authenticateRequest(oauthInfo, clientRedirectUri);
+        // set client specific properties
+        oauthInfo.setClientId(clientId);
+        oauthInfo.setClientSecret(clientSecret);
+        oauthInfo.setClientRedirectUri(clientRedirectUri);
+        oauthInfo.setTokenUrl(authenticateUri);
+        // request credentials from social service
+        final JsonNode credentials = getTokenRequest(oauthInfo, basicToken);
+        // ensure the response contains the necessary credentials
+        validateTokenResponse(credentials);
+        // determine account associated with credentials
         final String username = getPrimaryEmail(credentials);
-        ZimbraLog.extensions.debug("Authentication performed for:" + username);
+        ZimbraLog.extensions.trace("Authentication performed for:" + username);
+
         // get zimbra mailbox
         final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken());
 
-        // store username, zimbraAccountId, refreshToken
+        // store refreshToken
         oauthInfo.setUsername(username);
         oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
         dataSource.updateCredentials(mailbox, oauthInfo);
@@ -235,79 +284,10 @@ public abstract class OAuth2Handler {
     }
 
     /**
-     * @see IOAuth2Handler#refresh(OAuthInfo)
-     */
-    public Boolean refresh(OAuthInfo oauthInfo) throws ServiceException {
-        // get zimbra mailbox
-        final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken());
-
-        // get refreshToken from DataSource with end service username
-        // (user@yahoo.com)
-        final String refreshToken = dataSource.getRefreshToken(mailbox, oauthInfo.getUsername());
-
-        // invalid operation if no refresh token stored for the user
-        if (StringUtils.isEmpty(refreshToken)) {
-            throw ServiceException
-                .INVALID_REQUEST("The specified user has no stored refresh token.", null);
-        }
-
-        // add refreshToken to oauthInfo, call authenticateRequest
-        oauthInfo.setRefreshToken(refreshToken);
-        final JsonNode credentials = authenticateRequest(oauthInfo, clientRedirectUri);
-
-        // update credentials
-        oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
-        dataSource.updateCredentials(mailbox, oauthInfo);
-        return true;
-    }
-
-    /**
-     * Builds the HTTP request for authentication.
-     *
-     * @param authInfo Contains the auth info to use in the request
-     * @param redirectUri The user's redirect uri
-     * @return Json response from the endpoint
-     * @throws ServiceException If there are issues performing the request or
-     *             parsing for json
-     */
-    protected JsonNode authenticateRequest(OAuthInfo authInfo, String redirectUri)
-        throws ServiceException {
-        ;
-        final String code = authInfo.getParam("code");
-        final String refreshToken = authInfo.getRefreshToken();
-        final PostMethod request = new PostMethod(authenticateUri);
-        if (!StringUtils.isEmpty(refreshToken)) {
-            // set refresh token if we have one
-            request.setParameter("grant_type", "refresh_token");
-            request.setParameter("refresh_token", refreshToken);
-        } else {
-            // otherwise use the code
-            request.setParameter("grant_type", "authorization_code");
-            request.setParameter("code", code);
-        }
-        request.setParameter("redirect_uri", redirectUri);
-        request.setParameter("client_secret", clientSecret);
-        request.setParameter("client_id", clientId);
-        request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        request.setRequestHeader("Authorization", "Basic " + basicToken);
-        JsonNode json = null;
-        try {
-            json = executeRequestForJson(request);
-        } catch (final IOException e) {
-            ZimbraLog.extensions
-                .errorQuietly("There was an issue acquiring the authorization token.", e);
-            throw ServiceException
-                .PERM_DENIED("There was an issue acquiring an authorization token for this user.");
-        }
-        // ensure the response contains the necessary credentials
-        validateAuthenticateResponse(json);
-        return json;
-    }
-
-    /**
-     * Retrieves the social service account primary email from the `id_token`.<br>
-     * This default implementation may be used by clients that return an `id_token` in
-     * the get_token request - otherwise overriding this method is required.
+     * Default getPrimaryEmail implementation. May be used by clients that
+     * return an `id_token` in the get_token request - otherwise this method
+     * must be overridden.<br>
+     * Retrieves the social service account primary email from the `id_token`.
      *
      * @param credentials The get_token response containing an id_token
      * @return The primary email address associated with the credentials
@@ -317,11 +297,11 @@ public abstract class OAuth2Handler {
     protected String getPrimaryEmail(JsonNode credentials) throws ServiceException {
         final DecodedJWT jwt = JWT.decode(credentials.get("id_token").asText());
         final Claim emailClaim = jwt.getClaim("email");
-        if (emailClaim == null) {
+        if (emailClaim == null || StringUtils.isEmpty(emailClaim.asString())) {
             throw ServiceException.PARSE_ERROR("Authentication response is missing primary email.",
                 null);
         }
-        return jwt.getClaim("email").asString();
+        return emailClaim.asString();
     }
 
     /**
@@ -375,7 +355,7 @@ public abstract class OAuth2Handler {
      * @throws ServiceException If there are issues with the connection
      * @throws IOException If there are non connection related issues
      */
-    protected JsonNode executeRequestForJson(HttpMethod request)
+    public static JsonNode executeRequestForJson(HttpMethod request)
         throws ServiceException, IOException {
         JsonNode json = null;
         final String responseBody = executeRequest(request);
@@ -402,7 +382,8 @@ public abstract class OAuth2Handler {
      * @throws ServiceException If there are issues with the connection
      * @throws IOException If there are non connection related issues
      */
-    protected String executeRequest(HttpMethod request) throws ServiceException, IOException {
+    protected static String executeRequest(HttpMethod request)
+        throws ServiceException, IOException {
         String responseBody = null;
         try {
             final HttpClient client = getHttpClient();

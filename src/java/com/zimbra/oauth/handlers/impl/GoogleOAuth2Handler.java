@@ -124,10 +124,10 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
     }
 
     /**
-     * Validates that the response from authenticate has no errors, and contains
-     * the requested access information.
+     * Validates that the token response has no errors, and contains the
+     * requested access information.
      *
-     * @param response The json response from authenticate
+     * @param response The json token response
      * @throws ServiceException<br>
      *             OPERATION_DENIED If the refresh token was deemed invalid, or
      *             incorrect redirect uri.<br>
@@ -138,7 +138,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
      *             general rejection.
      */
     @Override
-    protected void validateAuthenticateResponse(JsonNode response) throws ServiceException {
+    protected void validateTokenResponse(JsonNode response) throws ServiceException {
         // check for errors
         if (response.has("error")) {
             final String error = response.get("error").asText();
@@ -161,9 +161,9 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
                     "Unsupported grant type used. Unable to authenticate the user.");
             case GoogleConstants.RESPONSE_ERROR_INVALID_CLIENT:
                 ZimbraLog.extensions.warn(
-                    "Invalid client or client secret provided to social service: " + errorMsg);
+                    "Invalid client or client secret provided to the social service: " + errorMsg);
                 throw ServiceException
-                    .OPERATION_DENIED("Invalid client details provided to social service.");
+                    .OPERATION_DENIED("Invalid client details provided to the social service.");
             case GoogleConstants.RESPONSE_ERROR_INVALID_REQUEST:
                 ZimbraLog.extensions.warn("Invalid request parameter was provided: " + errorMsg);
                 throw ServiceException

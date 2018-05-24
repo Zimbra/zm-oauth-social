@@ -39,6 +39,11 @@ public class OAuthInfo {
     protected String clientSecret;
 
     /**
+     * A client redirect uri.
+     */
+    protected String clientRedirectUri;
+
+    /**
      * An access token.
      */
     protected String accessToken;
@@ -59,19 +64,9 @@ public class OAuthInfo {
     protected String username;
 
     /**
-     * A timestamp.
+     * A token url.
      */
-    protected long timestamp;
-
-    /**
-     * An expiration timestamp.
-     */
-    protected long expires;
-
-    /**
-     * A refresh url.
-     */
-    protected String refreshUrl;
+    protected String tokenUrl;
 
     /**
      * A map of parameters.
@@ -121,6 +116,24 @@ public class OAuthInfo {
      */
     public void setClientSecret(String clientSecret) {
         this.clientSecret = clientSecret;
+    }
+
+    /**
+     * Get the client redirect uri.
+     *
+     * @return clientRedirectUri A client redirect uri
+     */
+    public String getClientRedirectUri() {
+        return clientRedirectUri;
+    }
+
+    /**
+     * Set the client redirect uri.
+     *
+     * @param clientRedirectUri A client redirect uri
+     */
+    public void setClientRedirectUri(String clientRedirectUri) {
+        this.clientRedirectUri = clientRedirectUri;
     }
 
     /**
@@ -206,57 +219,21 @@ public class OAuthInfo {
     }
 
     /**
-     * Get the timestamp.
+     * Get the token url.
      *
-     * @return The timestamp
+     * @return The token url
      */
-    public long getTimestamp() {
-        return timestamp;
+    public String getTokenUrl() {
+        return tokenUrl;
     }
 
     /**
-     * Set the timestamp.
+     * Set the token url.
      *
-     * @param timestamp A timestamp
+     * @param tokenUrl A token url
      */
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    /**
-     * Get the expires timestamp.
-     *
-     * @return The expires timestamp
-     */
-    public long getExpires() {
-        return expires;
-    }
-
-    /**
-     * Set an expires timestamp.
-     *
-     * @param expires An expires timestamp
-     */
-    public void setExpires(long expires) {
-        this.expires = expires;
-    }
-
-    /**
-     * Get the refresh url.
-     *
-     * @return The refresh url
-     */
-    public String getRefreshUrl() {
-        return refreshUrl;
-    }
-
-    /**
-     * Set the refresh url.
-     *
-     * @param refreshUrl A refresh url
-     */
-    public void setRefreshUrl(String refreshUrl) {
-        this.refreshUrl = refreshUrl;
+    public void setTokenUrl(String tokenUrl) {
+        this.tokenUrl = tokenUrl;
     }
 
 }
