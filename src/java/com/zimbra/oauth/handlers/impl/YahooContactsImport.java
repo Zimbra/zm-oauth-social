@@ -181,6 +181,7 @@ public class YahooContactsImport implements DataImport {
         oauthInfo.setClientRedirectUri(clientRedirectUri);
         oauthInfo.setTokenUrl(YahooConstants.AUTHENTICATE_URI);
 
+        ZimbraLog.extensions.debug("Fetching access credentials for import.");
         final JsonNode credentials = YahooOAuth2Handler.getTokenRequest(oauthInfo,
             OAuth2Utilities.encodeBasicHeader(clientId, clientSecret));
 
@@ -200,6 +201,7 @@ public class YahooContactsImport implements DataImport {
     protected JsonNode getContactsRequest(String url, String authorizationHeader) throws ServiceException, IOException {
         final GetMethod get = new GetMethod(url);
         get.addRequestHeader(OAuth2Constants.HEADER_AUTHORIZATION, authorizationHeader);
+        ZimbraLog.extensions.debug("Fetching contacts for import.");
         return OAuth2Handler.executeRequestForJson(get);
     }
 
@@ -242,6 +244,7 @@ public class YahooContactsImport implements DataImport {
                         && contactsObject.get("contacts").isArray()) {
                         final JsonNode jsonContacts = contactsObject.get("contacts");
                         final List<ParsedContact> clist = new ArrayList<ParsedContact>();
+                        ZimbraLog.extensions.debug("Cycling through list to determine new contacts to add.");
                         for (final JsonNode contactElement : jsonContacts) {
                             if (contactElement.isObject() && contactElement.has("op")) {
                                 final String op = contactElement.get("op").asText();
@@ -257,6 +260,7 @@ public class YahooContactsImport implements DataImport {
                         if (!clist.isEmpty()) {
                             final ItemId iidFolder = new ItemId(mDataSource.getMailbox(),
                                 mDataSource.getFolderId());
+                            ZimbraLog.extensions.debug("Creating contacts from parsed list.");
                             CreateContact.createContacts(null, mDataSource.getMailbox(), iidFolder,
                                 clist, null);
                         }
