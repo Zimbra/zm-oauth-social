@@ -279,7 +279,7 @@ public abstract class OAuth2Handler {
         // store refreshToken
         oauthInfo.setUsername(username);
         oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
-        dataSource.updateCredentials(mailbox, oauthInfo);
+        dataSource.syncDatasource(mailbox, oauthInfo);
         return true;
     }
 

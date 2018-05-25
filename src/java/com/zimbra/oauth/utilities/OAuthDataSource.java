@@ -16,8 +16,11 @@
  */
 package com.zimbra.oauth.utilities;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
 
 import com.zimbra.client.ZDataSource;
 import com.zimbra.client.ZFolder;
@@ -108,13 +111,13 @@ public class OAuthDataSource {
 
     /**
      * Updates a DataSource refresh token, or creates one if none exists for the
-     * specified username.
+     * specified username. Triggers the data sync if the importClass is defined.
      *
      * @param mailbox The user's mailbox
      * @param credentials Credentials containing the username, and refreshToken
      * @throws InvalidResponseException If there are issues
      */
-    public void updateCredentials(ZMailbox mailbox, OAuthInfo credentials) throws ServiceException {
+    public void syncDatasource(ZMailbox mailbox, OAuthInfo credentials) throws ServiceException {
         final String username = credentials.getUsername();
         final String refreshToken = credentials.getRefreshToken();
         final String folderName = String.format(OAuth2Constants.DEFAULT_OAUTH_FOLDER_TEMPLATE,
@@ -133,15 +136,21 @@ public class OAuthDataSource {
                 if (importClassMap.containsKey(View.contact.name())) {
                     osource.setImportClass(importClassMap.get(View.contact.name()));
                 }
-                mailbox.createDataSource(osource);
+                final String id = mailbox.createDataSource(osource);
+                // define id on the source so import is possible
+                osource.setId(id);
                 // or update the named credentials in datasource attribute
             } else {
                 osource.setRefreshToken(refreshToken);
                 mailbox.modifyDataSource(osource);
             }
+            // trigger import if class is set
+            if (!StringUtils.isEmpty(osource.getImportClass())) {
+                mailbox.importData(Arrays.asList(osource));
+            }
         } catch (final ServiceException e) {
-            ZimbraLog.extensions.errorQuietly("There was an issue storing the oauth credentials.",
-                e);
+            ZimbraLog.extensions.errorQuietly(
+                "There was an issue storing the credentials, or triggering the data import.", e);
             throw e;
         }
     }

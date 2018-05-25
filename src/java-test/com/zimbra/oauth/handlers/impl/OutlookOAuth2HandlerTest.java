@@ -195,7 +195,7 @@ public class OutlookOAuth2HandlerTest {
         EasyMock.expectLastCall().once();
         mockOAuthInfo.setRefreshToken(refreshToken);
         EasyMock.expectLastCall().once();
-        mockDataSource.updateCredentials(mockZMailbox, mockOAuthInfo);
+        mockDataSource.syncDatasource(mockZMailbox, mockOAuthInfo);
         EasyMock.expectLastCall().once();
 
         replay(handler);
