@@ -2,7 +2,7 @@
 
 > Zimbra OAuth2 Social Service
 
-This service provides an interface for users to provide credentials for storage and use by other Zimbra products. (e.g. daily contacts import from non-zimbra accounts).
+This service provides an interface for users to register for social service sync operations. (e.g. daily contacts import from non-zimbra accounts).
 
 ---
 
@@ -39,7 +39,7 @@ ant test
 
 See the [documentation for api usage].
 
-After a user completes the oauth2 flow, the credentials for their account will be stored as a data source in a configured folder, or a default Contact subfolder - which will be created in the user's mailbox, if necessary, during authentication.
+After a user completes the oauth2 flow, the credentials for their account will be stored as a data source with a configured folder created in the user's root mailbox during authentication. If an import class is associated, it can be triggered manually with a `zmsoap` import data request.
 
 ---
 

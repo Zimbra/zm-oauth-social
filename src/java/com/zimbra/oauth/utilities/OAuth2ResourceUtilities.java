@@ -25,8 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.ws.rs.core.Response;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 
@@ -35,7 +33,6 @@ import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.managers.ClassManager;
 import com.zimbra.oauth.models.OAuthInfo;
-import com.zimbra.oauth.models.ResponseObject;
 
 /**
  * The OAuth2ResourceUtilities class.
@@ -125,26 +122,6 @@ public class OAuth2ResourceUtilities {
         // validate relay, then add error params if there are any, then redirect
         final String relay = oauth2Handler.getRelay(params);
         return addQueryParams(getValidatedRelay(relay), errorParams);
-    }
-
-    /**
-     * Refresh the OAuth for a given client, user and Zimbra auth token.
-     *
-     * @param client A client
-     * @param username A username
-     * @param zmAuthToken A Zimbra auth token
-     * @return An HTTP response
-     * @throws ServiceException If there are issues
-     */
-    public static Response refresh(String client, String username, String zmAuthToken)
-        throws ServiceException {
-        final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
-        final OAuthInfo authInfo = new OAuthInfo(null);
-        authInfo.setClientId(client);
-        authInfo.setUsername(username);
-        authInfo.setZmAuthToken(zmAuthToken);
-        return OAuth2Utilities.buildResponse(
-            new ResponseObject<Boolean>(oauth2Handler.refresh(authInfo)), null, null);
     }
 
     /**

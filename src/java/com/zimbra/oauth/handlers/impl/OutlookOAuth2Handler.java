@@ -138,10 +138,10 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
     }
 
     /**
-     * Validates that the response from authenticate has no errors, and contains
+     * Validates that the token response has no errors, and contains
      * the requested access information.
      *
-     * @param response The json response from authenticate
+     * @param response The json token response
      * @throws ServiceException<br>
      *             FORBIDDEN If the social service rejects request as
      *             `access_denied`.<br>
@@ -156,19 +156,19 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
      *             normally.
      */
     @Override
-    protected void validateAuthenticateResponse(JsonNode response) throws ServiceException {
+    protected void validateTokenResponse(JsonNode response) throws ServiceException {
         // check for errors
         if (response.has("error")) {
             final String error = response.get("error").asText();
             final JsonNode errorMsg = response.get("error_description");
             switch (error) {
             case OutlookConstants.RESPONSE_ERROR_INVALID_REQUEST:
-                ZimbraLog.extensions.warn("Invalid authentication request parameters: " + errorMsg);
+                ZimbraLog.extensions.warn("Invalid token request parameters: " + errorMsg);
                 throw ServiceException
-                    .OPERATION_DENIED("The authentication request parameters are invalid.");
+                    .OPERATION_DENIED("The token request parameters are invalid.");
             case OutlookConstants.RESPONSE_ERROR_UNAUTHORIZED_CLIENT:
                 ZimbraLog.extensions
-                    .warn("The specified client details provided to oauth2 server are invalid: "
+                    .warn("The specified client details provided to the social service are invalid: "
                         + errorMsg);
                 throw ServiceException.OPERATION_DENIED(
                     "The specified client details provided to the social service are invalid.");
@@ -182,14 +182,14 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
                 ZimbraLog.extensions
                     .debug("There was an issue with the remote social service: " + errorMsg);
                 throw ServiceException
-                    .PROXY_ERROR("There was an issue with the remote oauth2 server.", null);
+                    .PROXY_ERROR("There was an issue with the remote social service.", null);
             case OutlookConstants.RESPONSE_ERROR_INVALID_RESOURCE:
                 ZimbraLog.extensions.debug("Invalid resource: " + errorMsg);
                 throw ServiceException.PERM_DENIED("The specified resource is invalid.");
             case OutlookConstants.RESPONSE_ERROR_RESPONSE_TYPE:
                 ZimbraLog.extensions.info("Requested response type is not supported: " + errorMsg);
                 throw ServiceException.OPERATION_DENIED(
-                    "Requested response type is not supported by the oauth2 server.");
+                    "Requested response type is not supported by the social service.");
             default:
                 ZimbraLog.extensions
                     .warn("Unexpected error while trying to authenticate the user: " + errorMsg);

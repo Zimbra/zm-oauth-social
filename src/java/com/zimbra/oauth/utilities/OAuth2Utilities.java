@@ -16,6 +16,7 @@
  */
 package com.zimbra.oauth.utilities;
 
+import java.util.Base64;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -51,6 +52,18 @@ public class OAuth2Utilities {
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS, true);
         return mapper;
+    }
+
+    /**
+     * Creates a Basic authorization header.
+     *
+     * @param user The left param
+     * @param pass The right param
+     * @return Basic authorization header
+     */
+    public static String encodeBasicHeader(String user, String pass) {
+        return Base64.getEncoder()
+            .encodeToString(new String(user + ":" + pass).getBytes());
     }
 
     /**

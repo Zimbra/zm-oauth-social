@@ -14,7 +14,13 @@
  * If not, see <https://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK *****
  */
-package com.zimbra.oauth.models;
+package com.zimbra.oauth.utilities;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
 
 import com.zimbra.client.ZDataSource;
 import com.zimbra.client.ZFolder;
@@ -22,14 +28,15 @@ import com.zimbra.client.ZFolder.View;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
-import com.zimbra.oauth.utilities.OAuth2Constants;
+import com.zimbra.cs.account.DataSource;
+import com.zimbra.oauth.models.OAuthInfo;
 
 /**
  * The OAuthDataSource class.<br>
  * ZDataSource wrapper for storing oauth credentials.
  *
  * @author Zimbra API Team
- * @package com.zimbra.oauth.models
+ * @package com.zimbra.oauth.utilities
  * @copyright Copyright © 2018
  */
 public class OAuthDataSource {
@@ -43,6 +50,11 @@ public class OAuthDataSource {
      * The host identifier for this source.
      */
     protected final String host;
+
+    /**
+     * Import `type` to `className` mapping.
+     */
+    protected final Map<String, String> importClassMap = new HashMap<String, String>();
 
     /**
      * Constructor.
@@ -99,22 +111,20 @@ public class OAuthDataSource {
 
     /**
      * Updates a DataSource refresh token, or creates one if none exists for the
-     * specified username.
+     * specified username. Triggers the data sync if the importClass is defined.
      *
      * @param mailbox The user's mailbox
      * @param credentials Credentials containing the username, and refreshToken
      * @throws InvalidResponseException If there are issues
      */
-    public void updateCredentials(ZMailbox mailbox, OAuthInfo credentials) throws ServiceException {
+    public void syncDatasource(ZMailbox mailbox, OAuthInfo credentials) throws ServiceException {
         final String username = credentials.getUsername();
         final String refreshToken = credentials.getRefreshToken();
         final String folderName = String.format(OAuth2Constants.DEFAULT_OAUTH_FOLDER_TEMPLATE,
             username, client);
-        ZDataSource osource = null;
-        // get datasource
         try {
-            osource = mailbox.getDataSourceByName(username);
-            // create new datasource if missing
+            // get datasource, create if missing
+            ZDataSource osource = mailbox.getDataSourceByName(username);
             if (osource == null) {
                 // ensure the specified storage folder exists
                 final String storageFolderId = ensureFolder(mailbox, folderName, View.contact);
@@ -122,15 +132,25 @@ public class OAuthDataSource {
                 osource.setFolderId(storageFolderId);
                 osource.setRefreshToken(refreshToken);
                 osource.setHost(host);
-                mailbox.createDataSource(osource);
+                // set the import class if one exists for this client and type
+                if (importClassMap.containsKey(View.contact.name())) {
+                    osource.setImportClass(importClassMap.get(View.contact.name()));
+                }
+                final String id = mailbox.createDataSource(osource);
+                // define id on the source so import is possible
+                osource.setId(id);
                 // or update the named credentials in datasource attribute
             } else {
                 osource.setRefreshToken(refreshToken);
                 mailbox.modifyDataSource(osource);
             }
+            // trigger import if class is set
+            if (!StringUtils.isEmpty(osource.getImportClass())) {
+                mailbox.importData(Arrays.asList(osource));
+            }
         } catch (final ServiceException e) {
-            ZimbraLog.extensions.errorQuietly("There was an issue storing the oauth credentials.",
-                e);
+            ZimbraLog.extensions.errorQuietly(
+                "There was an issue storing the credentials, or triggering the data import.", e);
             throw e;
         }
     }
@@ -161,5 +181,25 @@ public class OAuthDataSource {
         }
 
         return refreshToken;
+    }
+
+    public static String getRefreshToken(DataSource source) throws ServiceException {
+        final String refreshToken = source.getOauthRefreshToken();
+        if (refreshToken == null || refreshToken.isEmpty()) {
+            throw ServiceException.FAILURE(String.format(
+                "Refresh token is not set for DataSource %s of Account %s. Cannot access Yahoo API without a valid refresh token.",
+                source.getName(), source.getAccountId()), null);
+        }
+        return refreshToken;
+    }
+
+    /**
+     * Adds an import class to the mapping.
+     *
+     * @param type The type of View associated with the mapping.
+     * @param className The import class canonical name
+     */
+    public void addImportClass(String type, String className) {
+        importClassMap.put(type, className);
     }
 }

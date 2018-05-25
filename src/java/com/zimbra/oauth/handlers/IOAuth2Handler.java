@@ -53,16 +53,6 @@ public interface IOAuth2Handler {
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException;
 
     /**
-     * Refreshes credentials for an endpoint user.
-     *
-     * @param oauthInfo Contains the client and email address of the endpoint
-     *            user to refresh (e.g. user@yahoo.com)
-     * @return True on success
-     * @throws ServiceException If there are issues in this process
-     */
-    public Boolean refresh(OAuthInfo oauthInfo) throws ServiceException;
-
-    /**
      * Returns a list of keys to expect during authenticate callback.
      *
      * @return List of query param keys
