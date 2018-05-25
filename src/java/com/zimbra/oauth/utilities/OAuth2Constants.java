@@ -36,6 +36,9 @@ public class OAuth2Constants {
     public static final String DEFAULT_OAUTH_FOLDER_TEMPLATE = "%s-%s";
 
     // http related
+    public static final String HEADER_AUTHORIZATION = "Authorization";
+    public static final String HEADER_CONTENT_TYPE = "Content-Type";
+    public static final String HEADER_ACCEPT = "Accept";
     public static final String HEADER_LOCATION = "Location";
     public static final String QUERY_ERROR = "error";
     public static final String QUERY_ERROR_MSG = "error_msg";

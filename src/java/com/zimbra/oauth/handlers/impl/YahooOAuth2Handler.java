@@ -27,6 +27,7 @@ import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.OAuth2Constants;
 
 /**
  * The YahooOAuth2Handler class.<br>
@@ -114,6 +115,11 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         protected static final String RELAY_KEY = "state";
 
         /**
+         * The guid key for Yahoo.
+         */
+        public static final String GUID_KEY = "xoauth_yahoo_guid";
+
+        /**
          * The implementation name.
          */
         public static final String CLIENT_NAME = "yahoo";
@@ -199,7 +205,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 
         // ensure the tokens we requested are present
         if (!response.has("access_token") || !response.has("refresh_token")
-            || !response.has("xoauth_yahoo_guid")) {
+            || !response.has(YahooConstants.GUID_KEY)) {
             throw ServiceException.PARSE_ERROR("Unexpected response from social service.", null);
         }
 
@@ -216,13 +222,13 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
      */
     @Override
     protected String getPrimaryEmail(JsonNode credentials) throws ServiceException {
-        final String guid = credentials.get("xoauth_yahoo_guid").asText();
+        final String guid = credentials.get(YahooConstants.GUID_KEY).asText();
         final String authToken = credentials.get("access_token").asText();
         final String url = String.format(YahooConstants.PROFILE_URI, guid);
         final GetMethod request = new GetMethod(url);
-        request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        request.setRequestHeader("Accept", "application/json");
-        request.setRequestHeader("Authorization", "Bearer " + authToken);
+        request.setRequestHeader(OAuth2Constants.HEADER_CONTENT_TYPE, "application/x-www-form-urlencoded");
+        request.setRequestHeader(OAuth2Constants.HEADER_ACCEPT, "application/json");
+        request.setRequestHeader(OAuth2Constants.HEADER_AUTHORIZATION, "Bearer " + authToken);
 
         JsonNode json = null;
         try {

@@ -197,8 +197,8 @@ public abstract class OAuth2Handler {
         request.setParameter("redirect_uri", authInfo.getClientRedirectUri());
         request.setParameter("client_secret", authInfo.getClientSecret());
         request.setParameter("client_id", authInfo.getClientId());
-        request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        request.setRequestHeader("Authorization", "Basic " + basicToken);
+        request.setRequestHeader(OAuth2Constants.HEADER_CONTENT_TYPE, "application/x-www-form-urlencoded");
+        request.setRequestHeader(OAuth2Constants.HEADER_AUTHORIZATION, "Basic " + basicToken);
         JsonNode json = null;
         try {
             json = executeRequestForJson(request);

@@ -113,7 +113,7 @@ public class YahooContactsImport implements DataImport {
     /**
      * Constructor.
      *
-     * @param ds The datasource to set
+     * @param datasource The datasource to set
      */
     public YahooContactsImport(DataSource datasource) {
         mDataSource = datasource;
@@ -121,7 +121,41 @@ public class YahooContactsImport implements DataImport {
 
     @Override
     public void test() throws ServiceException {
-        throw ServiceException.UNSUPPORTED();
+        final Pair<String, String> tokenAndGuid = refresh();
+        String respContent = "";
+        ParsedContact testContact = null;
+        try {
+            final String url = String.format(YahooConstants.CONTACTS_URI_TEMPLATE, tokenAndGuid.getSecond(), "json", 10);
+            final String authorizationHeader = String.format("Bearer %s", tokenAndGuid.getFirst());
+            final JsonNode jsonResponse = getContactsRequest(url, authorizationHeader);
+            respContent = jsonResponse.toString();
+            if(jsonResponse != null && jsonResponse.isObject()) {
+                if(jsonResponse.has("contacts") && jsonResponse.get("contacts").isObject()) {
+                    final JsonNode contactsObject = jsonResponse.get("contacts");
+                    if(contactsObject.has("contact") && contactsObject.get("contact").isArray()) {
+                        final JsonNode jsonContacts = contactsObject.get("contact");
+                        for(final JsonNode contactElement : jsonContacts) {
+                            final ParsedContact contact = YahooContactsUtil.parseYContact(contactElement, mDataSource);
+                            if(contact != null) {
+                                testContact = contact;
+                                break;
+                            }
+                        }
+                    } else {
+                        ZimbraLog.extensions.debug("Did not find 'contact' element in 'contacts' object");
+                    }
+                } else {
+                    ZimbraLog.extensions.debug("Did not find 'contacts' element in JSON response object");
+                }
+            } else {
+                ZimbraLog.extensions.debug("Did not find JSON response object");
+            }
+        } catch (UnsupportedOperationException | IOException e) {
+            throw ServiceException.FAILURE("Data source test failed. Failed to fetch contacts from  Yahoo Contacts API for testing", e);
+        }
+        if(testContact == null) {
+            throw ServiceException.FAILURE(String.format("Data source test failed. Failed to fetch contacts from  Yahoo Contacts API for testing. Response status code %d. Response status line: %s. Response body %s", respContent), null);
+        }
     }
 
     /**
@@ -151,13 +185,26 @@ public class YahooContactsImport implements DataImport {
             OAuth2Utilities.encodeBasicHeader(clientId, clientSecret));
 
         return new Pair<String, String>(credentials.get("access_token").asText(),
-            credentials.get("xoauth_yahoo_guid").asText());
+            credentials.get(YahooConstants.GUID_KEY).asText());
+    }
+
+    /**
+     * Requests contacts for the given credentials.
+     *
+     * @param url The contacts url
+     * @param authorizationHeader The credentials header
+     * @return Json contacts response
+     * @throws ServiceException If there are issues retrieving the data
+     * @throws IOException If there are issues executing the request
+     */
+    protected JsonNode getContactsRequest(String url, String authorizationHeader) throws ServiceException, IOException {
+        final GetMethod get = new GetMethod(url);
+        get.addRequestHeader(OAuth2Constants.HEADER_AUTHORIZATION, authorizationHeader);
+        return OAuth2Handler.executeRequestForJson(get);
     }
 
     @Override
     public void importData(List<Integer> folderIds, boolean fullSync) throws ServiceException {
-        final String YSocialURLPattern = config.getString("zm_oauth_yahoo_contacts_uri_template",
-            YahooConstants.CONTACTS_URI_TEMPLATE);
         final Pair<String, String> tokenAndGuid = refresh();
         final String[] attrs = mDataSource.getMultiAttr(Provisioning.A_zimbraDataSourceAttribute);
         int rev = 0;
@@ -173,18 +220,16 @@ public class YahooContactsImport implements DataImport {
                     String.format("Invalid value in zimbraDataSourceAttribute: %s", val), e);
             }
         }
-        final String url = String.format(YSocialURLPattern, tokenAndGuid.getSecond(), "json", rev);
-        final GetMethod get = new GetMethod(url);
-        final String authorizationHeader = String.format("Bearer %s", tokenAndGuid.getFirst());
-        get.addRequestHeader("Authorization", authorizationHeader);
         String respContent = "";
-        // log this only at the most verbose level, because this contains
-        // privileged information
-        ZimbraLog.extensions.trace(
-            "Attempting to sync Yahoo contacts. URL: %s. authorizationHeader: %", url,
-            authorizationHeader);
         try {
-            final JsonNode jsonResponse = OAuth2Handler.executeRequestForJson(get);
+            final String url = String.format(YahooConstants.CONTACTS_URI_TEMPLATE, tokenAndGuid.getSecond(), "json", rev);
+            final String authorizationHeader = String.format("Bearer %s", tokenAndGuid.getFirst());
+            // log this only at the most verbose level, because this contains
+            // privileged information
+            ZimbraLog.extensions.trace(
+                "Attempting to sync Yahoo contacts. URL: %s. authorizationHeader: %", url,
+                authorizationHeader);
+            final JsonNode jsonResponse = getContactsRequest(url, authorizationHeader);
             respContent = jsonResponse.toString();
             // log this only at the most verbose level, because this contains
             // privileged information
@@ -209,9 +254,9 @@ public class YahooContactsImport implements DataImport {
                                 }
                             }
                         }
-                        final ItemId iidFolder = new ItemId(mDataSource.getMailbox(),
-                            mDataSource.getFolderId());
                         if (!clist.isEmpty()) {
+                            final ItemId iidFolder = new ItemId(mDataSource.getMailbox(),
+                                mDataSource.getFolderId());
                             CreateContact.createContacts(null, mDataSource.getMailbox(), iidFolder,
                                 clist, null);
                         }
