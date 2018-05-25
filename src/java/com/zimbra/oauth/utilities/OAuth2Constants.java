@@ -35,6 +35,8 @@ public class OAuth2Constants {
     public static final String DEFAULT_HOST_URI_TEMPLATE = "https://%s:443";
     public static final String DEFAULT_OAUTH_FOLDER_TEMPLATE = "%s-%s";
 
+    public static final String DATASOURCE_POLLING_INTERVAL = "1d";
+
     // http related
     public static final String HEADER_AUTHORIZATION = "Authorization";
     public static final String HEADER_CONTENT_TYPE = "Content-Type";

@@ -29,7 +29,9 @@ import com.zimbra.client.ZMailbox;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.DataSource;
+import com.zimbra.cs.account.Provisioning;
 import com.zimbra.oauth.models.OAuthInfo;
+import com.zimbra.soap.admin.type.DataSourceType;
 
 /**
  * The OAuthDataSource class.<br>
@@ -120,38 +122,51 @@ public class OAuthDataSource {
     public void syncDatasource(ZMailbox mailbox, OAuthInfo credentials) throws ServiceException {
         final String username = credentials.getUsername();
         final String refreshToken = credentials.getRefreshToken();
-        final String folderName = String.format(OAuth2Constants.DEFAULT_OAUTH_FOLDER_TEMPLATE,
-            username, client);
         try {
             // get datasource, create if missing
             ZDataSource osource = mailbox.getDataSourceByName(username);
             if (osource == null) {
                 // ensure the specified storage folder exists
+                final String folderName = String
+                    .format(OAuth2Constants.DEFAULT_OAUTH_FOLDER_TEMPLATE, username, client);
                 final String storageFolderId = ensureFolder(mailbox, folderName, View.contact);
-                osource = new ZDataSource(username, true);
-                osource.setFolderId(storageFolderId);
-                osource.setRefreshToken(refreshToken);
-                osource.setHost(host);
-                // set the import class if one exists for this client and type
+                // build up attributes
+                final Map<String, Object> dsAttrs = new HashMap<String, Object>();
+                dsAttrs.put(Provisioning.A_zimbraDataSourceFolderId, storageFolderId);
+                dsAttrs.put(Provisioning.A_zimbraDataSourceEnabled, "TRUE");
+                dsAttrs.put(Provisioning.A_zimbraDataSourceConnectionType, "cleartext");
+                dsAttrs.put(Provisioning.A_zimbraDataSourceOAuthRefreshToken, refreshToken);
+                dsAttrs.put(Provisioning.A_zimbraDataSourceHost, host);
+                dsAttrs.put(Provisioning.A_zimbraDataSourceImportOnly, "FALSE");
                 if (importClassMap.containsKey(View.contact.name())) {
-                    osource.setImportClass(importClassMap.get(View.contact.name()));
+                    // define the import class and polling interval
+                    ZimbraLog.extensions.debug("Setting datasource polling interval and import class.");
+                    dsAttrs.put(Provisioning.A_zimbraDataSourcePollingInterval,
+                        OAuth2Constants.DATASOURCE_POLLING_INTERVAL);
+                    dsAttrs.put(Provisioning.A_zimbraDataSourceImportClassName,
+                        importClassMap.get(View.contact.name()));
                 }
-                final String id = mailbox.createDataSource(osource);
-                // define id on the source so import is possible
-                osource.setId(id);
-                // or update the named credentials in datasource attribute
+                // create the new datasource
+                ZimbraLog.extensions.debug("Creating new datasource.");
+                final Provisioning prov = Provisioning.getInstance();
+                final DataSource source = prov.createDataSource(
+                    prov.getAccountById(mailbox.getAccountId()), DataSourceType.contacts, username,
+                    dsAttrs);
+                // fetch as ZDataSource so we can trigger it
+                osource = mailbox.getDataSourceById(source.getId());
             } else {
                 osource.setRefreshToken(refreshToken);
                 mailbox.modifyDataSource(osource);
             }
-            // trigger import if class is set
             if (!StringUtils.isEmpty(osource.getImportClass())) {
+                // trigger import once if data import class is set
+                ZimbraLog.extensions.debug("Triggering data import.");
                 mailbox.importData(Arrays.asList(osource));
             }
         } catch (final ServiceException e) {
             ZimbraLog.extensions.errorQuietly(
                 "There was an issue storing the credentials, or triggering the data import.", e);
-            throw e;
+            throw ServiceException.FAILURE("There was an issue storing the credentials, or triggering the data import.", e);
         }
     }
 
