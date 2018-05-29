@@ -236,7 +236,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         } catch (final IOException e) {
             ZimbraLog.extensions.errorQuietly("There was an issue acquiring the user's profile.",
                 e);
-            throw ServiceException.PROXY_ERROR("There was an issue acquiring the user's profile.",
+            throw ServiceException.FAILURE("There was an issue acquiring the user's profile.",
                 null);
         }
 

@@ -66,7 +66,7 @@ This service's configuration can all be found in Zimbra's `localconfig.xml` file
 | --- | ----------- | -------- | --------------- |
 | zm_oauth_yahoo_client_id | The Yahoo app's client id | | |
 | zm_oauth_yahoo_client_secret | The Yahoo app's client secret | | |
-| zm_oauth_yahoo_client_redirect_uri | The callback Yahoo returns the user to | | `https://this.service.host.com/oauth2/authenticate/yahoo` |
+| zm_oauth_yahoo_client_redirect_uri | The callback Yahoo returns the user to | | `https://this.service.host.com/service/extension/oauth2/authenticate/yahoo` |
 
 
 **Google Implementation Properties**
@@ -75,8 +75,18 @@ This service's configuration can all be found in Zimbra's `localconfig.xml` file
 | --- | ----------- | -------- | --------------- |
 | zm_oauth_google_client_id | The Google app's client id | | |
 | zm_oauth_google_client_secret | The Google app's client secret | | |
-| zm_oauth_google_client_redirect_uri | The callback Google returns the user to | | `https://this.service.host.com/oauth2/authenticate/google` |
+| zm_oauth_google_client_redirect_uri | The callback Google returns the user to | | `https://this.service.host.com/service/extension/oauth2/authenticate/google` |
 | zm_oauth_google_scope | The token scope to request | | `profile` |
+
+
+**Facebook Implementation Properties**
+
+| Key | Description | Optional | Example Options |
+| --- | ----------- | -------- | --------------- |
+| zm_oauth_facebook_client_id | The Facebook app's client id | | |
+| zm_oauth_facebook_client_secret | The Facebook app's client secret | | |
+| zm_oauth_facebook_client_redirect_uri | The callback Facebook returns the user to | | `https://this.service.host.com/service/extension/oauth2/authenticate/facebook` |
+| zm_oauth_facebook_scope | The token scope to request | | `profile` |
 
 
 [documentation for api usage]: http://tools.email.dev.opal.synacor.com/zm-oauth-social-docs-latest/
