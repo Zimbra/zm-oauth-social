@@ -341,15 +341,19 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
             throw ServiceException.FAILURE("There was an issue acquiring the account details.",
                 null);
         }
-        final String userId = json.get("data").get("user_id").asText();
-        if (userId.isEmpty()) {
-            ZimbraLog.extensions
-                .warn("The user id could not be retrieved from the social service api.");
-            ZimbraLog.extensions.trace(json.toString());
-            throw ServiceException.UNSUPPORTED();
+
+        final JsonNode data = json.get("data");
+        if (data != null && data.has("user_id")) {
+            return data.get("user_id").asText();
         }
 
-        return userId;
+        // if we couldn't retrieve the user id, the response from
+        // downstream is missing data
+        // this could be the result of a misconfigured application id/secret
+        // (not enough scopes)
+        ZimbraLog.extensions
+                .error("The user id could not be retrieved from the social service api.");
+        throw ServiceException.UNSUPPORTED();
     }
 
     /**
@@ -357,7 +361,6 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
      *
      * @return The Facebook App token
      * @throws ServiceException If there was an issue with the request
-     * @throws GenericOAuthException If there are issues acquiring the user id
      */
     protected String getAppToken() throws ServiceException {
         JsonNode json = null;
@@ -375,12 +378,13 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
                 .FAILURE("There was an issue acquiring the social service app access token.", null);
         }
 
-        final String appAccessToken = json.get("access_token").asText();
-        if (appAccessToken.isEmpty()) {
-            ZimbraLog.extensions.warn("Unable to retrieve app token from social service api.");
-            ZimbraLog.extensions.trace(json.toString());
-            throw ServiceException.UNSUPPORTED();
+        if (json.has("access_token")) {
+            return json.get("access_token").asText();
         }
-        return appAccessToken;
+
+        // if we couldn't retrieve the app token, the response from
+        // downstream is missing data
+        ZimbraLog.extensions.error("Unable to retrieve app token from social service api.");
+        throw ServiceException.UNSUPPORTED();
     }
 }
