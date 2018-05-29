@@ -283,6 +283,11 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
                 throw ServiceException.PERM_DENIED("Unable to authenticate the user.");
             }
         }
+
+        // ensure the tokens we requested are present
+        if (!response.has("access_token")) {
+            throw ServiceException.PARSE_ERROR("Unexpected response from social service.", null);
+        }
     }
 
     /**
