@@ -1,5 +1,5 @@
 .classpath
 .project
-.settings/
-bin/
-build
+build/
+.settings
+eclipse-ivysettings.xml
