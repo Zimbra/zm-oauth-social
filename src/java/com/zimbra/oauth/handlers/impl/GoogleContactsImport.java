@@ -528,7 +528,7 @@ public class GoogleContactsImport implements DataImport {
         public static final Map<String, String> PHONE_FIELDS_MAP = new HashMap<String, String>() {
 
             {
-                put(DEFAULT_TYPE, A_mobilePhone);
+                put(DEFAULT_TYPE, A_homePhone);
                 put("home", A_homePhone);
                 put("work", A_workPhone);
                 put("mobile", A_mobilePhone);
@@ -554,6 +554,7 @@ public class GoogleContactsImport implements DataImport {
         public static final Map<String, String> LINK_FIELDS_MAP = new HashMap<String, String>() {
 
             {
+                put(DEFAULT_TYPE, A_homeURL);
                 put("home", A_homeURL);
                 put("work", A_workURL);
                 put("other", A_otherURL);
@@ -622,6 +623,14 @@ public class GoogleContactsImport implements DataImport {
             }
         }
 
+        /**
+         * Parses a typed field object array into a Zimbra contact field.<br>
+         * The mappingField must specify a default type mapping.
+         *
+         * @param fieldArray The array of typed objects
+         * @param mappingFields The social service key -> zimbra key mapping. Must contain a default mapping.
+         * @param fields The parsed contact fields to update
+         */
         public static void parseTypedField(JsonNode fieldArray, Map<String, String> mappingFields,
             Map<String, String> fields) {
             int i = 1;
@@ -635,15 +644,16 @@ public class GoogleContactsImport implements DataImport {
                     }
                     // grab the value
                     final String value = fieldObject.get(VALUE).asText();
-                    // map by type to a Zimbra field
-                    if (mappingFields.containsKey(type)) {
-                        String fieldKey = mappingFields.get(type);
-                        // map numerically if we already have this key
-                        if (fields.containsKey(fieldKey)) {
-                            fieldKey = fieldKey.replace("1", "") + ++i;
-                        }
-                        fields.put(fieldKey, value);
+                    // map by type to a Zimbra field key
+                    String fieldKey = mappingFields.get(type);
+                    if (fieldKey == null) {
+                        fieldKey = mappingFields.get(DEFAULT_TYPE);
                     }
+                    // map numerically if we already have this key
+                    if (fields.containsKey(fieldKey)) {
+                        fieldKey = fieldKey.replace("1", "") + ++i;
+                    }
+                    fields.put(fieldKey, value);
                 }
             }
         }
