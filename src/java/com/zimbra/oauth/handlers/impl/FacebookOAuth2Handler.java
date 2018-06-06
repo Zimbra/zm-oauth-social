@@ -25,6 +25,7 @@ import org.apache.commons.httpclient.methods.GetMethod;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZMailbox;
+import com.zimbra.client.ZFolder.View;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
@@ -167,6 +168,11 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
          */
         public static final String HOST_FACEBOOK = "graph.facebook.com";
 
+        /**
+         * The contacts uri template.
+         */
+        public static final String CONTACTS_URI_TEMPLATE = "https://graph.facebook.com/v3.0/me/friends?access_token=%s&fields=%s";
+
     }
 
     /**
@@ -181,6 +187,9 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         requiredScopes = FacebookConstants.REQUIRED_SCOPES;
         scopeDelimiter = FacebookConstants.SCOPE_DELIMITER;
         relayKey = FacebookConstants.RELAY_KEY;
+        // add associated import classes
+        dataSource.addImportClass(View.contact.name(),
+            FacebookContactsImport.class.getCanonicalName());
     }
 
     /**
@@ -220,6 +229,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         oauthInfo.setUsername(username);
         oauthInfo.setRefreshToken(credentials.get("access_token").asText());
         dataSource.syncDatasource(mailbox, oauthInfo);
+        ZimbraLog.extensions.info("******* ACCESS TOKEN ******** " + credentials.get("access_token").asText());
         return true;
     }
 
