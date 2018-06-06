@@ -27,7 +27,7 @@ import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 
 /**
- * The Configuration class for this project for loading attributes from LDAP.
+ * The Configuration class for this project.
  *
  * @author Zimbra API Team
  * @package com.zimbra.oauth.utilities

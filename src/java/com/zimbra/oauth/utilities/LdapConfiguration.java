@@ -19,9 +19,9 @@ package com.zimbra.oauth.utilities;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Provisioning;
-import com.zimbra.oauth.models.OAuthInfo;
 
 /**
+ * The Configuration class for this project for loading attributes from LDAP
  * @author zimbra
  *
  */
