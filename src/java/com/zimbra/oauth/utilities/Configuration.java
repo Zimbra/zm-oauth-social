@@ -27,7 +27,7 @@ import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 
 /**
- * The Configuration class for this project.
+ * The Configuration class for this project for loading attributes from LDAP.
  *
  * @author Zimbra API Team
  * @package com.zimbra.oauth.utilities
@@ -38,7 +38,7 @@ public class Configuration {
     /**
      * Map storing configurations per client.
      */
-    private static Map<String, Configuration> configCache = Collections
+    protected static Map<String, Configuration> configCache = Collections
         .synchronizedMap(new HashMap<String, Configuration>());
 
     /**

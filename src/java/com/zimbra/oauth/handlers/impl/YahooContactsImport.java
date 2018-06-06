@@ -85,6 +85,7 @@ import com.zimbra.cs.service.util.ItemId;
 import com.zimbra.oauth.handlers.impl.YahooOAuth2Handler.YahooConstants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.LdapConfiguration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
 import com.zimbra.oauth.utilities.OAuthDataSource;
@@ -108,7 +109,7 @@ public class YahooContactsImport implements DataImport {
     /**
      * Configuration wrapper.
      */
-    private final Configuration config = Configuration.getDefaultConfiguration();
+    private Configuration config;
 
     /**
      * Constructor.
@@ -117,6 +118,12 @@ public class YahooContactsImport implements DataImport {
      */
     public YahooContactsImport(DataSource datasource) {
         mDataSource = datasource;
+        try {
+           config = LdapConfiguration.buildConfiguration(OAuth2Constants.APPNAME_YAHOO);
+        } catch (ServiceException e) {
+            ZimbraLog.extensions.info("Error loading configuration for yahoo: %s", e.getMessage());
+            ZimbraLog.extensions.debug(e);
+        }
     }
 
     @Override
