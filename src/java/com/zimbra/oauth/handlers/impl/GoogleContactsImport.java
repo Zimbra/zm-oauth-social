@@ -67,6 +67,7 @@ import static com.zimbra.common.mailbox.ContactConstants.A_workStreet;
 import static com.zimbra.common.mailbox.ContactConstants.A_workURL;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.text.DateFormat;
@@ -84,9 +85,11 @@ import java.util.Set;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
+import org.xml.sax.SAXException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
+import com.zimbra.common.util.HtmlBodyTextExtractor;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.DataSource;
 import com.zimbra.cs.account.DataSource.DataImport;
@@ -588,15 +591,29 @@ public class GoogleContactsImport implements DataImport {
 
         public static void parseSimpleField(JsonNode fieldArray, String zimbraFieldKey,
             Map<String, String> fields) {
+            parseSimpleField(fieldArray, zimbraFieldKey, fields, false);
+        }
+
+        public static void parseSimpleField(JsonNode fieldArray, String zimbraFieldKey,
+            Map<String, String> fields, boolean stripHtml) {
             int i = 1;
             for (final JsonNode fieldObject : fieldArray) {
                 if (fieldObject.has(VALUE)) {
                     // grab the value
-                    final String value = fieldObject.get(VALUE).asText();
+                    String value = fieldObject.get(VALUE).asText();
                     // map to Zimbra field numerically if we already have a
                     // value set
                     if (fields.containsKey(zimbraFieldKey)) {
                         zimbraFieldKey = zimbraFieldKey.replace("1", "") + ++i;
+                    }
+                    if (stripHtml) {
+                        // extract plain text from value if requested
+                        try {
+                            value = HtmlBodyTextExtractor.extract(new StringReader(value), value.length());
+                        } catch (IOException | SAXException e) {
+                            ZimbraLog.extensions.trace("There was an issue parsing plain text from the html body: %s", value);
+                            // continue processing
+                        }
                     }
                     fields.put(zimbraFieldKey, value);
                 }
@@ -802,7 +819,7 @@ public class GoogleContactsImport implements DataImport {
                             parseTypedField(fieldArray, NICKNAME_FIELDS_MAP, contactFields);
                             break;
                         case biographies:
-                            parseSimpleField(fieldArray, A_notes, contactFields);
+                            parseSimpleField(fieldArray, A_notes, contactFields, true);
                             break;
                         case organizations:
                             parseMappingField(fieldArray, ORGANIZATIONS_FIELDS_MAP, contactFields);
