@@ -273,7 +273,7 @@ public class GoogleContactsImport implements DataImport {
         for (final JsonNode contactElement : jsonContacts) {
             try {
                 ZimbraLog.extensions
-                    .debug("Verifying if new contact for: " + jsonContacts.toString());
+                    .trace("Verifying if new contact for: %s", jsonContacts.toString());
                 String resourceName = null;
                 if (contactElement.has("resourceName")) {
                     resourceName = contactElement.get("resourceName").asText();
@@ -354,7 +354,7 @@ public class GoogleContactsImport implements DataImport {
                 pageToken = null;
                 // log only at most verbose level, this contains privileged info
                 ZimbraLog.extensions.trace(
-                    "Attempting to sync Google contacts. URL: %s. authorizationHeader: %", url,
+                    "Attempting to sync Google contacts. URL: %s. authorizationHeader: %s", url,
                     authorizationHeader);
                 // fetch contacts
                 final JsonNode jsonResponse = getContactsRequest(url, authorizationHeader);
