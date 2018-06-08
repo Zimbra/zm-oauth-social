@@ -38,7 +38,7 @@ public class Configuration {
     /**
      * Map storing configurations per client.
      */
-    private static Map<String, Configuration> configCache = Collections
+    protected static Map<String, Configuration> configCache = Collections
         .synchronizedMap(new HashMap<String, Configuration>());
 
     /**

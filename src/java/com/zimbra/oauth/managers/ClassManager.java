@@ -25,6 +25,7 @@ import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.LdapConfiguration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 
 /**
@@ -64,7 +65,7 @@ public class ClassManager {
                 if (handler == null) {
                     try {
                         // load a config file
-                        final Configuration config = Configuration.buildConfiguration(client);
+                        final Configuration config = LdapConfiguration.buildConfiguration(client);
 
                         // load the handler class
                         final Class<?> daoClass = Class.forName(
