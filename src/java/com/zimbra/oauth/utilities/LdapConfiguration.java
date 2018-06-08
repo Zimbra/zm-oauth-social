@@ -119,8 +119,11 @@ public class LdapConfiguration extends Configuration {
             ZimbraLog.extensions.info("Error fetching configuration : %s for : %s", key, appName);
             ZimbraLog.extensions.debug(e);
         }
-        
-        ZimbraLog.extensions.debug("Requested : %s  and value is: %s ", key, value);
+        if (key.endsWith(OAuth2Constants.OAUTH_CLIENT_SECRET)) {
+            ZimbraLog.extensions.trace("Requested : %s  and value is: %s ", key, "****");
+        } else {
+            ZimbraLog.extensions.trace("Requested : %s  and value is: %s ", key, value);
+        }
         return value;
     }
 
