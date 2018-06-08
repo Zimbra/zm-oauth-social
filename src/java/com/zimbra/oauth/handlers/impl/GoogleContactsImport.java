@@ -358,10 +358,10 @@ public class GoogleContactsImport implements DataImport {
                     authorizationHeader);
                 // fetch contacts
                 final JsonNode jsonResponse = getContactsRequest(url, authorizationHeader);
-                respContent = jsonResponse.toString();
-                // log only at most verbose level, this contains privileged info
-                ZimbraLog.extensions.trace("Contacts sync response from Google %s", respContent);
                 if (jsonResponse != null && jsonResponse.isContainerNode()) {
+                    respContent = jsonResponse.toString();
+                    // log only at most verbose level, this contains privileged info
+                    ZimbraLog.extensions.trace("Contacts sync response from Google %s", respContent);
                     // parse contacts if any, and update the createList
                     if (jsonResponse.has("connections")
                         && jsonResponse.get("connections").isArray()) {
@@ -386,13 +386,12 @@ public class GoogleContactsImport implements DataImport {
                     }
                 } else {
                     ZimbraLog.extensions
-                        .debug("Did not find JSON response object. Response body: %s", respContent);
+                        .debug("Did not find JSON response object.");
                 }
             } while (pageToken != null);
         } catch (UnsupportedOperationException | IOException e) {
-            throw ServiceException.FAILURE(String.format(
-                "Data source sync failed. Failed to fetch contacts from  Google Contacts API. Response body: %s",
-                respContent), e);
+            throw ServiceException.FAILURE(
+                "Data source sync failed. Failed to fetch contacts from Google Contacts API.", e);
         }
 
         if (!createList.isEmpty()) {
