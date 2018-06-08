@@ -22,8 +22,9 @@ import com.zimbra.cs.account.Provisioning;
 
 /**
  * The Configuration class for this project for loading attributes from LDAP
- * @author zimbra
- *
+ * @author Zimbra API Team
+ * @package com.zimbra.oauth.utilities
+ * @copyright Copyright © 2018
  */
 public class LdapConfiguration extends Configuration {
 
@@ -38,25 +39,28 @@ public class LdapConfiguration extends Configuration {
     
     
     /**
-     * 
+     * Get the associated value with the key.
+     *
+     * @param key A key to lookup
+     * @return A value for a given key
      */
     @Override
     public String getString(String key) {
         
-        String appName = getAppName(key);
+        String appName = this.getClientId();
         return getConfig(key, appName);
     }
 
     /**
-     * @param oauthClientId
-     * @param appName
-     * @return
+     * @param oauth related config key
+     * @param appName client app name
+     * @return value for the associated key
      */
     public String getConfig(String key, String appName) {
 
         String value = null;
         try {
-            if (key.endsWith(OAuth2Constants.OAUTH_CLIENT_ID)) {
+           if (key.endsWith(OAuth2Constants.OAUTH_CLIENT_ID)) {
                 String[] registeredOAuth2Clients = Provisioning.getInstance().getConfig()
                     .getMultiAttr(Provisioning.A_zimbraOAuthConsumerCredentials);
                 if (registeredOAuth2Clients != null && registeredOAuth2Clients.length != 0) {
@@ -108,36 +112,45 @@ public class LdapConfiguration extends Configuration {
                         }
                     }
                 }
+            } else {
+                value = getString(key, null);
             }
         } catch (ServiceException e) {
             ZimbraLog.extensions.info("Error fetching configuration : %s for : %s", key, appName);
             ZimbraLog.extensions.debug(e);
         }
-        return value;
         
+        ZimbraLog.extensions.debug("Requested : %s  and value is: %s ", key, value);
+        return value;
     }
 
 
-    /**
-     * Return the name of the client app, based on the key.
-     * @param key the client related key(zm_oauth_yahoo_client_id,zm_oauth_google_client_secret,
-     * zm_oauth_outlook_client_redirect_uri
-     * @return the client app name
-     */
-    private String getAppName(String key) {
-        
-        if (key.contains(OAuth2Constants.APPNAME_YAHOO)) {
-            return OAuth2Constants.APPNAME_YAHOO;
-        } else if (key.contains(OAuth2Constants.APPNAME_GOOGLE)) {
-            return OAuth2Constants.APPNAME_GOOGLE;
-        } else if (key.contains(OAuth2Constants.APPNAME_FACEBOOK)) {
-            return OAuth2Constants.APPNAME_FACEBOOK;
-        }  else if (key.contains(OAuth2Constants.APPNAME_OUTLOOK)) {
-            return OAuth2Constants.APPNAME_OUTLOOK;
-        } else {
-            ZimbraLog.extensions.info("Received request for unsupported app config: %s", key);
-            return null;
-        }
-    }    
+   /**
+    * Loads a single configuration by name (no extension).<br>
+    * Creates a Configuration and caches the Configuration.
+    *
+    * @param name Name of the client
+    * @return Configuration object
+    * @throws ServiceException If there are issues
+    */
+   public static Configuration buildConfiguration(String name) throws ServiceException {
+       Configuration config = null;
+
+       // try to find config in cache
+       if (name != null) {
+           config = configCache.get(name);
+       }
+
+       // if the config is empty, try to load it
+       if (config == null) {
+           // validate the client
+           if (!isValidClient(name)) {
+               throw ServiceException.UNSUPPORTED();
+           }
+           config = new LdapConfiguration(name);
+       }
+       configCache.put(name, config);
+       return config;
+   }
 
 }

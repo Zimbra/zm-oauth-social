@@ -119,7 +119,7 @@ public class YahooContactsImport implements DataImport {
     public YahooContactsImport(DataSource datasource) {
         mDataSource = datasource;
         try {
-           config = LdapConfiguration.buildConfiguration(OAuth2Constants.APPNAME_YAHOO);
+           config = LdapConfiguration.buildConfiguration(YahooConstants.CLIENT_NAME);
         } catch (ServiceException e) {
             ZimbraLog.extensions.info("Error loading configuration for yahoo: %s", e.getMessage());
             ZimbraLog.extensions.debug(e);

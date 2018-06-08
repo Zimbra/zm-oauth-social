@@ -74,9 +74,9 @@ public class OAuth2Constants {
     public static final String OAUTH_CLIENT_REDIRECT_URI = "client_redirect_uri";
     public static final String OAUTH_SCOPE = "scope";
 
-    public static final String APPNAME_YAHOO = "yahoo";
-    public static final String APPNAME_GOOGLE = "google";
-    public static final String APPNAME_FACEBOOK = "facebook";
-    public static final String APPNAME_OUTLOOK = "outlook";
+//    public static final String APPNAME_YAHOO = "yahoo";
+//    public static final String APPNAME_GOOGLE = "google";
+//    public static final String APPNAME_FACEBOOK = "facebook";
+//    public static final String APPNAME_OUTLOOK = "outlook";
 
 }
