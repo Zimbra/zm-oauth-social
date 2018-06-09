@@ -102,6 +102,7 @@ import com.zimbra.cs.service.util.ItemId;
 import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler.GoogleConstants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.LdapConfiguration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
 import com.zimbra.oauth.utilities.OAuthDataSource;
@@ -125,7 +126,7 @@ public class GoogleContactsImport implements DataImport {
     /**
      * Configuration wrapper.
      */
-    private final Configuration config = Configuration.getDefaultConfiguration();
+    private Configuration config;
 
     /**
      * Constructor.
@@ -134,6 +135,12 @@ public class GoogleContactsImport implements DataImport {
      */
     public GoogleContactsImport(DataSource datasource) {
         mDataSource = datasource;
+        try {
+            config = LdapConfiguration.buildConfiguration(GoogleConstants.CLIENT_NAME);
+        } catch (final ServiceException e) {
+            ZimbraLog.extensions.info("Error loading configuration for google: %s", e.getMessage());
+            ZimbraLog.extensions.debug(e);
+        }
     }
 
     @Override
