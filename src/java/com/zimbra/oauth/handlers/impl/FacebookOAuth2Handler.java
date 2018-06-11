@@ -171,7 +171,31 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         /**
          * The contacts uri template.
          */
-        public static final String CONTACTS_URI_TEMPLATE = "https://graph.facebook.com/v3.0/me/friends?access_token=%s&fields=%s";
+        public static final String CONTACTS_URI_TEMPLATE = "https://graph.facebook.com/v3.0/me/friends?access_token=%s&fields=%s&limit=%s";
+
+        /**
+        * The contacts pagination size for Facebook.
+        */
+        protected static final String CONTACTS_PAGE_SIZE = "100";
+
+        /**
+         * The refresh token code request uri template.<br>
+         * Uses a code to request a fresh access token.
+         */
+        public static final String REFRESH_TOKEN_CODE_REQUEST_URI_TEMPLATE = "https://graph.facebook.com/oauth/client_code?access_token=%s&client_id=%s&client_secret=%s&redirect_uri=%s";
+
+        /**
+         * The access request uri template code, uses the existing, valid access token to fetch a code. 
+         * This code will be used to request a fresh access token..
+         */
+        public static final String REFRESH_ACCESS_TOKEN_FOR_CODE_REQUEST_URI_TEMPLATE = "https://graph.facebook.com/oauth/access_token?client_id=%s&redirect_uri=%s&code=%s";
+
+        /*
+         * CSV list of data fields to import or limit the import to.
+         * (Please note that this list may require permission scopes 
+         * be added to the localconfig.xml for the related fields)
+         */
+        public static final String IMPORT_FIELDS_LIST = "email,address,name,location,birthday,about,gender,hometown,locale,first_name,middle_name,last_name";
 
     }
 
@@ -229,7 +253,6 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         oauthInfo.setUsername(username);
         oauthInfo.setRefreshToken(credentials.get("access_token").asText());
         dataSource.syncDatasource(mailbox, oauthInfo);
-        ZimbraLog.extensions.info("******* ACCESS TOKEN ******** " + credentials.get("access_token").asText());
         return true;
     }
 
