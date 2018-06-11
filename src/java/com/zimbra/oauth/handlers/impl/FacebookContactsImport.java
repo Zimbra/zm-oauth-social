@@ -233,9 +233,7 @@ public class FacebookContactsImport implements DataImport {
     try {
       do {
         // build contacts url, query params with access token or use Facebook nextPageUrl if defined
-        final String url = nextPageUrl != null ? nextPageUrl :
-        String.format(FacebookConstants.CONTACTS_URI_TEMPLATE, refreshToken,
-          FacebookConstants.IMPORT_FIELDS_LIST, FacebookConstants.CONTACTS_PAGE_SIZE);
+        final String url = buildContactsUrl(nextPageUrl, refreshToken);
         nextPageUrl = null;
         // log this only at the most verbose level, because this contains
         // privileged information
@@ -249,18 +247,7 @@ public class FacebookContactsImport implements DataImport {
           if (jsonResponse.has("data")
               && jsonResponse.get("data").isContainerNode()) {
             final JsonNode contactsObject = jsonResponse.get("data");
-            for (final JsonNode contactElement : contactsObject) {
-              if (contactElement.isObject() && contactElement.has("id")) {
-                final String id = contactElement.get("id").asText();
-                if (!id.isEmpty() && !existingContacts.contains(id)) {
-                  final ParsedContact contact = FacebookContactsUtil
-                      .parseFContact(contactElement, mDataSource);
-                  if (contact != null) {
-                    clist.add(contact);
-                  }
-                }
-              }
-            }
+            parseNewContacts(existingContacts, contactsObject, "id", clist);
 
             // check for next page
             if (jsonResponse.has("paging") &&
@@ -293,6 +280,56 @@ public class FacebookContactsImport implements DataImport {
             clist, null);
     }
   }
+
+  /**
+   * Processes json contacts from google api into a ParsedContact, adding it
+   * to a create list if the contact does not already exist in the datasource
+   * folder - based on the resourceName property.
+   *
+   * @param existingContacts Contact resourceNames in the datasource folder
+   * @param jsonContacts Json contacts from google api
+   * @param matchField The field to match existing contacts with
+   * @param createList List of contacts to create
+   */
+  protected void parseNewContacts(Set<String> existingContacts, JsonNode jsonContacts, String matchField,
+      List<ParsedContact> createList) {
+      for (final JsonNode contactElement : jsonContacts) {
+          try {
+              ZimbraLog.extensions
+                  .trace("Verifying if new contact for: %s", jsonContacts.toString());
+              String resourceName = null;
+              if (contactElement.has(matchField)) {
+                  resourceName = contactElement.get(matchField).asText();
+              }
+              // add to list of contacts to create only if it is new
+              if (resourceName == null || !existingContacts.contains(resourceName)) {
+                  // parse each contact into a Zimbra object
+                  final ParsedContact parsedContact = FacebookContactsUtil
+                      .parseNewContact(contactElement, mDataSource);
+                  createList.add(parsedContact);
+              }
+          } catch (final ServiceException e) {
+              ZimbraLog.extensions.errorQuietly("Unable to parse contact.", e);
+              // if we fail to parse one - continue with the rest
+          }
+      }
+  }
+
+  /**
+   * Build and return a contacts url if the nextPageUrl is null.
+   * 
+   * @param nextPageUrl The Url from Facebook pagination for the next page
+   * @param refreshToken The token used to fetch the contacts
+   * @return A Url to fetch contacts
+   */
+  protected String buildContactsUrl(String nextPageUrl, String refreshToken) {
+    if (nextPageUrl != null) { 
+      return nextPageUrl;
+    }
+    return String.format(FacebookConstants.CONTACTS_URI_TEMPLATE, refreshToken,
+        FacebookConstants.IMPORT_FIELDS_LIST, FacebookConstants.CONTACTS_PAGE_SIZE);
+  }
+
 
   /**
    * Retrieves a set of the contacts identifiers that exist in a specified
@@ -422,7 +459,7 @@ public class FacebookContactsImport implements DataImport {
        * @return Parsed contact data
        * @throws ServiceException If there was an error parsing the JSON data
        */
-      public static ParsedContact parseFContact(JsonNode jsonContact, DataSource ds)
+      public static ParsedContact parseNewContact(JsonNode jsonContact, DataSource ds)
           throws ServiceException {
         final Map<String, String> contactFields = new HashMap<String, String>();
         contactFields.put(A_imAddress1, jsonContact.get("id").asText());
