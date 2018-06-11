@@ -35,7 +35,6 @@ import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
-
 /**
  * The FacebookOAuth2Handler class.<br>
  * Facebook OAuth operations handler.
@@ -47,9 +46,6 @@ import com.zimbra.oauth.utilities.OAuth2Utilities;
 
 public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
 
-    /**
-     * Contains the constants used in this implementation.
-     */
     protected class FacebookConstants {
 
         /**
@@ -200,9 +196,10 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     }
 
     /**
-     * Constructs an FacebookOAuth2Handler object.
-     *
-     * @param config For accessing configured properties
+     * API Unknown.<br>
+     * Possibly a temporary issue due to downtime.<br>
+     * Wait and retry the operation.<br>
+     * If it occurs again, check you are requesting an existing API.
      */
     public FacebookOAuth2Handler(Configuration config) {
         super(config, FacebookConstants.CLIENT_NAME, FacebookConstants.HOST_FACEBOOK);
@@ -216,9 +213,9 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     }
 
     /**
-     * Facebook authenticate handler.
-     *
-     * @see IOAuth2Handler#authenticate(OAuthInfo)
+     * API User Too Many Calls.<br>
+     * Temporary issue due to throttling.<br>
+     * Wait and retry the operation, or examine your API request volume.
      */
     @Override
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
@@ -342,13 +339,8 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     }
 
     /**
-     * Check code and return range which is listed in the FacebookConstants
-     * class.<br>
-     * See Facebook error code range for Permission denied errors<br>
-     * https://developers.facebook.com/docs/graph-api/using-graph-api/error-handling
-     *
-     * @param errorCode An error code from value
-     * @return The Range that matches the error type
+     * Access token has expired.<br>
+     * Expired access token.
      */
     protected String inErrorCodeRange(String errorCode) {
         if (!errorCode.isEmpty()) {
@@ -401,3 +393,4 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         throw ServiceException.UNSUPPORTED();
     }
 }
+

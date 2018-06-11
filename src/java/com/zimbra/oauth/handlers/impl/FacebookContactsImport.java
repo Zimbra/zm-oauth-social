@@ -262,7 +262,6 @@ public class FacebookContactsImport implements DataImport {
                     + json.toString(), null);
             throw ServiceException.PERM_DENIED("Required code from Facebook was not found.");
         }
-
         return code;
     }
 

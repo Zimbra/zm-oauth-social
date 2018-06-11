@@ -33,6 +33,7 @@ import com.zimbra.cs.mime.ParsedContact;
 import com.zimbra.oauth.handlers.impl.FacebookContactsImport.FacebookContactsUtil;
 import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookConstants;
 import com.zimbra.oauth.utilities.Configuration;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
