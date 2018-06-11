@@ -19,6 +19,7 @@ package com.zimbra.oauth.handlers.impl;
 import org.apache.commons.lang.StringUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.zimbra.client.ZFolder.View;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
@@ -86,6 +87,16 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         protected static final String AUTHENTICATE_URI = "https://www.googleapis.com/oauth2/v4/token";
 
         /**
+         * The contacts endpoint for Google.
+         */
+        protected static final String CONTACTS_URI = "https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,organizations,phoneNumbers,addresses,events,birthdays,biographies,nicknames,urls,photos,userDefined,skills,interests,braggingRights,relationshipInterests,relationshipStatuses,occupations,taglines";
+
+        /**
+         * The contacts pagination size for Google.
+         */
+        protected static final String CONTACTS_PAGE_SIZE = "100";
+
+        /**
          * The scope required for Google.
          */
         protected static final String REQUIRED_SCOPES = "email";
@@ -120,6 +131,8 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         authenticateUri = GoogleConstants.AUTHENTICATE_URI;
         authorizeUri = buildAuthorizeUri(GoogleConstants.AUTHORIZE_URI_TEMPLATE);
         relayKey = GoogleConstants.RELAY_KEY;
+        dataSource.addImportClass(View.contact.name(),
+            GoogleContactsImport.class.getCanonicalName());
 
     }
 
