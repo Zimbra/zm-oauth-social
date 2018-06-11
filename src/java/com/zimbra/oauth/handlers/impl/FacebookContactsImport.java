@@ -37,6 +37,7 @@ import com.zimbra.cs.service.util.ItemId;
 import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookConstants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.LdapConfiguration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuthDataSource;
 
@@ -73,7 +74,7 @@ public class FacebookContactsImport implements DataImport {
   /**
    * Configuration wrapper.
    */
-  private final Configuration config = Configuration.getDefaultConfiguration();
+  private Configuration config;
 
   /**
    * Constructor.
@@ -82,6 +83,12 @@ public class FacebookContactsImport implements DataImport {
    */
   public FacebookContactsImport(DataSource datasource) {
     mDataSource = datasource;
+    try {
+        config = LdapConfiguration.buildConfiguration(FacebookConstants.CLIENT_NAME);
+    } catch (final ServiceException e) {
+        ZimbraLog.extensions.info("Error loading configuration for Facebook: %s", e.getMessage());
+        ZimbraLog.extensions.debug(e);
+    }
   }
 
 
