@@ -19,10 +19,10 @@ package com.zimbra.oauth.handlers.impl;
 
 import static com.zimbra.common.mailbox.ContactConstants.A_birthday;
 import static com.zimbra.common.mailbox.ContactConstants.A_firstName;
+import static com.zimbra.common.mailbox.ContactConstants.A_fullName;
 import static com.zimbra.common.mailbox.ContactConstants.A_imAddress1;
 import static com.zimbra.common.mailbox.ContactConstants.A_lastName;
 import static com.zimbra.common.mailbox.ContactConstants.A_middleName;
-import static com.zimbra.common.mailbox.ContactConstants.A_fullName;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
@@ -86,8 +86,42 @@ public class FacebookContactsImport implements DataImport {
 
 
   @Override
-  public void test() {
-
+  public void test() throws ServiceException {
+    // list of contacts to create after parsing Facebook responses
+    final List<ParsedContact> createList = new ArrayList<ParsedContact>();
+    // existing contacts from the datasource folder
+    final Set<String> existingContacts = new HashSet<String>();
+    String respContent = "";
+    try {
+      // fetch contacts
+      final JsonNode jsonResponse = getContactsRequest(buildContactsUrl(null, refresh()));
+      respContent = jsonResponse.toString();
+      if (jsonResponse != null && jsonResponse.isContainerNode()) {
+        // parse contacts if any, and update the createList
+        if (jsonResponse.has("data") && jsonResponse.get("data").isArray()) {
+          final JsonNode jsonContacts = jsonResponse.get("data");
+          parseNewContacts(existingContacts, jsonContacts, "id", createList);
+        } else {
+          ZimbraLog.extensions.debug(
+              "Did not find 'data' element in JSON response object. Response body: %s",
+              respContent);
+        }
+      } else {
+        ZimbraLog.extensions.debug("Did not find JSON response object. Response body: %s",
+            respContent);
+      }
+    } catch (UnsupportedOperationException | IOException e) {
+      throw ServiceException.FAILURE(String.format(
+          "Data source test failed. Failed to fetch contacts from Facebook Contacts API for "
+          + "testing. Response body: %s",
+          respContent), e);
+    }
+    if (createList.isEmpty()) {
+      throw ServiceException.FAILURE(String.format(
+          "Data source test failed. Failed to fetch contacts from Facebook Contacts API for "
+          + "testing. Response body %s",
+          respContent), null);
+    }
   }
   
 
@@ -117,44 +151,52 @@ public class FacebookContactsImport implements DataImport {
     ZimbraLog.extensions.debug("Fetching access credentials for import.");
     final String codeResponse = getFacebookCodeRequest(oauthInfo);
     final JsonNode credentials = getFacebookRefreshTokenRequest(oauthInfo, codeResponse);
-    //final Map<String, Object> dsAttrs = new HashMap<String, Object>();
-    //dsAttrs.put(Provisioning.A_zimbraDataSourceOAuthRefreshToken, credentials.get("access_token").asText());
-    //Provisioning.getInstance().modifyDataSource(mDataSource.getAccount(),
-    //    mDataSource.getId(), dsAttrs);
     return credentials.get("access_token").asText();
   }
 
+  /**
+   * Requests a fresh access token.
+   * 
+   * @param authInfo The authInfo object used for OAuth details
+   * @param code The code from Facebook to use when fetching the access token
+   * @return The JSON response
+   * @throws ServiceException When errors are encountered making the request
+   */
   public static JsonNode getFacebookRefreshTokenRequest(OAuthInfo authInfo, String code)
-    throws ServiceException {
+      throws ServiceException {
     String encodedUrl;
     try {
       encodedUrl = URLEncoder.encode(authInfo.getClientRedirectUri(), OAuth2Constants.ENCODING);
     } catch (UnsupportedEncodingException e1) {
       ZimbraLog.extensions
       .errorQuietly("There was an issue encoding the url.", e1);
-  throw ServiceException
-      .FAILURE("There was an issue encoding the url. " + authInfo.getClientRedirectUri(), null);
+      throw ServiceException
+        .FAILURE("There was an issue encoding the url. " + authInfo.getClientRedirectUri(), null);
     }
-    String queryString = String.format(FacebookConstants.REFRESH_ACCESS_TOKEN_FOR_CODE_REQUEST_URI_TEMPLATE, authInfo.getClientId(), encodedUrl, code);
+    String queryString = String.format(
+        FacebookConstants.REFRESH_ACCESS_TOKEN_FOR_CODE_REQUEST_URI_TEMPLATE,
+        authInfo.getClientId(), encodedUrl, code);
 
     final GetMethod request = new GetMethod(queryString);
     JsonNode json = null;
     try {
-        json = FacebookOAuth2Handler.executeRequestForJson(request);
+      json = FacebookOAuth2Handler.executeRequestForJson(request);
     } catch (final IOException e) {
-        ZimbraLog.extensions
-            .errorQuietly("There was an issue acquiring the authorization code.", e);
-        throw ServiceException
-            .PERM_DENIED("There was an issue acquiring an authorization code for this user.");
-    }
-    if (json.has("error") || !json.has("access_token") || json.get("access_token").asText().isEmpty()) {
       ZimbraLog.extensions
-      .errorQuietly("There was an issue acquiring the authorization code. Response: " + json.toString(), null);
+          .errorQuietly("There was an issue acquiring the authorization code.", e);
+      throw ServiceException
+          .PERM_DENIED("There was an issue acquiring an authorization code for this user.");
+    }
+    if (json.has("error") || !json.has("access_token") 
+        || json.get("access_token").asText().isEmpty()) {
+      ZimbraLog.extensions
+          .errorQuietly("There was an issue acquiring the authorization code. Response: " 
+           + json.toString(), null);
       throw ServiceException.PERM_DENIED("Required access token from Facebook was not found.");
     }
 
     return json;
-}
+  }
 
   /**
    * Facebook exchange token request.<br>
@@ -168,40 +210,42 @@ public class FacebookContactsImport implements DataImport {
    */
   public static String getFacebookCodeRequest(OAuthInfo authInfo)
       throws ServiceException {
-      final String refreshToken = authInfo.getRefreshToken();
+    final String refreshToken = authInfo.getRefreshToken();
 
-      String encodedUrl;
-      try {
-        encodedUrl = URLEncoder.encode(authInfo.getClientRedirectUri(), OAuth2Constants.ENCODING);
-      } catch (UnsupportedEncodingException e1) {
-        ZimbraLog.extensions
-        .errorQuietly("There was an issue encoding the url.", e1);
-    throw ServiceException
-        .FAILURE("There was an issue encoding the url. " + authInfo.getClientRedirectUri(), null);
-      }
+    String encodedUrl;
+    try {
+      encodedUrl = URLEncoder.encode(authInfo.getClientRedirectUri(), OAuth2Constants.ENCODING);
+    } catch (UnsupportedEncodingException e1) {
+      ZimbraLog.extensions
+      .errorQuietly("There was an issue encoding the url.", e1);
+      throw ServiceException
+      .FAILURE("There was an issue encoding the url. " + authInfo.getClientRedirectUri(), null);
+    }
 
-      String queryString = String.format(FacebookConstants.REFRESH_TOKEN_CODE_REQUEST_URI_TEMPLATE, refreshToken, authInfo.getClientId(), authInfo.getClientSecret(), encodedUrl);
-      final GetMethod request = new GetMethod(queryString);
+    String queryString = String.format(FacebookConstants.REFRESH_TOKEN_CODE_REQUEST_URI_TEMPLATE,
+        refreshToken, authInfo.getClientId(), authInfo.getClientSecret(), encodedUrl);
+    final GetMethod request = new GetMethod(queryString);
 
-      JsonNode json = null;
-      try {
-          json = FacebookOAuth2Handler.executeRequestForJson(request);
-      } catch (final IOException e) {
-          ZimbraLog.extensions
-              .errorQuietly("There was an issue acquiring the authorization code.", e);
-          throw ServiceException
-              .PERM_DENIED("There was an issue acquiring an authorization code for this user.");
-      }
-      String code = null;
-      if (!json.has("error") && json.has("code")) {
-        code = json.get("code").asText();
-      } else {
-        ZimbraLog.extensions
-        .errorQuietly("There was an issue acquiring the authorization code. Response: " + json.toString(), null);
-        throw ServiceException.PERM_DENIED("Required code from Facebook was not found.");
-      }
+    JsonNode json = null;
+    try {
+      json = FacebookOAuth2Handler.executeRequestForJson(request);
+    } catch (final IOException e) {
+      ZimbraLog.extensions
+            .errorQuietly("There was an issue acquiring the authorization code.", e);
+      throw ServiceException
+            .PERM_DENIED("There was an issue acquiring an authorization code for this user.");
+    }
+    String code = null;
+    if (!json.has("error") && json.has("code")) {
+      code = json.get("code").asText();
+    } else {
+      ZimbraLog.extensions
+          .errorQuietly("There was an issue acquiring the authorization code. Response: "
+          + json.toString(), null);
+      throw ServiceException.PERM_DENIED("Required code from Facebook was not found.");
+    }
 
-      return code;
+    return code;
   }
 
   
@@ -250,9 +294,9 @@ public class FacebookContactsImport implements DataImport {
             parseNewContacts(existingContacts, contactsObject, "id", clist);
 
             // check for next page
-            if (jsonResponse.has("paging") &&
-                jsonResponse.get("paging").has("next")) {
-                nextPageUrl = jsonResponse.get("paging").get("next").asText();
+            if (jsonResponse.has("paging")
+                && jsonResponse.get("paging").has("next")) {
+              nextPageUrl = jsonResponse.get("paging").get("next").asText();
             }
           } else {
             ZimbraLog.extensions
@@ -264,9 +308,9 @@ public class FacebookContactsImport implements DataImport {
       } while (nextPageUrl != null);
     } catch (UnsupportedOperationException | IOException e) {
       ZimbraLog.extensions.debug(String.format(
-        "Data source test failed. Failed to fetch contacts from Facebook Contacts API"
+          "Data source test failed. Failed to fetch contacts from Facebook Contacts API"
           + "for testing. Response body: %s",
-        respContent), e);
+          respContent), e);
       throw ServiceException.FAILURE(String.format(
         "Data source test failed. Failed to fetch contacts from Facebook Contacts API"
           + "for testing. Response body: %s",
@@ -282,37 +326,37 @@ public class FacebookContactsImport implements DataImport {
   }
 
   /**
-   * Processes json contacts from google api into a ParsedContact, adding it
+   * Processes json contacts from Facebook api into a ParsedContact, adding it
    * to a create list if the contact does not already exist in the datasource
    * folder - based on the resourceName property.
    *
    * @param existingContacts Contact resourceNames in the datasource folder
-   * @param jsonContacts Json contacts from google api
+   * @param jsonContacts Json contacts from Facebook api
    * @param matchField The field to match existing contacts with
    * @param createList List of contacts to create
    */
-  protected void parseNewContacts(Set<String> existingContacts, JsonNode jsonContacts, String matchField,
-      List<ParsedContact> createList) {
-      for (final JsonNode contactElement : jsonContacts) {
-          try {
-              ZimbraLog.extensions
-                  .trace("Verifying if new contact for: %s", jsonContacts.toString());
-              String resourceName = null;
-              if (contactElement.has(matchField)) {
-                  resourceName = contactElement.get(matchField).asText();
-              }
-              // add to list of contacts to create only if it is new
-              if (resourceName == null || !existingContacts.contains(resourceName)) {
-                  // parse each contact into a Zimbra object
-                  final ParsedContact parsedContact = FacebookContactsUtil
-                      .parseNewContact(contactElement, mDataSource);
-                  createList.add(parsedContact);
-              }
-          } catch (final ServiceException e) {
-              ZimbraLog.extensions.errorQuietly("Unable to parse contact.", e);
-              // if we fail to parse one - continue with the rest
-          }
+  protected void parseNewContacts(Set<String> existingContacts, JsonNode jsonContacts,
+      String matchField, List<ParsedContact> createList) {
+    for (final JsonNode contactElement : jsonContacts) {
+      try {
+        ZimbraLog.extensions
+            .trace("Verifying if new contact for: %s", jsonContacts.toString());
+        String resourceName = null;
+        if (contactElement.has(matchField)) {
+          resourceName = contactElement.get(matchField).asText();
+        }
+        // add to list of contacts to create only if it is new
+        if (resourceName == null || !existingContacts.contains(resourceName)) {
+          // parse each contact into a Zimbra object
+          final ParsedContact parsedContact = FacebookContactsUtil
+              .parseNewContact(contactElement, mDataSource);
+          createList.add(parsedContact);
+        }
+      } catch (final ServiceException e) {
+        ZimbraLog.extensions.errorQuietly("Unable to parse contact.", e);
+        // if we fail to parse one - continue with the rest
       }
+    }
   }
 
   /**
@@ -343,133 +387,133 @@ public class FacebookContactsImport implements DataImport {
    */
   protected Set<String> getExistingContacts(Mailbox mailbox, int folderId, String resourceId)
       throws ServiceException {
-      // fetch the list of existing contacts for the specified folder
-      List<Contact> contacts = null;
-      try {
-          contacts = mailbox.getContactList(null, folderId);
-      } catch (final ServiceException e) {
-          ZimbraLog.extensions.errorQuietly(
-              "Failed to retrieve existing contacts during social service contact sync.", e);
-          throw ServiceException
-              .FAILURE("Failed to retrieve existing contacts during social service contact sync.", e);
-      }
+    // fetch the list of existing contacts for the specified folder
+    List<Contact> contacts = null;
+    try {
+      contacts = mailbox.getContactList(null, folderId);
+    } catch (final ServiceException e) {
+      ZimbraLog.extensions.errorQuietly(
+            "Failed to retrieve existing contacts during social service contact sync.", e);
+      throw ServiceException
+            .FAILURE("Failed to retrieve existing contacts during social service contact sync.", e);
+    }
 
-      // create a resourceName set
-      final Set<String> contactsIdentifiers = new HashSet<String>();
-      for (final Contact contact : contacts) {
-          if (contact != null) {
-              final String resourceName = contact.get(resourceId);
-              if (resourceName != null) {
-                  contactsIdentifiers.add(resourceName);
-              }
-          }
+    // create a resourceName set
+    final Set<String> contactsIdentifiers = new HashSet<String>();
+    for (final Contact contact : contacts) {
+      if (contact != null) {
+        final String resourceName = contact.get(resourceId);
+        if (resourceName != null) {
+          contactsIdentifiers.add(resourceName);
+        }
       }
+    }
 
-      return contactsIdentifiers;
+    return contactsIdentifiers;
   }
   
+  /**
+   * The FacebookContactsUtil class.<br>
+   * Used to parse contacts from the Facebook service.<br>
+   * Source from the original YahooContactsUtil class by @author Greg Solovyev.
+   *
+   * @author Zimbra API Team
+   * @package com.zimbra.oauth.handlers.impl
+   * @copyright Copyright © 2018
+   */
+  @SuppressWarnings("serial")
+  public static class FacebookContactsUtil {
+
+    static enum FContactFieldType {
+        id,
+        name,
+        birthday,
+        first_name,
+        middle_name,
+        last_name
+    }
+  
+    // parts of contact JSON object
+    public static final String VALUE = "value";
+    public static final String TYPE = "type";
+    public static final String FLAGS = "flags";
+    public static final String FIELDS = "fields";
+
+
+    // facebook name field value parts
+    public static final String GIVENNAME = "first_name";
+    public static final String MIDDLE = "middle_name";
+    public static final String FAMILYNAME = "last_name";
+    public static final String FULLNAME = "name";
+
+    public static final Map<String, String> NAME_FIELDS_MAP = new HashMap<String, String>() {
+      {
+        put(A_firstName, GIVENNAME);
+        put(A_middleName, MIDDLE);
+        put(A_lastName, FAMILYNAME);
+        put(A_fullName, FULLNAME);
+      }
+    };
+
     /**
-     * The FacebookContactsUtil class.<br>
-     * Used to parse contacts from the Facebook service.<br>
-     * Source from the original YahooContactsUtil class by @author Greg Solovyev.
-     *
-     * @author Zimbra API Team
-     * @package com.zimbra.oauth.handlers.impl
-     * @copyright Copyright © 2018
+     * Parser for birthday fields.
+     * 
+     * @param fieldObject JSON object
+     * @param fields Map of fields
      */
-    @SuppressWarnings("serial")
-    public static class FacebookContactsUtil {
-  
-      static enum FContactFieldType {
-          id,
-          name,
-          birthday,
-          first_name,
-          middle_name,
-          last_name
+    public static void parseBirthdayField(JsonNode fieldObject, Map<String, String> fields) {
+      if (fieldObject.has("birthday")) {
+        loadField(A_birthday, fieldObject.get("birthday").asText(), fields);
       }
-  
-      // parts of contact JSON object
-      public static final String VALUE = "value";
-      public static final String TYPE = "type";
-      public static final String FLAGS = "flags";
-      public static final String FIELDS = "fields";
-  
-  
-      // facebook name field value parts
-      public static final String GIVENNAME = "first_name";
-      public static final String MIDDLE = "middle_name";
-      public static final String FAMILYNAME = "last_name";
-      public static final String FULLNAME = "name";
-  
-      public static final Map<String, String> NAME_FIELDS_MAP = new HashMap<String, String>() {
-        {
-          put(A_firstName, GIVENNAME);
-          put(A_middleName, MIDDLE);
-          put(A_lastName, FAMILYNAME);
-          put(A_fullName, FULLNAME);
-        }
-      };
+    }
 
-      /**
-       * Parser for birthday fields.
-       * 
-       * @param fieldObject JSON object
-       * @param fields Map of fields
-       */
-      public static void parseBirthdayField(JsonNode fieldObject, Map<String, String> fields) {
-        if (fieldObject.has("birthday")) {
-          loadField(A_birthday, fieldObject.get("birthday").asText(), fields);
+    /**
+     * Parser for name fields.
+     * 
+     * @param fieldObject JSON object
+     * @param fields Map of fields
+     */
+    public static void parseNameFields(JsonNode fieldObject, Map<String, String> fields) {
+      for (final String key : NAME_FIELDS_MAP.keySet()) {
+        if (fieldObject.has(NAME_FIELDS_MAP.get(key))) {
+          loadField(key, fieldObject.get(NAME_FIELDS_MAP.get(key)).asText(), fields);
         }
       }
+    }
 
-      /**
-       * Parser for name fields.
-       * 
-       * @param fieldObject JSON object
-       * @param fields Map of fields
-       */
-      public static void parseNameFields(JsonNode fieldObject, Map<String, String> fields) {
-        for (final String key : NAME_FIELDS_MAP.keySet()) {
-          if (fieldObject.has(NAME_FIELDS_MAP.get(key))) {
-            loadField(key, fieldObject.get(NAME_FIELDS_MAP.get(key)).asText(), fields);
-          }
-        }
+    /**
+     * Parses the value into a map.
+     * 
+     * @param fieldName The field name to map the value to
+     * @param value The value to use 
+     * @param fields the map of fields to populate
+     */
+    public static void loadField(String fieldName, String value,
+        Map<String, String> fields) {
+      if (!value.isEmpty()) {
+        fields.put(fieldName, value);
       }
+    }
 
-      /**
-       * Parses the value into a map.
-       * 
-       * @param fieldName The field name to map the value to
-       * @param value The value to use 
-       * @param fields the map of fields to populate
-       */
-      public static void loadField(String fieldName, String value,
-          Map<String, String> fields) {
-        if (!value.isEmpty()) {
-          fields.put(fieldName, value);
-        }
+    /**
+     * Parse the contact from JSON node. 
+     * 
+     * @param jsonContact JSON node containing contact data
+     * @param ds DataSource object
+     * @return Parsed contact data
+     * @throws ServiceException If there was an error parsing the JSON data
+     */
+    public static ParsedContact parseNewContact(JsonNode jsonContact, DataSource ds)
+        throws ServiceException {
+      final Map<String, String> contactFields = new HashMap<String, String>();
+      contactFields.put(A_imAddress1, jsonContact.get("id").asText());
+      parseNameFields(jsonContact, contactFields);
+      parseBirthdayField(jsonContact, contactFields);
+      if (!contactFields.isEmpty()) {
+        return new ParsedContact(contactFields);
+      } else {
+        return null;
       }
-
-      /**
-       * Parse the contact from JSON node. 
-       * 
-       * @param jsonContact JSON node containing contact data
-       * @param ds DataSource object
-       * @return Parsed contact data
-       * @throws ServiceException If there was an error parsing the JSON data
-       */
-      public static ParsedContact parseNewContact(JsonNode jsonContact, DataSource ds)
-          throws ServiceException {
-        final Map<String, String> contactFields = new HashMap<String, String>();
-        contactFields.put(A_imAddress1, jsonContact.get("id").asText());
-        parseNameFields(jsonContact, contactFields);
-        parseBirthdayField(jsonContact, contactFields);
-        if (!contactFields.isEmpty()) {
-          return new ParsedContact(contactFields);
-        } else {
-          return null;
-        }
     }
   }
 }
