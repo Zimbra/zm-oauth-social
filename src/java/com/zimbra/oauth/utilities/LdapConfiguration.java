@@ -91,11 +91,15 @@ public class LdapConfiguration extends Configuration {
                     .getMultiAttr(Provisioning.A_zimbraOAuthConsumerRedirectUri);
                 if (registeredOAuth2RedirectUrls != null
                     && registeredOAuth2RedirectUrls.length != 0) {
-                    // {redirectURI}:{consumer-app-name}
+                    // {redirectURI}:{consumer-app-name} (the redirect uri can contain ":")
                     for (String consumer : registeredOAuth2RedirectUrls) {
-                        String s[] = consumer.split(":");
-                        if (s.length == 2 && s[1].equals(appName)) {
-                            return s[0];
+                        int index = consumer.lastIndexOf(":");
+                        if (index != -1) {
+                            String temp = consumer.substring(index+1);
+                            if (temp.equals(appName)) {
+                                value = consumer.substring(0, index);
+                                break;
+                            }
                         }
                     }
                 }

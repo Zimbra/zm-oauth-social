@@ -156,6 +156,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         if (response.has("error")) {
             final String error = response.get("error").asText();
             final JsonNode errorMsg = response.get("error_description");
+            ZimbraLog.extensions.debug("Response from google: %s", response.asText());
             switch (error.toUpperCase()) {
             case GoogleConstants.RESPONSE_ERROR_INVALID_REDIRECT_URI:
                 ZimbraLog.extensions.info(
