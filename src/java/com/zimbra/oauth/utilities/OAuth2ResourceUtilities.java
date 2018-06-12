@@ -53,6 +53,7 @@ public class OAuth2ResourceUtilities {
      */
     public static final String authorize(String client, String relay) throws ServiceException {
         final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
+        ZimbraLog.extensions.debug("Client : %s, handler:%s, relay:%s ", client, oauth2Handler,relay);
         return oauth2Handler.authorize(relay);
     }
 

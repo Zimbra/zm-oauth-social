@@ -85,7 +85,7 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
                 OAuth2Constants.DEFAULT_SUCCESS_REDIRECT, errorParams));
             return;
         }
-
+        ZimbraLog.extensions.debug("Authorization URI:%s", location);
         // set response redirect location
         resp.sendRedirect(location);
     }
