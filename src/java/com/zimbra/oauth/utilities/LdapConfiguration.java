@@ -93,7 +93,7 @@ public class LdapConfiguration extends Configuration {
                     && registeredOAuth2RedirectUrls.length != 0) {
                     // {redirectURI}:{consumer-app-name} (the redirect uri can contain ":")
                     for (String consumer : registeredOAuth2RedirectUrls) {
-                        int index = consumer.lastIndexOf(":");
+                        int index = consumer.lastIndexOf(':');
                         if (index != -1) {
                             String temp = consumer.substring(index+1);
                             if (temp.equals(appName)) {
@@ -108,11 +108,14 @@ public class LdapConfiguration extends Configuration {
                     .getMultiAttr(Provisioning.A_zimbraOAuthConsumerAPIScope);
 
                 if (registeredOAuth2APIScope != null && registeredOAuth2APIScope.length != 0) {
-                    for (String consumer : registeredOAuth2APIScope) {
-                        String s[] = consumer.split(":");
-                        if (s.length == 2 && s[1].equals(appName)) {
-                            value = s[0];
-                            break;
+                    for (String scope : registeredOAuth2APIScope) {
+                        int index = scope.lastIndexOf(':');
+                        if (index != -1) {
+                            String temp = scope.substring(index+1);
+                            if (temp.equals(appName)) {
+                                value = scope.substring(0, index);
+                                break;
+                            }
                         }
                     }
                 }
