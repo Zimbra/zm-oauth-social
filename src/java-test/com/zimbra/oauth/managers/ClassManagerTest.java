@@ -39,7 +39,6 @@ import org.powermock.reflect.Whitebox;
 
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
-import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.LdapConfiguration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 
@@ -53,7 +52,7 @@ public class ClassManagerTest {
     /**
      * Mock config for testing.
      */
-    protected Configuration mockConfig;
+    protected LdapConfiguration mockConfig;
 
     /**
      * Handler cache map for testing.
