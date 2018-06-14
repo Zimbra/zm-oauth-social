@@ -378,6 +378,12 @@ public class GoogleContactsImport implements DataImport {
                         ZimbraLog.extensions.debug(
                             "Did not find 'connections' element in JSON response object. Response body: %s",
                             respContent);
+                        if (jsonResponse.has("error")) {
+                            throw ServiceException.FAILURE(
+                                String.format("Data source sync failed. Failed to fetch contacts"
+                                    + " from Google Contacts API. the error was:%s", jsonResponse.findValue("error")),
+                                    new Exception("operation failed")) ;
+                        }
                     }
                     // update the sync token if available
                     if (jsonResponse.has("nextSyncToken")) {
