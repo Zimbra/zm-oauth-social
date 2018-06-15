@@ -24,14 +24,15 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.zimbra.common.service.ServiceException;
 import com.zimbra.cs.account.DataSource;
 import com.zimbra.cs.mime.ParsedContact;
 import com.zimbra.oauth.handlers.impl.FacebookContactsImport.FacebookContactsUtil;
 import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookConstants;
 import com.zimbra.oauth.utilities.Configuration;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -116,35 +117,7 @@ public class FacebookContactsImportTest {
     // expect buildContactsUrl to be called
     expect(importer.buildContactsUrl(anyObject(), anyObject()))
         .andReturn(FacebookConstants.CONTACTS_URI_TEMPLATE);
-    final String jsonData = "{\n"
-        + "    \"data\": [\n"
-        + "        {\n"
-        + "            \"id\": \"114606492762739\",\n"
-        + "            \"name\": \"Ullrich Albfdjafgjfjh Valtchanovstein\"\n"
-        + "        },\n"
-        + "        {\n"
-        + "            \"id\": \"113255442901577\",\n"
-        + "            \"name\": \"Elizabeth Albfeacfecjgh Riceberg\"\n"
-        + "        },\n"
-        + "        {\n"
-        + "            \"id\": \"107932500100943\",\n"
-        + "            \"name\": \"Maria Albfebehjbbed Schrockman\"\n"
-        + "        },\n"
-        + "        {\n"
-        + "            \"id\": \"108947766668167\",\n"
-        + "            \"name\": \"Dave Albfehhcahafb Bushakstein\"\n"
-        + "        }\n"
-        + "    ],\n"
-        + "    \"paging\": {\n"
-        + "        \"cursors\": {\n"
-        + "            \"after\": \"dVI1WlhKVFJkQVdB\",\n"
-        + "            \"before\": \"YnFkVXkteXIyQldR\"\n"
-        + "        }\n"
-        + "    },\n"
-        + "    \"summary\": {\n"
-        + "        \"total_count\": 4\n"
-        + "    }\n"
-        + "}";
+    final String jsonData = "{\"data\": [{\"id\": \"114606492762739\",\"name\": \"Ullrich Albfdjafgjfjh Valtchanovstein\"},{\"id\": \"113255442901577\",\"name\": \"Elizabeth Albfeacfecjgh Riceberg\"},{\"id\": \"107932500100943\",\"name\": \"Maria Albfebehjbbed Schrockman\"},{\"id\": \"108947766668167\",\"name\": \"Dave Albfehhcahafb Bushakstein\"}],\"paging\": {\"cursors\": {\"after\": \"dVI1WlhKVFJkQVdB\",\"before\": \"YnFkVXkteXIyQldR\"}},\"summary\": {\"total_count\": 4}}";
     final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
     expect(importer.getContactsRequest(anyObject())).andReturn(jsonResponse);
     // expect parse new contacts to be called
@@ -176,23 +149,7 @@ public class FacebookContactsImportTest {
         .createPartialMockForAllMethodsExcept(FacebookContactsImport.class, "parseNewContacts");
     final Set<String> existingContacts = new HashSet<String>();
     existingContacts.add("111111111111");
-    final String jsonData = "{\n"
-        + "    \"data\": [\n"
-        + "        {\n"
-        + "            \"id\": \"108947766668167\",\n"
-        + "            \"name\": \"Dave Albfehhcahafb Bushakstein\"\n"
-        + "        }\n"
-        + "    ],\n"
-        + "    \"paging\": {\n"
-        + "        \"cursors\": {\n"
-        + "            \"after\": \"HoxdVI1WlhKVFJkQVdB\",\n"
-        + "            \"before\": \"akNtYnFkVXkteXIyQldR\"\n"
-        + "        }\n"
-        + "    },\n"
-        + "    \"summary\": {\n"
-        + "        \"total_count\": 1\n"
-        + "    }\n"
-        + "}";
+    final String jsonData = "{\"data\": [{\"id\": \"108947766668167\",\"name\": \"Dave Albfehhcahafb Bushakstein\"}],\"paging\": {\"cursors\": {\"after\": \"lhKVFJkQVdB\",\"before\": \"kNtYnFkVXkteXIyQldR\"}},\"summary\": {\"total_count\": 1}}";
     final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
     final JsonNode jsonContacts = jsonResponse.get("data");
     final String matcherName = "id";
@@ -216,23 +173,7 @@ public class FacebookContactsImportTest {
         .createPartialMockForAllMethodsExcept(FacebookContactsImport.class, "parseNewContacts");
     final Set<String> existingContacts = new HashSet<String>();
     existingContacts.add("108947766668167");
-    final String jsonData = "{\n" 
-        + "    \"data\": [\n"
-        + "        {\n"
-        + "            \"id\": \"108947766668167\",\n"
-        + "            \"name\": \"Dave Albfehhcahafb Bushakstein\"\n"
-        + "        }\n"
-        + "    ],\n"
-        + "    \"paging\": {\n"
-        + "        \"cursors\": {\n"
-        + "            \"after\": \"lhKVFJkQVdB\",\n"
-        + "            \"before\": \"kNtYnFkVXkteXIyQldR\"\n"
-        + "        }\n"
-        + "    },\n"
-        + "    \"summary\": {\n"
-        + "        \"total_count\": 1\n"
-        + "    }\n"
-        + "}";
+    final String jsonData = "{\"data\": [{\"id\": \"108947766668167\",\"name\": \"Dave Albfehhcahafb Bushakstein\"}],\"paging\": {\"cursors\": {\"after\": \"lhKVFJkQVdB\",\"before\": \"kNtYnFkVXkteXIyQldR\"}},\"summary\": {\"total_count\": 1}}";
     final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
     final JsonNode jsonContacts = jsonResponse.get("data");
     final String matcherName = "id";
@@ -243,5 +184,39 @@ public class FacebookContactsImportTest {
     assertEquals(0, createList.size());
   }
 
-  
+  /**
+   * Test method for {@link FacebookContactsImport#importData}<br>
+   * Validates that the method throws a ServiceException when the Facebook 
+   * friends api returns an error response.
+   *
+   * @throws Exception If there are issues testing
+   */
+  @Test
+  public void testImportDataErrorApiResponse() throws Exception {
+    expect(mockSource.getMailbox()).andReturn(null);
+    expect(mockSource.getFolderId()).andReturn(folderId);
+    // expect a fetch for existing contacts
+    expect(importer.getExistingContacts(anyObject(), eq(folderId), anyObject()))
+        .andReturn(new HashSet<String>());
+    // expect a fetch for refresh token
+    expect(importer.refresh()).andReturn(accessToken);
+    // expect buildContactsUrl to be called
+    expect(importer.buildContactsUrl(anyObject(), anyObject()))
+        .andReturn(FacebookConstants.CONTACTS_URI_TEMPLATE);
+    final String jsonData = "{\"error\": {\"message\": \"Error validating access token: Session has expired on Monday, 11-Jun-18 11:00:00 PDT. The current time is Thursday, 14-Jun-18 22:26:28 PDT.\",\"type\": \"OAuthException\",\"code\": 190,\"error_subcode\": 463,\"fbtrace_id\": \"Ey9c3rSW3cD\"}}";
+    final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
+    expect(importer.getContactsRequest(anyObject())).andReturn(jsonResponse);
+    PowerMock.expectLastCall();
+
+    replay(mockConfig);
+    replay(mockSource);
+    replay(importer);
+    try {
+      importer.importData(null, true);
+    } catch (final ServiceException e) {
+      assertEquals(ServiceException.FAILURE, e.getCode());
+      return;
+    }
+    fail("Expected exception to be thrown for api error response.");
+  }
 }

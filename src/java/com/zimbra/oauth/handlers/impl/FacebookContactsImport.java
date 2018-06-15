@@ -108,6 +108,12 @@ public class FacebookContactsImport implements DataImport {
         if (jsonResponse.has("data") && jsonResponse.get("data").isArray()) {
           final JsonNode jsonContacts = jsonResponse.get("data");
           parseNewContacts(existingContacts, jsonContacts, "id", createList);
+        } else if (jsonResponse.has("error") && jsonResponse.get("error").isContainerNode()) {
+          ZimbraLog.extensions.debug(
+              "Error found in JSON response object. Response body: %s",
+              respContent);
+          throw ServiceException.FAILURE("An error was found in the api response. "
+              + jsonResponse.get("error").asText(""), null);
         } else {
           ZimbraLog.extensions.debug(
               "Did not find 'data' element in JSON response object. Response body: %s",
@@ -280,7 +286,6 @@ public class FacebookContactsImport implements DataImport {
     
     String respContent = "";
     String nextPageUrl = null;
-    final List<ParsedContact> clist = new ArrayList<ParsedContact>();
     try {
       do {
         // build contacts url, query params with access token or use Facebook nextPageUrl if defined
@@ -292,14 +297,20 @@ public class FacebookContactsImport implements DataImport {
             "Attempting to sync Facebook contacts. URL: %s", url);
         final JsonNode jsonResponse = getContactsRequest(url);
         respContent = jsonResponse.toString();
+        if (jsonResponse.has("error") && jsonResponse.get("error").isContainerNode()) {
+          ZimbraLog.extensions.debug(
+              "Error found in JSON response object while fetching contacts. Response body: %s",
+              respContent);
+          throw ServiceException.FAILURE("An error was found in the api response. "
+              + jsonResponse.get("error").asText(""), null);
+        }
         // log this only at the most verbose level, because this contains
         // privileged information
         if (jsonResponse != null && jsonResponse.isContainerNode()) {
           if (jsonResponse.has("data")
               && jsonResponse.get("data").isContainerNode()) {
             final JsonNode contactsObject = jsonResponse.get("data");
-            parseNewContacts(existingContacts, contactsObject, "id", clist);
-
+            handleApiResponse(existingContacts, contactsObject);
             // check for next page
             if (jsonResponse.has("paging")
                 && jsonResponse.get("paging").has("next")) {
@@ -324,11 +335,26 @@ public class FacebookContactsImport implements DataImport {
         respContent), e);
     }
 
-    if (!clist.isEmpty()) {
-      final ItemId iidFolder = new ItemId(mDataSource.getMailbox(), folderId);
+  }
+
+  /**
+   * Handles contacts from the Facebook api excluding existing contacts in the datasource.
+   *
+   * @param existingContacts Existing contacts
+   * @param contactsObject JSON from Facebook api response
+   * @throws ServiceException If an error is encountered
+   */
+  protected void handleApiResponse(Set<String> existingContacts, JsonNode contactsObject)
+      throws ServiceException {
+
+    List<ParsedContact> contactList = new ArrayList<ParsedContact>();
+    parseNewContacts(existingContacts, contactsObject, "id", contactList);
+
+    if (!contactList.isEmpty()) {
+      final ItemId iidFolder = new ItemId(mDataSource.getMailbox(), mDataSource.getFolderId());
       ZimbraLog.extensions.trace("Creating contacts from parsed list.");
       CreateContact.createContacts(null, mDataSource.getMailbox(), iidFolder,
-            clist, null);
+          contactList, null);
     }
   }
 
