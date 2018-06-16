@@ -46,6 +46,9 @@ import com.zimbra.oauth.utilities.OAuth2Utilities;
 
 public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
 
+    /**
+     * Contains the constants used in this implementation.
+     */
     protected class FacebookConstants {
 
         /**
@@ -129,7 +132,9 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         /**
          * The authorize uri template for Facebook.
          */
-        protected static final String AUTHORIZE_URI_TEMPLATE = "https://www.facebook.com/v3.0/dialog/oauth?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s";
+        protected static final String AUTHORIZE_URI_TEMPLATE =
+            "https://www.facebook.com/v3.0/dialog/oauth"
+            + "?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s";
 
         /**
          * The user details uri, used to fetch the authorized OAuth user details from Facebook.
@@ -139,7 +144,8 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         /**
          * The uri used to make backend call to fetch an access token.
          */
-        public static final String AUTHENTICATE_URI = "https://graph.facebook.com/v3.0/oauth/access_token";
+        public static final String AUTHENTICATE_URI =
+            "https://graph.facebook.com/v3.0/oauth/access_token";
 
         /**
          * The scope required for Facebook.
@@ -184,38 +190,45 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
          * The refresh token code request uri template.<br>
          * Uses a code to request a fresh access token.
          */
-        public static final String REFRESH_TOKEN_CODE_REQUEST_URI_TEMPLATE = "https://graph.facebook.com/oauth/client_code?access_token=%s&client_id=%s&client_secret=%s&redirect_uri=%s";
+        public static final String REFRESH_TOKEN_CODE_REQUEST_URI_TEMPLATE =
+            "https://graph.facebook.com/oauth/client_code"
+            + "?access_token=%s&client_id=%s&client_secret=%s&redirect_uri=%s";
 
         /**
          * The access request uri template code, uses the existing, valid access token
          * to fetch a code.
          * This code will be used to request a fresh access token.
          */
-        public static final String REFRESH_ACCESS_TOKEN_FOR_CODE_REQUEST_URI_TEMPLATE = "https://graph.facebook.com/oauth/access_token?client_id=%s&redirect_uri=%s&code=%s";
+        public static final String REFRESH_ACCESS_TOKEN_FOR_CODE_REQUEST_URI_TEMPLATE =
+            "https://graph.facebook.com/oauth/access_token"
+            + "?client_id=%s&redirect_uri=%s&code=%s";
 
     }
 
     /**
-     * API Unknown.<br>
-     * Possibly a temporary issue due to downtime.<br>
-     * Wait and retry the operation.<br>
-     * If it occurs again, check you are requesting an existing API.
+     * Constructs an FacebookOAuth2Handler object.
+     *
+     * @param config For accessing configured properties
      */
+
     public FacebookOAuth2Handler(Configuration config) {
+
         super(config, FacebookConstants.CLIENT_NAME, FacebookConstants.HOST_FACEBOOK);
+        scope = StringUtils.join(
+            new String[] { FacebookConstants.REQUIRED_SCOPES, config.getString(String
+                    .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, FacebookConstants.CLIENT_NAME)) },
+            ",");
         authenticateUri = FacebookConstants.AUTHENTICATE_URI;
-        authorizeUriTemplate = FacebookConstants.AUTHORIZE_URI_TEMPLATE;
-        requiredScopes = FacebookConstants.REQUIRED_SCOPES;
-        scopeDelimiter = FacebookConstants.SCOPE_DELIMITER;
+        authorizeUri = buildAuthorizeUri(FacebookConstants.AUTHORIZE_URI_TEMPLATE);
         relayKey = FacebookConstants.RELAY_KEY;
         dataSource.addImportClass(View.contact.name(),
-            FacebookContactsImport.class.getCanonicalName());
+                FacebookContactsImport.class.getCanonicalName());
     }
 
     /**
-     * API User Too Many Calls.<br>
-     * Temporary issue due to throttling.<br>
-     * Wait and retry the operation, or examine your API request volume.
+     * Facebook authenticate handler.
+     *
+     * @see IOAuth2Handler#authenticate(OAuthInfo)
      */
     @Override
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
@@ -243,7 +256,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         // ensure the response contains the necessary credentials
         validateTokenResponse(credentials);
         // determine account associated with credentials
-        final String username = getPrimaryEmail(credentials, account);
+        final String username = getPrimaryEmail(credentials);
         ZimbraLog.extensions.trace("Authentication performed for:" + username);
 
         // get zimbra mailbox
@@ -339,8 +352,13 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     }
 
     /**
-     * Access token has expired.<br>
-     * Expired access token.
+     * Check code and return range which is listed in the FacebookConstants
+     * class.<br>
+     * See Facebook error code range for Permission denied errors<br>
+     * https://developers.facebook.com/docs/graph-api/using-graph-api/error-handling
+     *
+     * @param errorCode An error code from value
+     * @return The Range that matches the error type
      */
     protected String inErrorCodeRange(String errorCode) {
         if (!errorCode.isEmpty()) {
@@ -393,4 +411,3 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         throw ServiceException.UNSUPPORTED();
     }
 }
-
