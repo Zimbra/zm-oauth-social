@@ -369,21 +369,20 @@ public class GoogleContactsImport implements DataImport {
                     respContent = jsonResponse.toString();
                     // log only at most verbose level, this contains privileged info
                     ZimbraLog.extensions.trace("Contacts sync response from Google %s", respContent);
-                    // parse contacts if any, and update the createList
-                    if (jsonResponse.has("connections")
+                    // check for error
+                    if (jsonResponse.has("error")) {
+                        throw ServiceException.FAILURE(
+                            String.format("Data source sync failed. Failed to fetch contacts"
+                                + " from Google Contacts API. The error was:%s", jsonResponse.findValue("error")),
+                                new Exception("Contact import returned error.")) ;
+                    } else if (jsonResponse.has("connections")
                         && jsonResponse.get("connections").isArray()) {
                         final JsonNode jsonContacts = jsonResponse.get("connections");
                         parseNewContacts(existingContacts, jsonContacts, createList);
                     } else {
-                        ZimbraLog.extensions.debug(
-                            "Did not find 'connections' element in JSON response object. Response body: %s",
-                            respContent);
-                        if (jsonResponse.has("error")) {
-                            throw ServiceException.FAILURE(
-                                String.format("Data source sync failed. Failed to fetch contacts"
-                                    + " from Google Contacts API. the error was:%s", jsonResponse.findValue("error")),
-                                    new Exception("operation failed")) ;
-                        }
+                        throw ServiceException.FAILURE(
+                            String.format("Unexpected response received during google contact import. Response received:%s"
+                               , jsonResponse.findValue("error")), new Exception("Contact import failed.")) ;
                     }
                     // update the sync token if available
                     if (jsonResponse.has("nextSyncToken")) {
