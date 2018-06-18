@@ -42,12 +42,17 @@ import com.zimbra.client.ZMailbox;
 import com.zimbra.common.auth.ZAuthToken;
 import com.zimbra.common.httpclient.HttpClientUtil;
 import com.zimbra.common.service.ServiceException;
+import com.zimbra.common.util.StringUtil;
 import com.zimbra.common.util.ZimbraHttpConnectionManager;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.account.Account;
 import com.zimbra.cs.httpclient.HttpProxyUtil;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
+import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookConstants;
+import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler.GoogleConstants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.LdapConfiguration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
 import com.zimbra.oauth.utilities.OAuthDataSource;
@@ -63,29 +68,14 @@ import com.zimbra.oauth.utilities.OAuthDataSource;
 public abstract class OAuth2Handler {
 
     /**
-     * Implementation client id.
+     * Social app name
      */
-    protected final String clientId;
-
+    protected String client;
     /**
-     * Implementation client secret.
+     * User account
      */
-    protected final String clientSecret;
+    protected Account account;
 
-    /**
-     * Implementation redirect uri.
-     */
-    protected final String clientRedirectUri;
-
-    /**
-     * Implementation Basic header.
-     */
-    protected final String basicToken;
-
-    /**
-     * Implementation token scope.
-     */
-    protected String scope = "";
 
     /**
      * Implementation authorize uri.<br>
@@ -110,10 +100,6 @@ public abstract class OAuth2Handler {
      */
     protected final OAuthDataSource dataSource;
 
-    /**
-     * Configuration object.
-     */
-    protected final Configuration config;
 
     /**
      * A mapper object that can convert between Java <-> JSON objects.
@@ -130,23 +116,17 @@ public abstract class OAuth2Handler {
      *
      * @param config A configuration object
      */
-    public OAuth2Handler(Configuration config, String client, String clientHost) {
-        this.config = config;
-        clientId = config
-            .getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client));
-        clientSecret = config
-            .getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client));
-        clientRedirectUri = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client));
-        basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
+    public OAuth2Handler(Account account, String client, String clientHost) {
+        this.account = account;
+        this.client = client;
         dataSource = OAuthDataSource.createDataSource(client, clientHost);
-        final String zimbraHostname = config.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
+        final String zimbraHostname =  Configuration.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
         // warn if missing hostname
         if (StringUtils.isEmpty(zimbraHostname)) {
             ZimbraLog.extensions.warn("The zimbra server hostname is not configured.");
         }
         // cache the host uri
-        zimbraHostUri = String.format(config.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE,
+        zimbraHostUri = String.format(Configuration.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE,
             OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE), zimbraHostname);
     }
 
@@ -220,10 +200,40 @@ public abstract class OAuth2Handler {
      *
      * @param template The authorize uri template for this implementation
      * @return The authorize uri
+     * @throws ServiceException 
      */
-    protected String buildAuthorizeUri(String template) {
+    protected String buildAuthorizeUri(String template) throws ServiceException {
         final String responseType = "code";
         String encodedRedirectUri = "";
+        String clientId = LdapConfiguration.getString(client,String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), account);
+        String clientRedirectUri = LdapConfiguration.getString(client, String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), account);
+
+        String scope = null;
+        switch (client) {
+            case FacebookConstants.CLIENT_NAME : {
+                scope = StringUtils.join(
+                    new String[] { FacebookConstants.REQUIRED_SCOPES, LdapConfiguration.getString(client,String
+                        .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, client), account) },
+                    ",");
+                break;
+            }
+            case GoogleConstants.CLIENT_NAME : {
+                scope = StringUtils.join(
+                    new String[] { GoogleConstants.REQUIRED_SCOPES, LdapConfiguration.getString(client,String
+                        .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, client), account) },
+                    "+");
+                break;
+            }
+            default : {
+                break;
+            }
+        }
+
+        if (StringUtil.isNullOrEmpty(clientId) || StringUtil.isNullOrEmpty(clientRedirectUri)) {
+            throw ServiceException.NOT_FOUND(String.format("The app: %s is not properly configured, please set Oauth credentials and redurect uri", client), 
+                new Exception("Invalid config"));
+        }
+
         try {
             encodedRedirectUri = URLEncoder.encode(clientRedirectUri, OAuth2Constants.ENCODING);
         } catch (final UnsupportedEncodingException e) {
@@ -261,6 +271,11 @@ public abstract class OAuth2Handler {
      * @see IOAuth2Handler#authenticate(OAuthInfo)
      */
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
+        String clientId = LdapConfiguration.getString(client,String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), account);
+        String clientSecret = LdapConfiguration.getString(client, String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), account);
+        String clientRedirectUri = LdapConfiguration.getString(client, String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), account);
+        String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
+
         // set client specific properties
         oauthInfo.setClientId(clientId);
         oauthInfo.setClientSecret(clientSecret);

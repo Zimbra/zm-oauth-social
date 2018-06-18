@@ -79,7 +79,7 @@ public class Configuration {
      * @param key A key to lookup
      * @return A value for a given key
      */
-    public String getString(String key) {
+    public static String getString(String key) {
         return getString(key, null);
     }
 
@@ -90,7 +90,7 @@ public class Configuration {
      * @param defaultValue A default value to use if value for key is empty
      * @return A value for the given key or the default value
      */
-    public String getString(String key, String defaultValue) {
+    public static String getString(String key, String defaultValue) {
         return StringUtils.defaultIfEmpty(LC.get(key), defaultValue);
     }
 
@@ -102,7 +102,7 @@ public class Configuration {
      * @param defaultValue A default value to use if value for key is empty
      * @return A value for the given key or the default value
      */
-    public Integer getInt(String key, Integer defaultValue) {
+    public static Integer getInt(String key, Integer defaultValue) {
         final String stringValue = LC.get(key);
         Integer value = defaultValue;
         if (stringValue != null) {

@@ -17,15 +17,12 @@
 package com.zimbra.oauth.managers;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
+import com.zimbra.common.localconfig.LC;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
-import com.zimbra.oauth.utilities.Configuration;
-import com.zimbra.oauth.utilities.LdapConfiguration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 
 /**
@@ -38,11 +35,7 @@ import com.zimbra.oauth.utilities.OAuth2Constants;
  */
 public class ClassManager {
 
-    /**
-     * Cache of handler instances by client name.
-     */
-    protected static final Map<String, IOAuth2Handler> handlersCache = Collections
-        .synchronizedMap(new HashMap<String, IOAuth2Handler>());
+  
 
     /**
      * Loads an IOAuth2Handler for a given client.<br>
@@ -52,52 +45,27 @@ public class ClassManager {
      * @return An IOAuthHandler instance
      * @throws ServiceException If there are issues
      */
-    public static IOAuth2Handler getHandler(String client)
+    public static IOAuth2Handler getHandler(String client, Account account)
         throws ServiceException {
-        // check the cache for a matching handler
-        IOAuth2Handler handler = handlersCache.get(client);
+        IOAuth2Handler handler = null;
 
-        // if no cached handler, try to build then cache one
-        if (handler == null) {
-            // synchronize and re-fetch from cache to prevent duplicates
-            synchronized (handlersCache) {
-                handler = handlersCache.get(client);
-                if (handler == null) {
-                    try {
-                        // load a config file
-                        final Configuration config = LdapConfiguration.buildConfiguration(client);
-
-                        // load the handler class
-                        final Class<?> daoClass = Class.forName(
-                            config.getString(OAuth2Constants.LC_HANDLER_CLASS_PREFIX + client));
-                        handler = (IOAuth2Handler) daoClass.getConstructor(Configuration.class)
-                            .newInstance(config);
-
-                        // cache the new handler
-                        handlersCache.put(client, handler);
-                    } catch (final ServiceException e) {
-                        ZimbraLog.extensions.debug(
-                            "There was an issue loading the configuration for the client.", e);
-                        throw e;
-                    } catch (final ClassNotFoundException e) {
-                        ZimbraLog.extensions
-                            .warnQuietly("The specified client is not supported: " + client, e);
-                        throw ServiceException.UNSUPPORTED();
-                    } catch (InstantiationException | IllegalAccessException
-                        | IllegalArgumentException | InvocationTargetException
-                        | NoSuchMethodException | SecurityException e) {
-                        ZimbraLog.extensions.errorQuietly(
-                            "There was an issue instantiating the oauth2 handler class for client: "
-                                + client,
-                            e);
-                        throw ServiceException.FAILURE(
-                            "There was an issue instantiating the oauth2 handler class for client: "
-                                + client,
-                            e);
-                    }
-                }
-            }
+        try {
+            final Class<?> daoClass = Class.forName(LC.get(OAuth2Constants.LC_HANDLER_CLASS_PREFIX + client));
+            handler = (IOAuth2Handler) daoClass.getConstructor(Account.class)
+                .newInstance(account);
+        }  catch (final ClassNotFoundException e) {
+            ZimbraLog.extensions.warnQuietly("The specified client is not supported: " + client, e);
+            throw ServiceException.UNSUPPORTED();
+        } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+            | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+            ZimbraLog.extensions.errorQuietly(
+                "There was an issue instantiating the oauth2 handler class for client: " + client,
+                e);
+            throw ServiceException.FAILURE(
+                "There was an issue instantiating the oauth2 handler class for client: " + client,
+                e);
         }
+
         return handler;
     }
 }

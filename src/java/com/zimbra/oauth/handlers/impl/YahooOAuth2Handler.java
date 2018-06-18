@@ -25,8 +25,8 @@ import com.zimbra.client.ZDataSource;
 import com.zimbra.client.ZFolder.View;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
-import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 
 /**
@@ -129,9 +129,10 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
      * Constructs a YahooOAuth2Handler object.
      *
      * @param config For accessing configured properties
+     * @throws ServiceException 
      */
-    public YahooOAuth2Handler(Configuration config) {
-        super(config, YahooConstants.CLIENT_NAME, ZDataSource.SOURCE_HOST_YAHOO);
+    public YahooOAuth2Handler(Account acct) throws ServiceException {
+        super(acct, YahooConstants.CLIENT_NAME, ZDataSource.SOURCE_HOST_YAHOO);
         authenticateUri = YahooConstants.AUTHENTICATE_URI;
         authorizeUri = buildAuthorizeUri(YahooConstants.AUTHORIZE_URI_TEMPLATE);
         relayKey = YahooConstants.RELAY_KEY;

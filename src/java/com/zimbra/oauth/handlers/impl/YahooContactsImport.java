@@ -84,7 +84,6 @@ import com.zimbra.cs.service.mail.CreateContact;
 import com.zimbra.cs.service.util.ItemId;
 import com.zimbra.oauth.handlers.impl.YahooOAuth2Handler.YahooConstants;
 import com.zimbra.oauth.models.OAuthInfo;
-import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.LdapConfiguration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
@@ -107,23 +106,12 @@ public class YahooContactsImport implements DataImport {
     private final DataSource mDataSource;
 
     /**
-     * Configuration wrapper.
-     */
-    private Configuration config;
-
-    /**
      * Constructor.
      *
      * @param datasource The datasource to set
      */
     public YahooContactsImport(DataSource datasource) {
         mDataSource = datasource;
-        try {
-           config = LdapConfiguration.buildConfiguration(YahooConstants.CLIENT_NAME);
-        } catch (ServiceException e) {
-            ZimbraLog.extensions.info("Error loading configuration for yahoo: %s", e.getMessage());
-            ZimbraLog.extensions.debug(e);
-        }
     }
 
     @Override
@@ -174,11 +162,11 @@ public class YahooContactsImport implements DataImport {
     protected Pair<String, String> refresh() throws ServiceException {
         final OAuthInfo oauthInfo = new OAuthInfo(new HashMap<String, String>());
         final String refreshToken = OAuthDataSource.getRefreshToken(mDataSource);
-        final String clientId = config.getString(
+        final String clientId = LdapConfiguration.getString(YahooConstants.CLIENT_NAME,
             String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, YahooConstants.CLIENT_NAME));
-        final String clientSecret = config.getString(String
+        final String clientSecret = LdapConfiguration.getString(YahooConstants.CLIENT_NAME, String
             .format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, YahooConstants.CLIENT_NAME));
-        final String clientRedirectUri = config.getString(String.format(
+        final String clientRedirectUri = LdapConfiguration.getString(YahooConstants.CLIENT_NAME, String.format(
             OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, YahooConstants.CLIENT_NAME));
 
         // set client specific properties
@@ -236,7 +224,7 @@ public class YahooContactsImport implements DataImport {
             // log this only at the most verbose level, because this contains
             // privileged information
             ZimbraLog.extensions.trace(
-                "Attempting to sync Yahoo contacts. URL: %s. authorizationHeader: %", url,
+                "Attempting to sync Yahoo contacts. URL: %s. authorizationHeader: %s", url,
                 authorizationHeader);
             final JsonNode jsonResponse = getContactsRequest(url, authorizationHeader);
             respContent = jsonResponse.toString();

@@ -16,15 +16,12 @@
  */
 package com.zimbra.oauth.handlers.impl;
 
-import org.apache.commons.lang.StringUtils;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZFolder.View;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
-import com.zimbra.oauth.utilities.Configuration;
-import com.zimbra.oauth.utilities.OAuth2Constants;
 
 /**
  * The GoogleOAuth2Handler class.<br>
@@ -121,13 +118,10 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
      * Constructs a GoogleOAuth2Handler object.
      *
      * @param config For accessing configured properties
+     * @throws ServiceException
      */
-    public GoogleOAuth2Handler(Configuration config) {
-        super(config, GoogleConstants.CLIENT_NAME, GoogleConstants.HOST_GOOGLE);
-        scope = StringUtils.join(
-            new String[] { GoogleConstants.REQUIRED_SCOPES, config.getString(String
-                .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, GoogleConstants.CLIENT_NAME)) },
-            "+");
+    public GoogleOAuth2Handler(Account acct) throws ServiceException {
+        super(acct, GoogleConstants.CLIENT_NAME, GoogleConstants.HOST_GOOGLE);
         authenticateUri = GoogleConstants.AUTHENTICATE_URI;
         authorizeUri = buildAuthorizeUri(GoogleConstants.AUTHORIZE_URI_TEMPLATE);
         relayKey = GoogleConstants.RELAY_KEY;
@@ -135,6 +129,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
             GoogleContactsImport.class.getCanonicalName());
 
     }
+
 
     /**
      * Validates that the token response has no errors, and contains the
