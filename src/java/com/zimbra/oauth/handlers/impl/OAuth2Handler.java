@@ -42,6 +42,7 @@ import com.zimbra.client.ZMailbox;
 import com.zimbra.common.auth.ZAuthToken;
 import com.zimbra.common.httpclient.HttpClientUtil;
 import com.zimbra.common.service.ServiceException;
+import com.zimbra.common.util.StringUtil;
 import com.zimbra.common.util.ZimbraHttpConnectionManager;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
@@ -94,6 +95,11 @@ public abstract class OAuth2Handler {
     protected String relayKey;
 
     /**
+     * Implementation type key.
+     */
+    protected String typeKey;
+
+    /**
      * DataSource handler for the implementation.
      */
     protected final OAuthDataSource dataSource;
@@ -123,6 +129,7 @@ public abstract class OAuth2Handler {
     public OAuth2Handler(Configuration config, String client, String clientHost) {
         this.client = client;
         this.config = config;
+        typeKey = OAuth2Constants.TYPE_KEY;
         dataSource = OAuthDataSource.createDataSource(client, clientHost);
         final String zimbraHostname = config.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
         // warn if missing hostname
@@ -244,7 +251,10 @@ public abstract class OAuth2Handler {
     /**
      * @see IOAuth2Handler#authorize(String, Account)
      */
-    public String authorize(String relayState, Account account) throws ServiceException {
+    public String authorize(Map<String, String> params, Account account) throws ServiceException {
+        String relayState = params.get(relayKey);
+        String typeValue = "";
+        String type = StringUtils.defaultString(params.get(typeKey), "");
         String relayValue = "";
         String relay = StringUtils.defaultString(relayState, "");
 
@@ -263,7 +273,18 @@ public abstract class OAuth2Handler {
             }
         }
 
-        return buildAuthorizeUri(authorizeUriTemplate, account) + relayValue;
+        if (!type.isEmpty()) {
+            try {
+                if (relayValue.isEmpty()) {
+                    relayValue = "&" + relayKey + "=";
+                }
+                relayValue += ";" + URLEncoder.encode(type, OAuth2Constants.ENCODING);
+            } catch (final UnsupportedEncodingException e) {
+                throw ServiceException.INVALID_REQUEST("Unable to decode type parameter.", e);
+            }
+        }
+
+        return buildAuthorizeUri(authorizeUriTemplate, account) + relayValue + typeValue;
     }
 
     /**
@@ -304,6 +325,9 @@ public abstract class OAuth2Handler {
         oauthInfo.setUsername(username);
         oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
         dataSource.syncDatasource(mailbox, oauthInfo);
+        // add new datasource for calendar using oauth2calendar, if you want to use same
+        // oauthinfo for calendar datasource. see example below 
+        // e.g. dataSource.syncDatasource(mailbox, oauthInfo, DataSourceType.oauth2calendar);
         return true;
     }
 
@@ -344,6 +368,19 @@ public abstract class OAuth2Handler {
     }
 
     /**
+     * Declares the query params to look for on oauth2 authorize
+     * callback.<br>
+     * This method should be overridden if the implementing client uses
+     * different parameters.
+     *
+     * @see IOAuth2Handler#getAuthenticateParamKeys()
+     */
+    public List<String> getAuthorizeParamKeys() {
+        // code, error, state are default oauth2 keys
+        return Arrays.asList(relayKey, typeKey);
+    }
+
+    /**
      * Default param verifier. Ensures no `error`, and that `code` is passed
      * in.<br>
      * This method should be overridden if the implementing client expects
@@ -359,6 +396,44 @@ public abstract class OAuth2Handler {
             // ensure code exists
         } else if (!params.containsKey("code")) {
             throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_INVALID_AUTH_CODE, null);
+        }
+        if (params.containsKey(relayKey)) {
+            String[] origVal = params.get(relayKey).split(";");
+            if (origVal.length != 2) {
+                throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_TYPE_MISSING, null);
+            }
+            if (origVal[0].isEmpty()) {
+                params.remove(relayKey);
+            } else {
+                params.put(relayKey, origVal[0]);
+            }
+            if (origVal[1].isEmpty()) {
+                throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_TYPE_MISSING, null);
+            } else {
+                ZimbraLog.extensions.debug("Adding %s = %s", typeKey, origVal[1]);
+                params.put(typeKey, origVal[1]);
+            }
+        } else {
+            throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_TYPE_MISSING, null);
+        }
+    }
+
+    /**
+     * Default param verifier for authorize.
+     * This method should be overridden if the implementing client expects
+     * different parameters.
+     *
+     * @see IOAuth2Handler#verifyAuthorizeParams(Map)
+     */
+    public void verifyAuthorizeParams(Map<String, String> params) throws ServiceException {
+        String relay = params.get(relayKey);
+        if (!StringUtil.isNullOrEmpty(relay)) {
+            ZimbraLog.extensions.debug("Relay not passed in authorize request");
+        }
+        String type = params.get(typeKey);
+        if (StringUtil.isNullOrEmpty(type)) {
+            ZimbraLog.extensions.debug("\"type\" not received in authorize request, setting default type to \"contact\"");
+            params.put(typeKey, "contact");
         }
     }
 

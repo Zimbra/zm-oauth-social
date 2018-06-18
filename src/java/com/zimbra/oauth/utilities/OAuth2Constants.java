@@ -57,6 +57,7 @@ public class OAuth2Constants {
     public static final String ERROR_INVALID_ZM_AUTH_CODE_MSG = "Invalid or missing Zimbra session.";
     public static final String ERROR_AUTHENTICATION_ERROR = "authentication_error";
     public static final String ERROR_UNHANDLED_ERROR = "unhandled_error";
+    public static final String ERROR_TYPE_MISSING = "missing_type";
 
     // LC properties related
     public static final String LC_ZIMBRA_SERVER_HOSTNAME = "zimbra_server_hostname";
@@ -76,5 +77,5 @@ public class OAuth2Constants {
     public static final String OAUTH_CLIENT_REDIRECT_URI = "client_redirect_uri";
     public static final String OAUTH_SCOPE = "scope";
 
-
+    public static final String TYPE_KEY = "type";
 }

@@ -77,12 +77,17 @@ public class OAuth2ResourceUtilitiesTest {
         final String location = "result-location";
 
         expect(ClassManager.getHandler(matches(client))).andReturn(mockHandler);
-        expect(mockHandler.authorize(matches(relay), anyObject(Account.class))).andReturn(location);
+        Map<String, String> params = new HashMap<String, String>();
+        params.put("relay", matches(relay));
+        expect(mockHandler.authorize(params, anyObject(Account.class))).andReturn(location);
 
         PowerMock.replay(ClassManager.class);
         replay(mockHandler);
 
-        OAuth2ResourceUtilities.authorize(client, relay, null);
+        Map<String, String[]> params2 = new HashMap<String, String[]>();
+        String[] arr = { matches(relay) };
+        params2.put("relay", arr);
+        OAuth2ResourceUtilities.authorize(client, params2, null);
 
         PowerMock.verify(ClassManager.class);
         verify(mockHandler);

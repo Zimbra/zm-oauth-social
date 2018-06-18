@@ -82,7 +82,7 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
         try {
             switch (pathParams.get("action")) {
             case "authorize":
-                location = OAuth2ResourceUtilities.authorize(client, req.getParameter("relay"), account);
+                location = OAuth2ResourceUtilities.authorize(client, req.getParameterMap(), account);
                 break;
             case "authenticate":
                 location = OAuth2ResourceUtilities.authenticate(client, req.getParameterMap(),

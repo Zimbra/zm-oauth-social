@@ -36,14 +36,14 @@ public interface IOAuth2Handler {
     /**
      * Returns authorize endpoint for the client.
      *
-     * @param relayState The location to direct the user after authenticating
+     * @param params request params filtered with param keys
      * @param account The account to acquire configuration by access level
      * @return The authorize endpoint
      * @acct The user account
      * @throws ServiceException If there are issues determining the
      *             endpoint
      */
-    public String authorize(String relayState, Account acct) throws ServiceException;
+    public String authorize(Map<String, String> params, Account acct) throws ServiceException;
 
     /**
      * Authenticates a user with the endpoint and stores credentials.
@@ -62,12 +62,27 @@ public interface IOAuth2Handler {
     public List<String> getAuthenticateParamKeys();
 
     /**
+     * Returns a list of keys to expect during authenticate callback.
+     *
+     * @return List of query param keys
+     */
+    public List<String> getAuthorizeParamKeys();
+
+    /**
      * Throws an exception if there are invalid params passed in.
      *
      * @param params The authenticate request params
      * @throws ServiceException If any params are invalid
      */
     public void verifyAuthenticateParams(Map<String, String> params) throws ServiceException;
+
+    /**
+     * Throws an exception if there are invalid params passed in.
+     *
+     * @param params The authorize request params
+     * @throws ServiceException If any params are invalid
+     */
+    public void verifyAuthorizeParams(Map<String, String> params) throws ServiceException;
 
     /**
      * Returns the appropriate relay for this client.

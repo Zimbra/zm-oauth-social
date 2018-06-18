@@ -48,16 +48,20 @@ public class OAuth2ResourceUtilities {
      * Handles client manager acquisition for authorize call.
      *
      * @param client The client
-     * @param relay The relay state
+     * @param params Request params
      * @param account The user requesting
      * @return Location to redirect to
      * @acct the user account for which datasource is being setup
      * @throws ServiceException If there are issues
      */
-    public static final String authorize(String client, String relay, Account account) throws ServiceException {
+    public static final String authorize(String client, Map<String, String[]> params, Account account)
+            throws ServiceException {
         final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
-        ZimbraLog.extensions.debug("Client : %s, handler:%s, relay:%s ", client, oauth2Handler,relay);
-        return oauth2Handler.authorize(relay, account);
+        ZimbraLog.extensions.debug("Client : %s, handler:%s, relay:%s, type:%s ", client, oauth2Handler,
+                params.get("relay"), params.get(OAuth2Constants.TYPE_KEY));
+        Map<String, String> paramsForAuthorize = getParams(oauth2Handler.getAuthorizeParamKeys(), params);
+        oauth2Handler.verifyAuthorizeParams(paramsForAuthorize);
+        return oauth2Handler.authorize(paramsForAuthorize, account);
     }
 
     /**
