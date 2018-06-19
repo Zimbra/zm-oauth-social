@@ -76,6 +76,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.Pair;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.DataSource;
 import com.zimbra.cs.account.DataSource.DataImport;
 import com.zimbra.cs.account.Provisioning;
@@ -84,6 +85,7 @@ import com.zimbra.cs.service.mail.CreateContact;
 import com.zimbra.cs.service.util.ItemId;
 import com.zimbra.oauth.handlers.impl.YahooOAuth2Handler.YahooConstants;
 import com.zimbra.oauth.models.OAuthInfo;
+import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.LdapConfiguration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
@@ -104,6 +106,11 @@ public class YahooContactsImport implements DataImport {
      * The datasource under import.
      */
     private final DataSource mDataSource;
+    
+    /**
+     * Configuration wrapper.
+     */
+    private Configuration config;
 
     /**
      * Constructor.
@@ -112,6 +119,12 @@ public class YahooContactsImport implements DataImport {
      */
     public YahooContactsImport(DataSource datasource) {
         mDataSource = datasource;
+        try {
+            this.config = LdapConfiguration.buildConfiguration(YahooConstants.CLIENT_NAME);
+        } catch (ServiceException e) {
+            ZimbraLog.extensions.info("Error loading configuration for yahoo: %s", e.getMessage());
+            ZimbraLog.extensions.debug(e);
+        }
     }
 
     @Override
@@ -160,14 +173,15 @@ public class YahooContactsImport implements DataImport {
      * @throws ServiceException If there are issues
      */
     protected Pair<String, String> refresh() throws ServiceException {
+        Account acct = this.mDataSource.getAccount();
         final OAuthInfo oauthInfo = new OAuthInfo(new HashMap<String, String>());
         final String refreshToken = OAuthDataSource.getRefreshToken(mDataSource);
-        final String clientId = LdapConfiguration.getString(YahooConstants.CLIENT_NAME,
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, YahooConstants.CLIENT_NAME));
-        final String clientSecret = LdapConfiguration.getString(YahooConstants.CLIENT_NAME, String
-            .format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, YahooConstants.CLIENT_NAME));
-        final String clientRedirectUri = LdapConfiguration.getString(YahooConstants.CLIENT_NAME, String.format(
-            OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, YahooConstants.CLIENT_NAME));
+        final String clientId = config.getString(
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, YahooConstants.CLIENT_NAME), YahooConstants.CLIENT_NAME, acct);
+        final String clientSecret = config.getString(String
+            .format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, YahooConstants.CLIENT_NAME), YahooConstants.CLIENT_NAME, acct);
+        final String clientRedirectUri = config.getString(String.format(
+            OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, YahooConstants.CLIENT_NAME), YahooConstants.CLIENT_NAME, acct);
 
         // set client specific properties
         oauthInfo.setRefreshToken(refreshToken);

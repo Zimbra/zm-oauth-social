@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.zimbra.common.service.ServiceException;
+import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.models.OAuthInfo;
 
 /**
@@ -40,7 +41,7 @@ public interface IOAuth2Handler {
      * @throws ServiceException If there are issues determining the
      *             endpoint
      */
-    public String authorize(String relayState) throws ServiceException;
+    public String authorize(String relayState, Account acct) throws ServiceException;
 
     /**
      * Authenticates a user with the endpoint and stores credentials in

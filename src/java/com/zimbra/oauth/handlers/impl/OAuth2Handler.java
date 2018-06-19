@@ -50,6 +50,8 @@ import com.zimbra.cs.httpclient.HttpProxyUtil;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookConstants;
 import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler.GoogleConstants;
+import com.zimbra.oauth.handlers.impl.OutlookOAuth2Handler.OutlookConstants;
+import com.zimbra.oauth.handlers.impl.YahooOAuth2Handler.YahooConstants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.LdapConfiguration;
@@ -71,19 +73,6 @@ public abstract class OAuth2Handler {
      * Social app name
      */
     protected String client;
-    /**
-     * User account
-     */
-    protected Account account;
-
-
-    /**
-     * Implementation authorize uri.<br>
-     * Expected template format pattern key order:
-     * {client_id}{redirect_uri}{response_type}{scope}<br>
-     * Relay is appended to the end by default.
-     */
-    protected String authorizeUri;
 
     /**
      * Implementation authenticate uri.
@@ -100,6 +89,10 @@ public abstract class OAuth2Handler {
      */
     protected final OAuthDataSource dataSource;
 
+    /**
+     * Configuration object.
+     */
+    protected final Configuration config;
 
     /**
      * A mapper object that can convert between Java <-> JSON objects.
@@ -116,17 +109,17 @@ public abstract class OAuth2Handler {
      *
      * @param config A configuration object
      */
-    public OAuth2Handler(Account account, String client, String clientHost) {
-        this.account = account;
+    public OAuth2Handler(Configuration config, String client, String clientHost) {
         this.client = client;
+        this.config = config;
         dataSource = OAuthDataSource.createDataSource(client, clientHost);
-        final String zimbraHostname =  Configuration.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
+        final String zimbraHostname =  this.config.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
         // warn if missing hostname
         if (StringUtils.isEmpty(zimbraHostname)) {
             ZimbraLog.extensions.warn("The zimbra server hostname is not configured.");
         }
         // cache the host uri
-        zimbraHostUri = String.format(Configuration.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE,
+        zimbraHostUri = String.format(this.config.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE,
             OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE), zimbraHostname);
     }
 
@@ -202,25 +195,25 @@ public abstract class OAuth2Handler {
      * @return The authorize uri
      * @throws ServiceException 
      */
-    protected String buildAuthorizeUri(String template) throws ServiceException {
+    protected String buildAuthorizeUri(String template, Account account) throws ServiceException {
         final String responseType = "code";
         String encodedRedirectUri = "";
-        String clientId = LdapConfiguration.getString(client,String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), account);
-        String clientRedirectUri = LdapConfiguration.getString(client, String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), account);
+        String clientId = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
+        String clientRedirectUri = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client, account);
 
         String scope = null;
         switch (client) {
             case FacebookConstants.CLIENT_NAME : {
                 scope = StringUtils.join(
-                    new String[] { FacebookConstants.REQUIRED_SCOPES, LdapConfiguration.getString(client,String
-                        .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, client), account) },
+                    new String[] { FacebookConstants.REQUIRED_SCOPES, this.config.getString(String
+                        .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, client), client, account) },
                     ",");
                 break;
             }
             case GoogleConstants.CLIENT_NAME : {
                 scope = StringUtils.join(
-                    new String[] { GoogleConstants.REQUIRED_SCOPES, LdapConfiguration.getString(client,String
-                        .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, client), account) },
+                    new String[] { GoogleConstants.REQUIRED_SCOPES, this.config.getString(String
+                        .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, client), client, account) },
                     "+");
                 break;
             }
@@ -246,7 +239,7 @@ public abstract class OAuth2Handler {
     /**
      * @see IOAuth2Handler#authorize(String)
      */
-    public String authorize(String relayState) throws ServiceException {
+    public String authorize(String relayState, Account acct) throws ServiceException {
         String relayValue = "";
         String relay = StringUtils.defaultString(relayState, "");
 
@@ -264,6 +257,30 @@ public abstract class OAuth2Handler {
                 throw ServiceException.INVALID_REQUEST("Unable to encode relay parameter.", e);
             }
         }
+
+        String authorizeUri = null;
+        switch (client) {
+
+            case GoogleConstants.CLIENT_NAME:{
+               authorizeUri =  buildAuthorizeUri(GoogleConstants.AUTHORIZE_URI_TEMPLATE, acct);
+               break;
+            }
+            case YahooConstants.CLIENT_NAME:{
+                authorizeUri =  buildAuthorizeUri(YahooConstants.AUTHORIZE_URI_TEMPLATE, acct);
+                break;
+            }
+            case FacebookConstants.CLIENT_NAME:{
+                authorizeUri =  buildAuthorizeUri(FacebookConstants.AUTHORIZE_URI_TEMPLATE, acct);
+                break;
+            }
+            case OutlookConstants.CLIENT_NAME:{
+                authorizeUri =  buildAuthorizeUri(OutlookConstants.AUTHORIZE_URI_TEMPLATE, acct);
+                break;
+            }
+            default : {
+                break;
+            }
+        }
         return authorizeUri + relayValue;
     }
 
@@ -271,9 +288,11 @@ public abstract class OAuth2Handler {
      * @see IOAuth2Handler#authenticate(OAuthInfo)
      */
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
-        String clientId = LdapConfiguration.getString(client,String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), account);
-        String clientSecret = LdapConfiguration.getString(client, String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), account);
-        String clientRedirectUri = LdapConfiguration.getString(client, String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), account);
+        
+        Account account = oauthInfo.getAccount();
+        String clientId = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
+        String clientSecret = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client, account);
+        String clientRedirectUri = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client, account);
         String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
 
         // set client specific properties

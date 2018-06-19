@@ -20,8 +20,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZFolder.View;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
-import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
+import com.zimbra.oauth.utilities.Configuration;
 
 /**
  * The GoogleOAuth2Handler class.<br>
@@ -120,10 +120,9 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
      * @param config For accessing configured properties
      * @throws ServiceException
      */
-    public GoogleOAuth2Handler(Account acct) throws ServiceException {
-        super(acct, GoogleConstants.CLIENT_NAME, GoogleConstants.HOST_GOOGLE);
+    public GoogleOAuth2Handler(Configuration config) throws ServiceException {
+        super(config, GoogleConstants.CLIENT_NAME, GoogleConstants.HOST_GOOGLE);
         authenticateUri = GoogleConstants.AUTHENTICATE_URI;
-        authorizeUri = buildAuthorizeUri(GoogleConstants.AUTHORIZE_URI_TEMPLATE);
         relayKey = GoogleConstants.RELAY_KEY;
         dataSource.addImportClass(View.contact.name(),
             GoogleContactsImport.class.getCanonicalName());

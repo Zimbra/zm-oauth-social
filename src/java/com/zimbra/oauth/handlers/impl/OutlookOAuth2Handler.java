@@ -19,8 +19,8 @@ package com.zimbra.oauth.handlers.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
-import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
+import com.zimbra.oauth.utilities.Configuration;
 
 /**
  * The OutlookOAuth2Handler class.<br>
@@ -124,10 +124,9 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
      * @param config For accessing configured properties
      * @throws ServiceException 
      */
-    public OutlookOAuth2Handler(Account acct) throws ServiceException {
-        super(acct, OutlookConstants.CLIENT_NAME, OutlookConstants.HOST_OUTLOOK);
+    public OutlookOAuth2Handler(Configuration config) throws ServiceException {
+        super(config, OutlookConstants.CLIENT_NAME, OutlookConstants.HOST_OUTLOOK);
         authenticateUri = OutlookConstants.AUTHENTICATE_URI;
-        authorizeUri = buildAuthorizeUri(OutlookConstants.AUTHORIZE_URI_TEMPLATE);
         relayKey = OutlookConstants.RELAY_KEY;
     }
 

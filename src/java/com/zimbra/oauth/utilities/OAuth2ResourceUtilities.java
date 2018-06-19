@@ -53,9 +53,9 @@ public class OAuth2ResourceUtilities {
      * @throws ServiceException If there are issues
      */
     public static final String authorize(String client, String relay, Account acct) throws ServiceException {
-        final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client, acct);
+        final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
         ZimbraLog.extensions.debug("Client : %s, handler:%s, relay:%s ", client, oauth2Handler,relay);
-        return oauth2Handler.authorize(relay);
+        return oauth2Handler.authorize(relay, acct);
     }
 
     /**
@@ -70,7 +70,8 @@ public class OAuth2ResourceUtilities {
      */
     public static String authenticate(String client, Map<String, String[]> queryParams,
         Account account, String zmAuthToken) throws ServiceException {
-        final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client, account);
+        final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
+        
         final Map<String, String> errorParams = new HashMap<String, String>();
         final Map<String, String> params = getParams(oauth2Handler.getAuthenticateParamKeys(),
             queryParams);

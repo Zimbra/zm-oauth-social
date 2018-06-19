@@ -25,6 +25,7 @@ import org.apache.commons.lang.StringUtils;
 import com.zimbra.common.localconfig.LC;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.account.Account;
 
 /**
  * The Configuration class for this project.
@@ -79,7 +80,7 @@ public class Configuration {
      * @param key A key to lookup
      * @return A value for a given key
      */
-    public static String getString(String key) {
+    public String getString(String key) {
         return getString(key, null);
     }
 
@@ -90,8 +91,19 @@ public class Configuration {
      * @param defaultValue A default value to use if value for key is empty
      * @return A value for the given key or the default value
      */
-    public static String getString(String key, String defaultValue) {
+    public String getString(String key, String defaultValue) {
         return StringUtils.defaultIfEmpty(LC.get(key), defaultValue);
+    }
+
+    /**
+     * 
+     * @param key A key to lookup
+     * @param appName the social client name
+     * @param acct the user account
+     * @return A value for the given key or the default value
+     */
+    public String getString(String key, String appName, Account acct) {
+        return StringUtils.defaultIfEmpty(LC.get(key), null);
     }
 
     /**
@@ -102,7 +114,7 @@ public class Configuration {
      * @param defaultValue A default value to use if value for key is empty
      * @return A value for the given key or the default value
      */
-    public static Integer getInt(String key, Integer defaultValue) {
+    public Integer getInt(String key, Integer defaultValue) {
         final String stringValue = LC.get(key);
         Integer value = defaultValue;
         if (stringValue != null) {

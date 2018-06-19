@@ -102,6 +102,7 @@ import com.zimbra.cs.service.mail.CreateContact;
 import com.zimbra.cs.service.util.ItemId;
 import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler.GoogleConstants;
 import com.zimbra.oauth.models.OAuthInfo;
+import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.LdapConfiguration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
@@ -123,6 +124,11 @@ public class GoogleContactsImport implements DataImport {
      */
     private final DataSource mDataSource;
 
+    /**
+     * Configuration wrapper.
+     */
+    private Configuration config;
+
 
     /**
      * Constructor.
@@ -131,6 +137,12 @@ public class GoogleContactsImport implements DataImport {
      */
     public GoogleContactsImport(DataSource datasource) {
         mDataSource = datasource;
+        try {
+            config = LdapConfiguration.buildConfiguration(GoogleConstants.CLIENT_NAME);
+        } catch (final ServiceException e) {
+            ZimbraLog.extensions.info("Error loading configuration for google: %s", e.getMessage());
+            ZimbraLog.extensions.debug(e);
+}
     }
 
     @Override
@@ -183,12 +195,12 @@ public class GoogleContactsImport implements DataImport {
         Account acct = this.mDataSource.getAccount();
         final OAuthInfo oauthInfo = new OAuthInfo(new HashMap<String, String>());
         final String refreshToken = OAuthDataSource.getRefreshToken(mDataSource);
-        final String clientId = LdapConfiguration.getString(GoogleConstants.CLIENT_NAME, String
-            .format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, GoogleConstants.CLIENT_NAME), acct);
-        final String clientSecret = LdapConfiguration.getString(GoogleConstants.CLIENT_NAME, String
-            .format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, GoogleConstants.CLIENT_NAME), acct);
-        final String clientRedirectUri = LdapConfiguration.getString(GoogleConstants.CLIENT_NAME, String.format(
-            OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, GoogleConstants.CLIENT_NAME), acct);
+        final String clientId = this.config.getString(String
+            .format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, GoogleConstants.CLIENT_NAME), GoogleConstants.CLIENT_NAME, acct);
+        final String clientSecret = this.config.getString(String
+            .format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, GoogleConstants.CLIENT_NAME), GoogleConstants.CLIENT_NAME,  acct);
+        final String clientRedirectUri = this.config.getString(String.format(
+            OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, GoogleConstants.CLIENT_NAME), GoogleConstants.CLIENT_NAME, acct);
 
         // set client specific properties
         oauthInfo.setRefreshToken(refreshToken);

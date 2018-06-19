@@ -48,7 +48,7 @@ public class LdapConfiguration extends Configuration {
      * @return A value for a given key
      */
 
-    public static String getString(String appName, String key, Account account) {
+    public  String getString(String key, String appName, Account account) {
         
         return getConfig(key, appName, account);
     }
@@ -58,7 +58,7 @@ public class LdapConfiguration extends Configuration {
      * @param appName client app name
      * @return value for the associated key
      */
-    public static String getConfig(String key, String appName, Account acct) {
+    public String getConfig(String key, String appName, Account acct) {
 
         String value = null;
         ZimbraLog.extensions.debug("App name is:%s", appName);
