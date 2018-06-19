@@ -18,21 +18,20 @@
 package com.zimbra.oauth.handlers.impl;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 
 import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.lang.StringUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.zimbra.client.ZFolder.View;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
-
+import com.zimbra.oauth.utilities.OAuth2Utilities;
 /**
  * The FacebookOAuth2Handler class.<br>
  * Facebook OAuth operations handler.
@@ -41,6 +40,7 @@ import com.zimbra.oauth.utilities.OAuth2Constants;
  * @package com.zimbra.oauth.handlers.impl
  * @copyright Copyright © 2018
  */
+
 public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
 
     /**
@@ -129,17 +129,21 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         /**
          * The authorize uri template for Facebook.
          */
-        protected static final String AUTHORIZE_URI_TEMPLATE = "https://www.facebook.com/v3.0/dialog/oauth?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s";
+        protected static final String AUTHORIZE_URI_TEMPLATE =
+            "https://www.facebook.com/v3.0/dialog/oauth"
+            + "?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s";
 
         /**
-         * The debug token uri, used to fetch the user_id from Facebook.
+         * The user details uri, used to fetch the authorized OAuth user details from Facebook.
          */
-        public static final String DEBUG_TOKEN_URI = "https://graph.facebook.com/debug_token";
+        public static final String USER_DETAILS_URI_TEMPLATE = "https://graph.facebook.com/me"
+            + "?access_token=%s&fields=first_name,middle_name,last_name,email";
 
         /**
          * The uri used to make backend call to fetch an access token.
          */
-        public static final String AUTHENTICATE_URI = "https://graph.facebook.com/v3.0/oauth/access_token";
+        public static final String AUTHENTICATE_URI =
+            "https://graph.facebook.com/v3.0/oauth/access_token";
 
         /**
          * The scope required for Facebook.
@@ -161,6 +165,42 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
          */
         public static final String HOST_FACEBOOK = "graph.facebook.com";
 
+        /**
+         * The contacts uri template.
+         */
+        public static final String CONTACTS_URI_TEMPLATE =
+            "https://graph.facebook.com/v3.0/me/friends?access_token=%s&fields=%s&limit=%s";
+
+        /**
+        * The contacts pagination size for Facebook.
+        */
+        protected static final String CONTACTS_PAGE_SIZE = "100";
+
+        /**
+         * The refresh token code request uri template.<br>
+         * Uses a code to request a fresh access token.
+         */
+        public static final String REFRESH_TOKEN_CODE_REQUEST_URI_TEMPLATE =
+            "https://graph.facebook.com/oauth/client_code"
+            + "?access_token=%s&client_id=%s&client_secret=%s&redirect_uri=%s";
+
+        /**
+         * The access request uri template code, uses the existing, valid access token
+         * to fetch a code.
+         * This code will be used to request a fresh access token.
+         */
+        public static final String REFRESH_ACCESS_TOKEN_FOR_CODE_REQUEST_URI_TEMPLATE =
+            "https://graph.facebook.com/oauth/access_token"
+            + "?client_id=%s&redirect_uri=%s&code=%s";
+
+        /*
+         * CSV list of data fields to import or limit the import to.
+         * (Please note that this list may require permission scopes
+         * be added to the localconfig.xml for the related fields)
+         */
+        public static final String IMPORT_FIELDS_LIST = "email,address,name,location,"
+            + "birthday,about,gender,hometown,locale,first_name,middle_name,last_name";
+
     }
 
     /**
@@ -170,14 +210,13 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
      */
 
     public FacebookOAuth2Handler(Configuration config) {
+
         super(config, FacebookConstants.CLIENT_NAME, FacebookConstants.HOST_FACEBOOK);
-        scope = StringUtils.join(
-            new String[] { FacebookConstants.REQUIRED_SCOPES, config.getString(String
-                .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, FacebookConstants.CLIENT_NAME)) },
-            "+");
         authenticateUri = FacebookConstants.AUTHENTICATE_URI;
-        authorizeUri = buildAuthorizeUri(FacebookConstants.AUTHORIZE_URI_TEMPLATE);
         relayKey = FacebookConstants.RELAY_KEY;
+        // add associated import classes
+        dataSource.addImportClass(View.contact.name(),
+                FacebookContactsImport.class.getCanonicalName());
     }
 
     /**
@@ -188,6 +227,12 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     @Override
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
         // set client specific properties
+        
+        Account account = oauthInfo.getAccount();
+        String clientId = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client),client, account);
+        String clientSecret = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client, account);
+        String clientRedirectUri = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,account);
+        String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
         oauthInfo.setClientId(clientId);
         oauthInfo.setClientSecret(clientSecret);
         oauthInfo.setClientRedirectUri(clientRedirectUri);
@@ -216,15 +261,15 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
      *
      * @param response The json response from authenticate
      * @throws ServiceException OPERATION_DENIED If the refresh token was deemed
-     *             invalid, or incorrect redirect uri.<br>
-     *             If the client id or client secret are incorrect.<br>
-     *             PARSE_ERROR If the response from Google has no errors, but
-     *             the access info is missing.<br>
-     *             PERM_DENIED If the refresh token or code is expired, or for
-     *             general rejection.<br>
-     *             INVALID_REQUEST If the request parameters are invalid.<br>
-     *             TEMPORARILY_UNAVAILABLE If there was an issue with the FB
-     *             OAuth server.
+     *     invalid, or incorrect redirect uri.<br>
+     *     If the client id or client secret are incorrect.<br>
+     *     PARSE_ERROR If the response from Google has no errors, but
+     *     the access info is missing.<br>
+     *     PERM_DENIED If the refresh token or code is expired, or for
+     *     general rejection.<br>
+     *     INVALID_REQUEST If the request parameters are invalid.<br>
+     *     TEMPORARILY_UNAVAILABLE If there was an issue with the FB
+     *     OAuth server.
      */
     @Override
     protected void validateTokenResponse(JsonNode response) throws ServiceException {
@@ -237,50 +282,50 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
             errorCode = inErrorCodeRange(errorCode);
 
             switch (errorCode) {
-            case FacebookConstants.RESPONSE_ERROR_INVALID_CODE:
-                ZimbraLog.extensions.debug("Invalid request error from Facebook: " + errorMsg);
-                throw ServiceException.INVALID_REQUEST(
-                    "The authentication " + "request parameters are invalid.", null);
-            case FacebookConstants.RESPONSE_ERROR_SESSION_EXPIRED:
-                ZimbraLog.extensions.debug("API Session error: " + errorMsg);
-                throw ServiceException.OPERATION_DENIED("The login status or "
-                    + "access token has expired, been revoked, or is otherwise invalid.");
-            case FacebookConstants.RESPONSE_ERROR_API_UNKNOWN:
-                ZimbraLog.extensions.debug("API Unknown: " + errorMsg);
-                throw ServiceException.OPERATION_DENIED("API Unknown. Possibly a temporary "
-                    + "issue due to downtime. If it occurs again, check you are requesting an "
-                    + "existing API.");
-            case FacebookConstants.RESPONSE_ERROR_API_SERVICE:
-                ZimbraLog.extensions.debug("API Service issue: " + errorMsg);
-                throw ServiceException.TEMPORARILY_UNAVAILABLE();
-            case FacebookConstants.RESPONSE_ERROR_EXCESSIVE_CALLS:
-                ZimbraLog.extensions.debug("Too Many Calls: " + errorMsg);
-                throw ServiceException.TEMPORARILY_UNAVAILABLE();
-            case FacebookConstants.RESPONSE_ERROR_USER_EXCESSIVE_CALLS:
-                ZimbraLog.extensions.debug("User, Too Many Calls: " + errorMsg);
-                throw ServiceException.TEMPORARILY_UNAVAILABLE();
-            case FacebookConstants.RESPONSE_ERROR_TOKEN_EXPIRED:
-                ZimbraLog.extensions.debug("Access token has expired: " + errorMsg);
-                throw ServiceException.OPERATION_DENIED("Expired access token.");
-            case FacebookConstants.RESPONSE_ERROR_PERM_DENIED:
-            case FacebookConstants.RESPONSE_ERROR_PERMISSIONS_ERROR:
-                ZimbraLog.extensions.debug("API Permissions issue: " + errorMsg);
-                throw ServiceException
-                    .PERM_DENIED("Permission is either not granted or has " + "been removed.");
-            case FacebookConstants.RESPONSE_ERROR_LIMIT_REACHED:
-                ZimbraLog.extensions.debug("Application limit reached: " + errorMsg);
-                throw ServiceException.TEMPORARILY_UNAVAILABLE();
-            case FacebookConstants.RESPONSE_ERROR_POLICIES_VIOLATION:
-                ZimbraLog.extensions
-                    .debug("Temporarily blocked for policies violations: " + errorMsg);
-                throw ServiceException.TEMPORARILY_UNAVAILABLE();
-            case FacebookConstants.RESPONSE_ERROR_TOO_MANY_REQUESTS:
-                ZimbraLog.extensions.debug("Too many requests: " + errorMsg);
-                throw ServiceException.TEMPORARILY_UNAVAILABLE();
-            default:
-                ZimbraLog.extensions.warn("Unexpected error while trying to authenticate "
-                    + "the user." + response.toString());
-                throw ServiceException.PERM_DENIED("Unable to authenticate the user.");
+                case FacebookConstants.RESPONSE_ERROR_INVALID_CODE:
+                    ZimbraLog.extensions.debug("Invalid request error from Facebook: " + errorMsg);
+                    throw ServiceException.INVALID_REQUEST(
+                            "The authentication " + "request parameters are invalid.", null);
+                case FacebookConstants.RESPONSE_ERROR_SESSION_EXPIRED:
+                    ZimbraLog.extensions.debug("API Session error: " + errorMsg);
+                    throw ServiceException.OPERATION_DENIED("The login status or "
+                            + "access token has expired, been revoked, or is otherwise invalid.");
+                case FacebookConstants.RESPONSE_ERROR_API_UNKNOWN:
+                    ZimbraLog.extensions.debug("API Unknown: " + errorMsg);
+                    throw ServiceException.OPERATION_DENIED("API Unknown. Possibly a temporary "
+                            + "issue due to downtime. If it occurs again, check you are requesting an "
+                            + "existing API.");
+                case FacebookConstants.RESPONSE_ERROR_API_SERVICE:
+                    ZimbraLog.extensions.debug("API Service issue: " + errorMsg);
+                    throw ServiceException.TEMPORARILY_UNAVAILABLE();
+                case FacebookConstants.RESPONSE_ERROR_EXCESSIVE_CALLS:
+                    ZimbraLog.extensions.debug("Too Many Calls: " + errorMsg);
+                    throw ServiceException.TEMPORARILY_UNAVAILABLE();
+                case FacebookConstants.RESPONSE_ERROR_USER_EXCESSIVE_CALLS:
+                    ZimbraLog.extensions.debug("User, Too Many Calls: " + errorMsg);
+                    throw ServiceException.TEMPORARILY_UNAVAILABLE();
+                case FacebookConstants.RESPONSE_ERROR_TOKEN_EXPIRED:
+                    ZimbraLog.extensions.debug("Access token has expired: " + errorMsg);
+                    throw ServiceException.OPERATION_DENIED("Expired access token.");
+                case FacebookConstants.RESPONSE_ERROR_PERM_DENIED:
+                case FacebookConstants.RESPONSE_ERROR_PERMISSIONS_ERROR:
+                    ZimbraLog.extensions.debug("API Permissions issue: " + errorMsg);
+                    throw ServiceException
+                            .PERM_DENIED("Permission is either not granted or has " + "been removed.");
+                case FacebookConstants.RESPONSE_ERROR_LIMIT_REACHED:
+                    ZimbraLog.extensions.debug("Application limit reached: " + errorMsg);
+                    throw ServiceException.TEMPORARILY_UNAVAILABLE();
+                case FacebookConstants.RESPONSE_ERROR_POLICIES_VIOLATION:
+                    ZimbraLog.extensions
+                            .debug("Temporarily blocked for policies violations: " + errorMsg);
+                    throw ServiceException.TEMPORARILY_UNAVAILABLE();
+                case FacebookConstants.RESPONSE_ERROR_TOO_MANY_REQUESTS:
+                    ZimbraLog.extensions.debug("Too many requests: " + errorMsg);
+                    throw ServiceException.TEMPORARILY_UNAVAILABLE();
+                default:
+                    ZimbraLog.extensions.warn("Unexpected error while trying to authenticate "
+                            + "the user." + response.toString());
+                    throw ServiceException.PERM_DENIED("Unable to authenticate the user.");
             }
         }
 
@@ -316,43 +361,37 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
      * @param credentials The json containing an access_token
      * @return The unique user ID
      * @throws ServiceException If there are issues determining the primary
-     *             address
+     *                         address
      */
     @Override
     protected String getPrimaryEmail(JsonNode credentials) throws ServiceException {
         JsonNode json = null;
         final String authToken = credentials.get("access_token").asText();
-        String queryString;
-        try {
-            queryString = "?input_token=" + authToken + "&access_token="
-                + URLEncoder.encode(getAppToken(), OAuth2Constants.ENCODING);
-        } catch (final UnsupportedEncodingException e) {
-            throw ServiceException.PARSE_ERROR("Url encoding the social service app token failed.",
-                e);
-        }
+        String url = String.format(FacebookConstants.USER_DETAILS_URI_TEMPLATE, authToken);
 
         try {
-            final GetMethod request = new GetMethod(FacebookConstants.DEBUG_TOKEN_URI);
-            request.setQueryString(queryString);
+            final GetMethod request = new GetMethod(url);
             json = executeRequestForJson(request);
         } catch (final IOException e) {
             ZimbraLog.extensions.warnQuietly("There was an issue acquiring the account details.",
-                e);
+                    e);
             throw ServiceException.FAILURE("There was an issue acquiring the account details.",
-                null);
+                    null);
+        }
+        if (json.has("first_name") && json.has("last_name")
+                && !json.get("first_name").asText().isEmpty()
+                && !json.get("last_name").asText().isEmpty()) {
+            return json.get("first_name").asText() + "." + json.get("last_name").asText();
+        } else if (json.has("id") && !json.get("id").asText().isEmpty()) {
+            return json.get("id").asText();
         }
 
-        final JsonNode data = json.get("data");
-        if (data != null && data.has("user_id")) {
-            return data.get("user_id").asText();
-        }
-
-        // if we couldn't retrieve the user id, the response from
+        // if we couldn't retrieve the user first & last name, the response from
         // downstream is missing data
         // this could be the result of a misconfigured application id/secret
         // (not enough scopes)
         ZimbraLog.extensions
-                .error("The user id could not be retrieved from the social service api.");
+                        .error("The user id could not be retrieved from the social service api.");
         throw ServiceException.UNSUPPORTED();
     }
 
@@ -362,20 +401,23 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
      * @return The Facebook App token
      * @throws ServiceException If there was an issue with the request
      */
-    protected String getAppToken() throws ServiceException {
+    protected String getAppToken(Account account) throws ServiceException {
         JsonNode json = null;
         final String url = FacebookConstants.AUTHENTICATE_URI;
-        final String queryString = "?client_id=" + this.clientId + "&client_secret="
-            + this.clientSecret + "&grant_type=client_credentials";
+        String clientId = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
+        String clientSecret = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client, account);
+
+        final String queryString = "?client_id=" + clientId + "&client_secret="
+                + clientSecret + "&grant_type=client_credentials";
         try {
             final GetMethod request = new GetMethod(url);
             request.setQueryString(queryString);
             json = executeRequestForJson(request);
         } catch (final IOException e) {
             ZimbraLog.extensions.warnQuietly(
-                "There was an issue acquiring the social service app access token.", e);
+                    "There was an issue acquiring the social service app access token.", e);
             throw ServiceException
-                .FAILURE("There was an issue acquiring the social service app access token.", null);
+                    .FAILURE("There was an issue acquiring the social service app access token.", null);
         }
 
         if (json.has("access_token")) {
@@ -387,4 +429,5 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         ZimbraLog.extensions.error("Unable to retrieve app token from social service api.");
         throw ServiceException.UNSUPPORTED();
     }
+
 }

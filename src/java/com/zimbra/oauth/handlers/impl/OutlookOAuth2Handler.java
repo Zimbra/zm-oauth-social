@@ -16,14 +16,11 @@
  */
 package com.zimbra.oauth.handlers.impl;
 
-import org.apache.commons.lang.StringUtils;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.utilities.Configuration;
-import com.zimbra.oauth.utilities.OAuth2Constants;
 
 /**
  * The OutlookOAuth2Handler class.<br>
@@ -125,15 +122,11 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
      * Constructs an OutlookOAuth2Handler object.
      *
      * @param config For accessing configured properties
+     * @throws ServiceException 
      */
-    public OutlookOAuth2Handler(Configuration config) {
+    public OutlookOAuth2Handler(Configuration config) throws ServiceException {
         super(config, OutlookConstants.CLIENT_NAME, OutlookConstants.HOST_OUTLOOK);
-        scope = StringUtils.join(
-            new String[] { OutlookConstants.REQUIRED_SCOPES, config.getString(String
-                .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, OutlookConstants.CLIENT_NAME)) },
-            "+");
         authenticateUri = OutlookConstants.AUTHENTICATE_URI;
-        authorizeUri = buildAuthorizeUri(OutlookConstants.AUTHORIZE_URI_TEMPLATE);
         relayKey = OutlookConstants.RELAY_KEY;
     }
 

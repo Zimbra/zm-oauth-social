@@ -29,8 +29,17 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.commons.lang.StringUtils;
 
 import com.zimbra.common.service.ServiceException;
+import com.zimbra.common.util.L10nUtil;
+import com.zimbra.common.util.L10nUtil.MsgKey;
+import com.zimbra.common.util.ZimbraCookie;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.account.Account;
+import com.zimbra.cs.account.AuthToken;
+import com.zimbra.cs.account.AuthTokenException;
+import com.zimbra.cs.account.Provisioning;
+import com.zimbra.cs.account.ZimbraAuthToken;
 import com.zimbra.cs.extension.ExtensionHttpHandler;
+import com.zimbra.cs.service.AuthProvider;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2ResourceUtilities;
 
@@ -62,14 +71,22 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
         final String client = pathParams.get("client");
         String location = OAuth2Constants.DEFAULT_SUCCESS_REDIRECT;
 
+        String encodeAuthToken = getEncodedAuthTokenFromCookie(req);
+        Account account = getAccount(req, encodeAuthToken);
+        ZimbraLog.extensions.info("Account is:%s", account);
+
+        if (account == null) {
+            throw new ServletException(HttpServletResponse.SC_UNAUTHORIZED
+                + ": " + L10nUtil.getMessage(MsgKey.errMustAuthenticate, req));
+        }
         try {
             switch (pathParams.get("action")) {
             case "authorize":
-                location = OAuth2ResourceUtilities.authorize(client, req.getParameter("relay"));
+                location = OAuth2ResourceUtilities.authorize(client, req.getParameter("relay"), account);
                 break;
             case "authenticate":
                 location = OAuth2ResourceUtilities.authenticate(client, req.getParameterMap(),
-                    getAuthToken(req.getCookies()));
+                    account, encodeAuthToken);
                 break;
             default:
                 // missing valid action - bad request
@@ -136,5 +153,57 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
         }
         return pathParams;
     }
+    private Account getAccount(HttpServletRequest req, String encodeAuthToken) throws ServletException {
+
+       Account account = null;
+        try {
+            AuthToken authToken = ZimbraAuthToken.getAuthToken(encodeAuthToken);
+
+            if (authToken != null) {
+
+                if (authToken.isZimbraUser()) {
+                    if(!authToken.isRegistered()) {
+                        throw new ServletException(HttpServletResponse.SC_UNAUTHORIZED
+                              + ": " + L10nUtil.getMessage(MsgKey.errMustAuthenticate, req));
+                    }
+                    try {
+                        account = AuthProvider.validateAuthToken(Provisioning.getInstance(), authToken, false);
+                    } catch (ServiceException e) {
+                        throw new ServletException(HttpServletResponse.SC_UNAUTHORIZED
+                              + ": " + L10nUtil.getMessage(MsgKey.errMustAuthenticate, req));
+                    }
+                } else {
+                    throw new ServletException(HttpServletResponse.SC_UNAUTHORIZED
+                        + ": " + L10nUtil.getMessage(MsgKey.errMustAuthenticate, req));
+                }
+            } else {
+                throw new ServletException(HttpServletResponse.SC_UNAUTHORIZED
+                    + ": " + L10nUtil.getMessage(MsgKey.errMustAuthenticate, req));
+            }
+
+        } catch (AuthTokenException e) {
+            ZimbraLog.extensions.info("Error authenticating user.");
+            throw new ServletException(HttpServletResponse.SC_UNAUTHORIZED
+               + ": " + L10nUtil.getMessage(MsgKey.errMustAuthenticate, req));
+        }
+
+        return account;
+      
+    }
+    private String getEncodedAuthTokenFromCookie(HttpServletRequest req) {
+        String cookieName = ZimbraCookie.authTokenCookieName(false);
+        String encodedAuthToken = null;
+        javax.servlet.http.Cookie cookies[] =  req.getCookies();
+        if (cookies != null) {
+            for (int i = 0; i < cookies.length; i++) {
+                if (cookies[i].getName().equals(cookieName)) {
+                    encodedAuthToken = cookies[i].getValue();
+                    break;
+                }
+            }
+        }
+        return encodedAuthToken;
+    }
+
 
 }

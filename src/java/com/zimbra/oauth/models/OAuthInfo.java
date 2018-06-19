@@ -18,6 +18,8 @@ package com.zimbra.oauth.models;
 
 import java.util.Map;
 
+import com.zimbra.cs.account.Account;
+
 /**
  * The OAuthInfo class.<br>
  * Contains OAuth related data.
@@ -72,6 +74,11 @@ public class OAuthInfo {
      * A map of parameters.
      */
     protected Map<String, String> params;
+
+    /**
+     * User account
+     */
+    protected Account account;
 
     /**
      * Constructor.
@@ -235,5 +242,30 @@ public class OAuthInfo {
     public void setTokenUrl(String tokenUrl) {
         this.tokenUrl = tokenUrl;
     }
+
+    /**
+     * Get the user account
+     * @return the user account
+     */
+    public Account getAccount() {
+        return account;
+    }
+
+    /**
+     * Set the user account
+     * @param account user account
+     */
+    public void setAccount(Account account) {
+        this.account = account;
+    }
+
+    @Override
+    public String toString() {
+        return String.format(
+            "OAuthInfo [clientId=%s, clientSecret=%s, clientRedirectUri=%s, accessToken=%s, refreshToken=%s, zmAuthToken=%s, username=%s, tokenUrl=%s, account=%s]",
+            clientId, "***", clientRedirectUri, accessToken, refreshToken, zmAuthToken,
+            username, tokenUrl, account);
+    }
+
 
 }
