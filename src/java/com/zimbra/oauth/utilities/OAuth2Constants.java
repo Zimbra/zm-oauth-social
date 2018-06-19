@@ -37,6 +37,8 @@ public class OAuth2Constants {
 
     public static final String DATASOURCE_POLLING_INTERVAL = "1d";
 
+    public static final long CONTACTS_IMAGE_BUFFER_SIZE = 2048;
+
     // http related
     public static final String HEADER_AUTHORIZATION = "Authorization";
     public static final String HEADER_CONTENT_TYPE = "Content-Type";
@@ -67,8 +69,8 @@ public class OAuth2Constants {
     public static final String LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE = "zm_oauth_%s_client_redirect_uri";
     public static final String LC_OAUTH_SCOPE_TEMPLATE = "zm_oauth_%s_scope";
     public static final String LC_OAUTH_IMPORT_CLASS_TEMPLATE = "zm_oauth_%s_import_class";
-    
-    
+
+
     public static final String OAUTH_CLIENT_ID = "client_id";
     public static final String OAUTH_CLIENT_SECRET = "client_secret";
     public static final String OAUTH_CLIENT_REDIRECT_URI = "client_redirect_uri";

@@ -94,6 +94,11 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         protected static final String CONTACTS_PAGE_SIZE = "100";
 
         /**
+         * The contacts image name template for Google.
+         */
+        protected static final String CONTACTS_IMAGE_NAME_TEMPLATE = "google-profile-image%s";
+
+        /**
          * The scope required for Google.
          */
         protected static final String REQUIRED_SCOPES = "email";

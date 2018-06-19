@@ -101,6 +101,16 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         protected static final String CONTACTS_URI_TEMPLATE = "https://social.yahooapis.com/v1/user/%s/contacts?format=%s&view=sync&rev=%d";
 
         /**
+         * The contacts pagination size for Yahoo.
+         */
+        protected static final String CONTACTS_PAGE_SIZE = "100";
+
+        /**
+         * The contacts image name for Yahoo.
+         */
+        protected static final String CONTACTS_IMAGE_NAME = "yahoo-profile-image";
+
+        /**
          * The profile endpoint for Yahoo.
          */
         protected static final String PROFILE_URI = "https://social.yahooapis.com/v1/user/%s/profile";

@@ -16,6 +16,9 @@
  */
 package com.zimbra.oauth.utilities;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -62,8 +65,7 @@ public class OAuth2Utilities {
      * @return Basic authorization header
      */
     public static String encodeBasicHeader(String user, String pass) {
-        return Base64.getEncoder()
-            .encodeToString(new String(user + ":" + pass).getBytes());
+        return Base64.getEncoder().encodeToString(new String(user + ":" + pass).getBytes());
     }
 
     /**
@@ -92,6 +94,37 @@ public class OAuth2Utilities {
             }
         }
         return resBuilder.build();
+    }
+
+    /**
+     * Decodes given stream with a size boundary.
+     *
+     * @param input An InputStream object
+     * @param size A boundary limit (optional : Use 0 to default)
+     * @return The the current contents of this output stream, as a byte array.
+     * @throws IOException
+     */
+    public static byte[] decodeStream(InputStream input, long size) throws IOException {
+        final long MIN_BUFFER_SIZE = 100;
+        final long MAX_BUFFER_SIZE = 4096;
+        final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        int lengthRead;
+        // buffer size must be within our bounds
+        if (size < MIN_BUFFER_SIZE || size > MAX_BUFFER_SIZE) {
+            size = MAX_BUFFER_SIZE;
+        }
+        final byte[] data = new byte[(int) size];
+        try {
+            // read until the end
+            while ((lengthRead = input.read(data)) != -1) {
+                buffer.write(data, 0, lengthRead);
+            }
+            buffer.flush();
+        } finally {
+            // always close the input
+            input.close();
+        }
+        return buffer.toByteArray();
     }
 
 }
