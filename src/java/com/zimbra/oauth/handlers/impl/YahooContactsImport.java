@@ -30,7 +30,6 @@ import static com.zimbra.common.mailbox.ContactConstants.A_homeState;
 import static com.zimbra.common.mailbox.ContactConstants.A_homeStreet;
 import static com.zimbra.common.mailbox.ContactConstants.A_homeURL;
 import static com.zimbra.common.mailbox.ContactConstants.A_imAddress1;
-import static com.zimbra.common.mailbox.ContactConstants.A_image;
 import static com.zimbra.common.mailbox.ContactConstants.A_jobTitle;
 import static com.zimbra.common.mailbox.ContactConstants.A_lastName;
 import static com.zimbra.common.mailbox.ContactConstants.A_middleName;
@@ -651,6 +650,7 @@ public class YahooContactsImport implements DataImport {
         public static ParsedContact parseYContact(JsonNode jsonContact, DataSource ds)
             throws ServiceException {
             final Map<String, String> contactFields = new HashMap<String, String>();
+            // will contain attachments in future iterations - assuming API support
             final List<Attachment> attachments = new ArrayList<Attachment>();
             if (jsonContact.has(FIELDS)) {
                 final JsonNode jsonFields = jsonContact.get(FIELDS);
@@ -731,7 +731,6 @@ public class YahooContactsImport implements DataImport {
                                         parseSimpleField(fieldObj, A_jobTitle, contactFields);
                                         break;
                                     case image:
-                                        parseImageField(fieldObj, A_image, attachments);
                                         break;
                                     default:
                                         parseSimpleField(fieldObj, A_otherCustom1, contactFields);
