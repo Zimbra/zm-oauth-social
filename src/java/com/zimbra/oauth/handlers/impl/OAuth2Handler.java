@@ -42,10 +42,16 @@ import com.zimbra.client.ZMailbox;
 import com.zimbra.common.auth.ZAuthToken;
 import com.zimbra.common.httpclient.HttpClientUtil;
 import com.zimbra.common.service.ServiceException;
+import com.zimbra.common.util.StringUtil;
 import com.zimbra.common.util.ZimbraHttpConnectionManager;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.account.Account;
 import com.zimbra.cs.httpclient.HttpProxyUtil;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
+import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookConstants;
+import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler.GoogleConstants;
+import com.zimbra.oauth.handlers.impl.OutlookOAuth2Handler.OutlookConstants;
+import com.zimbra.oauth.handlers.impl.YahooOAuth2Handler.YahooConstants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
@@ -63,37 +69,9 @@ import com.zimbra.oauth.utilities.OAuthDataSource;
 public abstract class OAuth2Handler {
 
     /**
-     * Implementation client id.
+     * Social app name
      */
-    protected final String clientId;
-
-    /**
-     * Implementation client secret.
-     */
-    protected final String clientSecret;
-
-    /**
-     * Implementation redirect uri.
-     */
-    protected final String clientRedirectUri;
-
-    /**
-     * Implementation Basic header.
-     */
-    protected final String basicToken;
-
-    /**
-     * Implementation token scope.
-     */
-    protected String scope = "";
-
-    /**
-     * Implementation authorize uri.<br>
-     * Expected template format pattern key order:
-     * {client_id}{redirect_uri}{response_type}{scope}<br>
-     * Relay is appended to the end by default.
-     */
-    protected String authorizeUri;
+    protected String client;
 
     /**
      * Implementation authenticate uri.
@@ -131,22 +109,16 @@ public abstract class OAuth2Handler {
      * @param config A configuration object
      */
     public OAuth2Handler(Configuration config, String client, String clientHost) {
+        this.client = client;
         this.config = config;
-        clientId = config
-            .getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client));
-        clientSecret = config
-            .getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client));
-        clientRedirectUri = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client));
-        basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
         dataSource = OAuthDataSource.createDataSource(client, clientHost);
-        final String zimbraHostname = config.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
+        final String zimbraHostname =  this.config.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
         // warn if missing hostname
         if (StringUtils.isEmpty(zimbraHostname)) {
             ZimbraLog.extensions.warn("The zimbra server hostname is not configured.");
         }
         // cache the host uri
-        zimbraHostUri = String.format(config.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE,
+        zimbraHostUri = String.format(this.config.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE,
             OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE), zimbraHostname);
     }
 
@@ -220,10 +192,40 @@ public abstract class OAuth2Handler {
      *
      * @param template The authorize uri template for this implementation
      * @return The authorize uri
+     * @throws ServiceException 
      */
-    protected String buildAuthorizeUri(String template) {
+    protected String buildAuthorizeUri(String template, Account account) throws ServiceException {
         final String responseType = "code";
         String encodedRedirectUri = "";
+        String clientId = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
+        String clientRedirectUri = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client, account);
+
+        String scope = null;
+        switch (client) {
+            case FacebookConstants.CLIENT_NAME : {
+                scope = StringUtils.join(
+                    new String[] { FacebookConstants.REQUIRED_SCOPES, this.config.getString(String
+                        .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, client), client, account) },
+                    ",");
+                break;
+            }
+            case GoogleConstants.CLIENT_NAME : {
+                scope = StringUtils.join(
+                    new String[] { GoogleConstants.REQUIRED_SCOPES, this.config.getString(String
+                        .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, client), client, account) },
+                    "+");
+                break;
+            }
+            default : {
+                break;
+            }
+        }
+
+        if (StringUtil.isNullOrEmpty(clientId) || StringUtil.isNullOrEmpty(clientRedirectUri)) {
+            throw ServiceException.NOT_FOUND(String.format("The app: %s is not properly configured, please set Oauth credentials and redurect uri", client), 
+                new Exception("Invalid config"));
+        }
+
         try {
             encodedRedirectUri = URLEncoder.encode(clientRedirectUri, OAuth2Constants.ENCODING);
         } catch (final UnsupportedEncodingException e) {
@@ -236,7 +238,7 @@ public abstract class OAuth2Handler {
     /**
      * @see IOAuth2Handler#authorize(String)
      */
-    public String authorize(String relayState) throws ServiceException {
+    public String authorize(String relayState, Account acct) throws ServiceException {
         String relayValue = "";
         String relay = StringUtils.defaultString(relayState, "");
 
@@ -254,6 +256,30 @@ public abstract class OAuth2Handler {
                 throw ServiceException.INVALID_REQUEST("Unable to encode relay parameter.", e);
             }
         }
+
+        String authorizeUri = null;
+        switch (client) {
+
+            case GoogleConstants.CLIENT_NAME:{
+               authorizeUri =  buildAuthorizeUri(GoogleConstants.AUTHORIZE_URI_TEMPLATE, acct);
+               break;
+            }
+            case YahooConstants.CLIENT_NAME:{
+                authorizeUri =  buildAuthorizeUri(YahooConstants.AUTHORIZE_URI_TEMPLATE, acct);
+                break;
+            }
+            case FacebookConstants.CLIENT_NAME:{
+                authorizeUri =  buildAuthorizeUri(FacebookConstants.AUTHORIZE_URI_TEMPLATE, acct);
+                break;
+            }
+            case OutlookConstants.CLIENT_NAME:{
+                authorizeUri =  buildAuthorizeUri(OutlookConstants.AUTHORIZE_URI_TEMPLATE, acct);
+                break;
+            }
+            default : {
+                break;
+            }
+        }
         return authorizeUri + relayValue;
     }
 
@@ -261,6 +287,13 @@ public abstract class OAuth2Handler {
      * @see IOAuth2Handler#authenticate(OAuthInfo)
      */
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
+        
+        Account account = oauthInfo.getAccount();
+        String clientId = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
+        String clientSecret = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client, account);
+        String clientRedirectUri = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client, account);
+        String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
+
         // set client specific properties
         oauthInfo.setClientId(clientId);
         oauthInfo.setClientSecret(clientSecret);
@@ -271,7 +304,7 @@ public abstract class OAuth2Handler {
         // ensure the response contains the necessary credentials
         validateTokenResponse(credentials);
         // determine account associated with credentials
-        final String username = getPrimaryEmail(credentials);
+        final String username = getPrimaryEmail(credentials, account);
         ZimbraLog.extensions.trace("Authentication performed for:" + username);
 
         // get zimbra mailbox
@@ -295,7 +328,7 @@ public abstract class OAuth2Handler {
      * @throws ServiceException If there are issues determining the primary
      *             address
      */
-    protected String getPrimaryEmail(JsonNode credentials) throws ServiceException {
+    protected String getPrimaryEmail(JsonNode credentials, Account acct) throws ServiceException {
         final DecodedJWT jwt = JWT.decode(credentials.get("id_token").asText());
         final Claim emailClaim = jwt.getClaim("email");
         if (emailClaim == null || StringUtils.isEmpty(emailClaim.asString())) {

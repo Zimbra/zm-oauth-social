@@ -91,6 +91,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.HtmlBodyTextExtractor;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.DataSource;
 import com.zimbra.cs.account.DataSource.DataImport;
 import com.zimbra.cs.account.Provisioning;
@@ -190,14 +191,15 @@ public class GoogleContactsImport implements DataImport {
      * @throws ServiceException If there are issues
      */
     protected String refresh() throws ServiceException {
+        Account acct = this.mDataSource.getAccount();
         final OAuthInfo oauthInfo = new OAuthInfo(new HashMap<String, String>());
         final String refreshToken = OAuthDataSource.getRefreshToken(mDataSource);
-        final String clientId = config.getString(String
-            .format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, GoogleConstants.CLIENT_NAME));
-        final String clientSecret = config.getString(String
-            .format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, GoogleConstants.CLIENT_NAME));
-        final String clientRedirectUri = config.getString(String.format(
-            OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, GoogleConstants.CLIENT_NAME));
+        final String clientId = this.config.getString(String
+            .format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, GoogleConstants.CLIENT_NAME), GoogleConstants.CLIENT_NAME, acct);
+        final String clientSecret = this.config.getString(String
+            .format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, GoogleConstants.CLIENT_NAME), GoogleConstants.CLIENT_NAME,  acct);
+        final String clientRedirectUri = this.config.getString(String.format(
+            OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, GoogleConstants.CLIENT_NAME), GoogleConstants.CLIENT_NAME, acct);
 
         // set client specific properties
         oauthInfo.setRefreshToken(refreshToken);
@@ -369,20 +371,15 @@ public class GoogleContactsImport implements DataImport {
                     respContent = jsonResponse.toString();
                     // log only at most verbose level, this contains privileged info
                     ZimbraLog.extensions.trace("Contacts sync response from Google %s", respContent);
-                    // check for error
-                    if (jsonResponse.has("error")) {
-                        throw ServiceException.FAILURE(
-                            String.format("Data source sync failed. Failed to fetch contacts"
-                                + " from Google Contacts API. The error was:%s", jsonResponse.findValue("error")),
-                                new Exception("Contact import returned error.")) ;
-                    } else if (jsonResponse.has("connections")
+                    // parse contacts if any, and update the createList
+                    if (jsonResponse.has("connections")
                         && jsonResponse.get("connections").isArray()) {
                         final JsonNode jsonContacts = jsonResponse.get("connections");
                         parseNewContacts(existingContacts, jsonContacts, createList);
                     } else {
-                        throw ServiceException.FAILURE(
-                            String.format("Unexpected response received during google contact import. Response received:%s"
-                               , jsonResponse.findValue("error")), new Exception("Contact import failed.")) ;
+                        ZimbraLog.extensions.debug(
+                            "Did not find 'connections' element in JSON response object. Response body: %s",
+                            respContent);
                     }
                     // update the sync token if available
                     if (jsonResponse.has("nextSyncToken")) {
