@@ -82,7 +82,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
@@ -743,6 +742,13 @@ public class GoogleContactsImport implements DataImport {
             }
         }
 
+        /**
+         * Fetches images from urls and creates attachments.
+         *
+         * @param fieldArray The json data containing the image urls
+         * @param key The field key
+         * @param attachments The list of attachments to add to
+         */
         public static void parseImageField(JsonNode fieldArray, String key,
             List<Attachment> attachments) {
             int i = 1;
@@ -754,29 +760,17 @@ public class GoogleContactsImport implements DataImport {
                             // fetch the image
                             final GetMethod get = new GetMethod(imageUrl);
                             OAuth2Handler.executeRequest(get);
-                            // check for the content type header
-                            final Header ctypeHeader = get.getResponseHeader("Content-Type");
-                            if (ctypeHeader != null) {
-                                // grab content type header as string
-                                final String ctype = StringUtils.lowerCase(ctypeHeader.getValue());
-                                ZimbraLog.extensions.debug("The image Content-Type: %s", ctype);
-                                if (!StringUtils.isEmpty(ctype)) {
-                                    // add image number to the filename and key
-                                    String imageNum = "";
-                                    if (i > 1) {
-                                        imageNum = String.valueOf(i++);
-                                    }
-                                    final String filename = String.format(
-                                        GoogleConstants.CONTACTS_IMAGE_NAME_TEMPLATE, imageNum);
-                                    ZimbraLog.extensions.debug(
-                                        "Creating image attachment: %s as key: %s", filename,
-                                        key + imageNum);
-                                    final Attachment attachment = new Attachment(
-                                        OAuth2Utilities.decodeStream(get.getResponseBodyAsStream(),
-                                            OAuth2Constants.CONTACTS_IMAGE_BUFFER_SIZE),
-                                        ctype, key + imageNum, filename);
-                                    attachments.add(attachment);
-                                }
+                            String imageNum = "";
+                            if (i > 1) {
+                                imageNum = String.valueOf(i++);
+                            }
+                            final String filename = String
+                                .format(GoogleConstants.CONTACTS_IMAGE_NAME_TEMPLATE, imageNum);
+                            // add to attachments
+                            final Attachment attachment = OAuth2Utilities
+                                .createAttachmentFromResponse(get, key + imageNum, filename);
+                            if (attachment != null) {
+                                attachments.add(attachment);
                             }
                         } catch (ServiceException | IOException e) {
                             ZimbraLog.extensions

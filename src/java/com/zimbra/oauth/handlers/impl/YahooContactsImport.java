@@ -70,7 +70,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.lang.StringUtils;
 
@@ -321,8 +320,7 @@ public class YahooContactsImport implements DataImport {
     /**
      * The YahooContactsUtil class.<br>
      * Used to parse contacts from the Yahoo social service.<br>
-     * Source from the original YahooContactsUtil class by @author Greg
-     * Solovyev.
+     * Source from the original YahooContactsUtil class by @author Greg Solovyev.
      *
      * @author Zimbra API Team
      * @package com.zimbra.oauth.handlers.impl
@@ -556,6 +554,13 @@ public class YahooContactsImport implements DataImport {
             }
         }
 
+        /**
+         * Fetches an image from url and creates an attachment.
+         *
+         * @param fieldObject The json data containing the image url
+         * @param key The field key
+         * @param attachments The list of attachments to add to
+         */
         public static void parseImageField(JsonNode fieldObject, String key,
             List<Attachment> attachments) {
             if (fieldObject.has(VALUE)) {
@@ -567,22 +572,12 @@ public class YahooContactsImport implements DataImport {
                             // fetch the image
                             final GetMethod get = new GetMethod(imageUrl);
                             OAuth2Handler.executeRequest(get);
-                            // check for the content type header
-                            final Header ctypeHeader = get.getResponseHeader("Content-Type");
-                            if (ctypeHeader != null) {
-                                // grab content type header as string
-                                final String ctype = StringUtils.lowerCase(ctypeHeader.getValue());
-                                ZimbraLog.extensions.debug("The image Content-Type: %s", ctype);
-                                if (!StringUtils.isEmpty(ctype)) {
-                                    ZimbraLog.extensions.debug(
-                                        "Creating image attachment: %s as key: %s",
-                                        YahooConstants.CONTACTS_IMAGE_NAME, key);
-                                    final Attachment attachment = new Attachment(
-                                        OAuth2Utilities.decodeStream(get.getResponseBodyAsStream(),
-                                            OAuth2Constants.CONTACTS_IMAGE_BUFFER_SIZE),
-                                        ctype, key, YahooConstants.CONTACTS_IMAGE_NAME);
-                                    attachments.add(attachment);
-                                }
+                            // add to attachments
+                            final Attachment attachment = OAuth2Utilities
+                                .createAttachmentFromResponse(get, key,
+                                    YahooConstants.CONTACTS_IMAGE_NAME);
+                            if (attachment != null) {
+                                attachments.add(attachment);
                             }
                         } catch (ServiceException | IOException e) {
                             ZimbraLog.extensions

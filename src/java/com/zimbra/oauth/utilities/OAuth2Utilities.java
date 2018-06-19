@@ -27,11 +27,17 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 
+import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.lang.StringUtils;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.mailbox.Contact.Attachment;
 import com.zimbra.oauth.models.ResponseObject;
 
 /**
@@ -127,4 +133,29 @@ public class OAuth2Utilities {
         return buffer.toByteArray();
     }
 
+    /**
+     * Creates an Attachment object from a get response given a field key and filename.
+     *
+     * @param method The http response
+     * @param key The field key
+     * @param filename The name for the file
+     * @return An attachment object
+     * @throws IOException If there are issues creating the attachment with the given parameters
+     */
+    public static Attachment createAttachmentFromResponse(GetMethod method, String key,
+        String filename) throws IOException {
+        // check for the content type header
+        final Header ctypeHeader = method.getResponseHeader("Content-Type");
+        if (ctypeHeader != null) {
+            // grab content type header as string
+            final String ctype = StringUtils.lowerCase(ctypeHeader.getValue());
+            ZimbraLog.extensions.debug("The Content-Type: %s", ctype);
+            if (!StringUtils.isEmpty(ctype)) {
+                ZimbraLog.extensions.debug("Creating attachment: %s as key: %s", filename, key);
+                return new Attachment(decodeStream(method.getResponseBodyAsStream(),
+                    OAuth2Constants.CONTACTS_IMAGE_BUFFER_SIZE), ctype, key, filename);
+            }
+        }
+        return null;
+    }
 }
