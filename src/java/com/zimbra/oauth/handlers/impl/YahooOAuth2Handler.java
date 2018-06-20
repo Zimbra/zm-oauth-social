@@ -130,9 +130,8 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
      * Constructs a YahooOAuth2Handler object.
      *
      * @param config For accessing configured properties
-     * @throws ServiceException 
      */
-    public YahooOAuth2Handler(Configuration config) throws ServiceException {
+    public YahooOAuth2Handler(Configuration config) {
         super(config, YahooConstants.CLIENT_NAME, ZDataSource.SOURCE_HOST_YAHOO);
         authenticateUri = YahooConstants.AUTHENTICATE_URI;
         relayKey = YahooConstants.RELAY_KEY;

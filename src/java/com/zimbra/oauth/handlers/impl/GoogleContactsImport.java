@@ -194,11 +194,11 @@ public class GoogleContactsImport implements DataImport {
         Account acct = this.mDataSource.getAccount();
         final OAuthInfo oauthInfo = new OAuthInfo(new HashMap<String, String>());
         final String refreshToken = OAuthDataSource.getRefreshToken(mDataSource);
-        final String clientId = this.config.getString(String
+        final String clientId = config.getString(String
             .format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, GoogleConstants.CLIENT_NAME), GoogleConstants.CLIENT_NAME, acct);
-        final String clientSecret = this.config.getString(String
+        final String clientSecret = config.getString(String
             .format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, GoogleConstants.CLIENT_NAME), GoogleConstants.CLIENT_NAME,  acct);
-        final String clientRedirectUri = this.config.getString(String.format(
+        final String clientRedirectUri = config.getString(String.format(
             OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, GoogleConstants.CLIENT_NAME), GoogleConstants.CLIENT_NAME, acct);
 
         // set client specific properties

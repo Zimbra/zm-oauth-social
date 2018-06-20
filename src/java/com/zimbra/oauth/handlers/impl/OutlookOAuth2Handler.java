@@ -122,9 +122,8 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
      * Constructs an OutlookOAuth2Handler object.
      *
      * @param config For accessing configured properties
-     * @throws ServiceException 
      */
-    public OutlookOAuth2Handler(Configuration config) throws ServiceException {
+    public OutlookOAuth2Handler(Configuration config) {
         super(config, OutlookConstants.CLIENT_NAME, OutlookConstants.HOST_OUTLOOK);
         authenticateUri = OutlookConstants.AUTHENTICATE_URI;
         relayKey = OutlookConstants.RELAY_KEY;

@@ -187,9 +187,9 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         // set client specific properties
         
         Account account = oauthInfo.getAccount();
-        String clientId = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client),client, account);
-        String clientSecret = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client, account);
-        String clientRedirectUri = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,account);
+        String clientId = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client),client, account);
+        String clientSecret = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client, account);
+        String clientRedirectUri = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,account);
         String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
         oauthInfo.setClientId(clientId);
         oauthInfo.setClientSecret(clientSecret);
@@ -317,6 +317,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
      * token.
      *
      * @param credentials The json containing an access_token
+     * @acct the user account for which datasource is being setup
      * @return The unique user ID
      * @throws ServiceException If there are issues determining the primary
      *             address
@@ -362,14 +363,15 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     /**
      * Retrieves the App Token.
      *
+     * @acct the user account for which datasource is being setup
      * @return The Facebook App token
      * @throws ServiceException If there was an issue with the request
      */
     protected String getAppToken(Account account) throws ServiceException {
         JsonNode json = null;
         final String url = FacebookConstants.AUTHENTICATE_URI;
-        String clientId = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
-        String clientSecret = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client, account);
+        String clientId = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
+        String clientSecret = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client, account);
 
         final String queryString = "?client_id=" + clientId + "&client_secret="
                 + clientSecret + "&grant_type=client_credentials";

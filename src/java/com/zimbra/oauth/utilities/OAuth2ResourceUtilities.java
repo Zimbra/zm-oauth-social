@@ -50,6 +50,7 @@ public class OAuth2ResourceUtilities {
      * @param client The client
      * @param relay The relay state
      * @return Location to redirect to
+     * @acct the user account for which datasource is being setup
      * @throws ServiceException If there are issues
      */
     public static final String authorize(String client, String relay, Account acct) throws ServiceException {
@@ -64,6 +65,7 @@ public class OAuth2ResourceUtilities {
      *
      * @param client The client
      * @param queryParams Map of query params
+     * @acct the user account for which datasource is being setup
      * @param zmAuthToken The Zimbra auth token
      * @return Location to redirect to
      * @throws ServiceException If there are issues

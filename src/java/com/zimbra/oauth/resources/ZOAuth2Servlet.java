@@ -73,7 +73,7 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
 
         String encodeAuthToken = getEncodedAuthTokenFromCookie(req);
         Account account = getAccount(req, encodeAuthToken);
-        ZimbraLog.extensions.info("Account is:%s", account);
+        ZimbraLog.extensions.debug("Account is:%s", account);
 
         if (account == null) {
             throw new ServletException(HttpServletResponse.SC_UNAUTHORIZED

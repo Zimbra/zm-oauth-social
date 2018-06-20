@@ -45,9 +45,12 @@ public class LdapConfiguration extends Configuration {
      * Get the associated value with the key.
      *
      * @param key A key to lookup
-     * @return A value for a given key
+     * @appName the social account name
+     * @acct the user account for which datasource is being setup
+     * @return A value for a given key for given social account and user account
+     *
      */
-
+    @Override
     public  String getString(String key, String appName, Account account) {
         
         return getConfig(key, appName, account);
@@ -131,6 +134,13 @@ public class LdapConfiguration extends Configuration {
         return value;
     }
 
+    /**
+     *
+     * @acct the user account for which datasource is being setup
+     * @param key the ldap config key
+     * @param appName the social app
+     * @return the attributes values
+     */
     private static String[] loadConfiguration(Account acct, String key, String appName) {
         String [] values = null;
         ZimbraLog.extensions.debug("Loading configuration: %s for: %s", key, acct.getName());

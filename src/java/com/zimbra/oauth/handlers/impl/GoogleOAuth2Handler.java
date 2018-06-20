@@ -118,9 +118,8 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
      * Constructs a GoogleOAuth2Handler object.
      *
      * @param config For accessing configured properties
-     * @throws ServiceException
      */
-    public GoogleOAuth2Handler(Configuration config) throws ServiceException {
+    public GoogleOAuth2Handler(Configuration config)  {
         super(config, GoogleConstants.CLIENT_NAME, GoogleConstants.HOST_GOOGLE);
         authenticateUri = GoogleConstants.AUTHENTICATE_URI;
         relayKey = GoogleConstants.RELAY_KEY;

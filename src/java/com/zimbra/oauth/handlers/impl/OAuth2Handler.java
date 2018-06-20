@@ -112,13 +112,13 @@ public abstract class OAuth2Handler {
         this.client = client;
         this.config = config;
         dataSource = OAuthDataSource.createDataSource(client, clientHost);
-        final String zimbraHostname =  this.config.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
+        final String zimbraHostname =  config.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
         // warn if missing hostname
         if (StringUtils.isEmpty(zimbraHostname)) {
             ZimbraLog.extensions.warn("The zimbra server hostname is not configured.");
         }
         // cache the host uri
-        zimbraHostUri = String.format(this.config.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE,
+        zimbraHostUri = String.format(config.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE,
             OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE), zimbraHostname);
     }
 
@@ -197,21 +197,21 @@ public abstract class OAuth2Handler {
     protected String buildAuthorizeUri(String template, Account account) throws ServiceException {
         final String responseType = "code";
         String encodedRedirectUri = "";
-        String clientId = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
-        String clientRedirectUri = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client, account);
+        String clientId = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
+        String clientRedirectUri = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client, account);
 
         String scope = null;
         switch (client) {
             case FacebookConstants.CLIENT_NAME : {
                 scope = StringUtils.join(
-                    new String[] { FacebookConstants.REQUIRED_SCOPES, this.config.getString(String
+                    new String[] { FacebookConstants.REQUIRED_SCOPES, config.getString(String
                         .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, client), client, account) },
                     ",");
                 break;
             }
             case GoogleConstants.CLIENT_NAME : {
                 scope = StringUtils.join(
-                    new String[] { GoogleConstants.REQUIRED_SCOPES, this.config.getString(String
+                    new String[] { GoogleConstants.REQUIRED_SCOPES, config.getString(String
                         .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, client), client, account) },
                     "+");
                 break;
@@ -289,9 +289,9 @@ public abstract class OAuth2Handler {
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
         
         Account account = oauthInfo.getAccount();
-        String clientId = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
-        String clientSecret = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client, account);
-        String clientRedirectUri = this.config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client, account);
+        String clientId = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
+        String clientSecret = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client, account);
+        String clientRedirectUri = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client, account);
         String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
 
         // set client specific properties
@@ -324,6 +324,7 @@ public abstract class OAuth2Handler {
      * Retrieves the social service account primary email from the `id_token`.
      *
      * @param credentials The get_token response containing an id_token
+     * @acct the user account for which datasource is being setup
      * @return The primary email address associated with the credentials
      * @throws ServiceException If there are issues determining the primary
      *             address

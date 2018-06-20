@@ -38,6 +38,7 @@ public interface IOAuth2Handler {
      *
      * @param relayState The location to direct the user after authenticating
      * @return The authorize endpoint
+     * @acct The user account
      * @throws ServiceException If there are issues determining the
      *             endpoint
      */
