@@ -40,13 +40,14 @@ import org.powermock.reflect.Whitebox;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.LdapConfiguration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 
 /**
  * Test class for {@link ClassManager}.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ ClassManager.class, Configuration.class })
+@PrepareForTest({ ClassManager.class, LdapConfiguration.class })
 public class ClassManagerTest {
 
     /**
@@ -76,13 +77,13 @@ public class ClassManagerTest {
      */
     @Before
     public void setUp() throws Exception {
-        PowerMock.mockStatic(Configuration.class);
+        PowerMock.mockStatic(LdapConfiguration.class);
 
         // set the handler cache for reference during tests
         handlerCacheMap = new HashMap<String, IOAuth2Handler>();
         Whitebox.setInternalState(ClassManager.class, "handlersCache", handlerCacheMap);
 
-        mockConfig = EasyMock.createMock(Configuration.class);
+        mockConfig = EasyMock.createMock(LdapConfiguration.class);
     }
 
     /**
@@ -93,22 +94,21 @@ public class ClassManagerTest {
      */
     @Test
     public void testGetHandler() throws Exception {
-        expect(Configuration.buildConfiguration(anyObject(String.class))).andReturn(mockConfig);
+        LdapConfiguration.buildConfiguration(anyObject(String.class));
+        PowerMock.expectLastCall().andReturn(mockConfig);
         expect(mockConfig.getString(matches(OAuth2Constants.LC_HANDLER_CLASS_PREFIX + client)))
             .andReturn("com.zimbra.oauth.handlers.impl.YahooOAuth2Handler");
         expect(mockConfig.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME)).andReturn(hostname);
         expect(mockConfig.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE,
             OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
                 .andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
-        // expect some properties to be read at least once
-        expect(mockConfig.getString(anyObject(String.class))).andReturn("").atLeastOnce();
 
-        PowerMock.replay(Configuration.class);
+        PowerMock.replay(LdapConfiguration.class);
         replay(mockConfig);
 
         ClassManager.getHandler(client);
 
-        PowerMock.verify(Configuration.class);
+        PowerMock.verify(LdapConfiguration.class);
         verify(mockConfig);
         assertEquals(1, handlerCacheMap.size());
         assertNotNull(handlerCacheMap.get(client));
@@ -123,15 +123,15 @@ public class ClassManagerTest {
     @Test
     public void testGetHandlerBadClient() throws Exception {
         final String badClient = "not-a-client";
-        expect(Configuration.buildConfiguration(matches(badClient)))
-            .andThrow(ServiceException.UNSUPPORTED());
+        LdapConfiguration.buildConfiguration(matches(badClient));
+        PowerMock.expectLastCall().andThrow(ServiceException.UNSUPPORTED());
 
-        PowerMock.replay(Configuration.class);
+        PowerMock.replay(LdapConfiguration.class);
 
         try {
             ClassManager.getHandler(badClient);
         } catch (final ServiceException e) {
-            PowerMock.verify(Configuration.class);
+            PowerMock.verify(LdapConfiguration.class);
             assertEquals(ServiceException.UNSUPPORTED, e.getCode());
             return;
         }

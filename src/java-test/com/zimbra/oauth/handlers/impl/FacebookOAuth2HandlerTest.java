@@ -39,6 +39,7 @@ import org.powermock.reflect.Whitebox;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZMailbox;
+import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookConstants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
@@ -96,16 +97,16 @@ public class FacebookOAuth2HandlerTest {
     @Before
     public void setUp() throws Exception {
         handler = PowerMock.createPartialMockForAllMethodsExcept(FacebookOAuth2Handler.class,
-            "authorize", "authenticate", "buildAuthorizeUri");
+            "authorize", "authenticate");
+        Whitebox.setInternalState(handler, "config", mockConfig);
         Whitebox.setInternalState(handler, "relayKey", FacebookConstants.RELAY_KEY);
-        Whitebox.setInternalState(handler, "clientRedirectUri", clientRedirectUri);
-        Whitebox.setInternalState(handler, "clientId", clientId);
-        Whitebox.setInternalState(handler, "clientSecret", clientSecret);
         Whitebox.setInternalState(handler, "authenticateUri", FacebookConstants.AUTHENTICATE_URI);
-        Whitebox.setInternalState(handler, "scope", FacebookConstants.REQUIRED_SCOPES);
+        Whitebox.setInternalState(handler, "authorizeUriTemplate",
+            FacebookConstants.AUTHORIZE_URI_TEMPLATE);
+        Whitebox.setInternalState(handler, "requiredScopes", FacebookConstants.REQUIRED_SCOPES);
+        Whitebox.setInternalState(handler, "scopeDelimiter", FacebookConstants.SCOPE_DELIMITER);
+        Whitebox.setInternalState(handler, "client", FacebookConstants.CLIENT_NAME);
         Whitebox.setInternalState(handler, "dataSource", mockDataSource);
-        Whitebox.setInternalState(handler, "authorizeUri",
-            handler.buildAuthorizeUri(FacebookConstants.AUTHORIZE_URI_TEMPLATE));
     }
 
     /**
@@ -122,16 +123,6 @@ public class FacebookOAuth2HandlerTest {
             OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
                 .andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
         expect(mockConfig.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME)).andReturn(hostname);
-        expect(mockConfig.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE,
-            FacebookConstants.CLIENT_NAME))).andReturn(clientId);
-        expect(mockConfig.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE,
-            FacebookConstants.CLIENT_NAME))).andReturn(clientSecret);
-        expect(mockConfig.getString(String.format(
-            OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, FacebookConstants.CLIENT_NAME)))
-                .andReturn(clientRedirectUri);
-        expect(mockConfig.getString(
-            String.format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, FacebookConstants.CLIENT_NAME)))
-                .andReturn(null);
         PowerMock.mockStatic(OAuthDataSource.class);
         expect(OAuthDataSource.createDataSource(FacebookConstants.CLIENT_NAME,
             FacebookConstants.HOST_FACEBOOK)).andReturn(mockDataSource);
@@ -155,8 +146,19 @@ public class FacebookOAuth2HandlerTest {
     @Test
     public void testAuthorize() throws Exception {
         final String encodedUri = URLEncoder.encode(clientRedirectUri, OAuth2Constants.ENCODING);
+        final String expectedAuthorize = String.format(FacebookConstants.AUTHORIZE_URI_TEMPLATE,
+            clientId, encodedUri, "code", FacebookConstants.REQUIRED_SCOPES);
 
-        final String authorizeLocation = handler.authorize(null);
+        // expect buildAuthorize call
+        expect(handler.buildAuthorizeUri(FacebookConstants.AUTHORIZE_URI_TEMPLATE, null))
+            .andReturn(expectedAuthorize);
+
+        replay(handler);
+
+        final String authorizeLocation = handler.authorize(null, null);
+
+        // verify build was called
+        verify(handler);
 
         assertNotNull(authorizeLocation);
         assertEquals(String.format(FacebookConstants.AUTHORIZE_URI_TEMPLATE, clientId, encodedUri,
@@ -165,7 +167,7 @@ public class FacebookOAuth2HandlerTest {
 
     /**
      * Test method for {@link FacebookOAuth2Handler#authenticate}<br>
-     * Validates that the authenticate method calls update datasource.
+     * Validates that the authenticate method calls sync datasource.
      *
      * @throws Exception If there are issues testing
      */
@@ -181,6 +183,19 @@ public class FacebookOAuth2HandlerTest {
 
         PowerMock.mockStatic(OAuth2Handler.class);
 
+        expect(mockOAuthInfo.getAccount()).andReturn(null);
+        expect(mockConfig.getString(
+            matches(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE,
+                FacebookConstants.CLIENT_NAME)),
+            matches(FacebookConstants.CLIENT_NAME), anyObject())).andReturn(clientId);
+        expect(mockConfig.getString(
+            matches(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE,
+                FacebookConstants.CLIENT_NAME)),
+            matches(FacebookConstants.CLIENT_NAME), anyObject())).andReturn(clientSecret);
+        expect(mockConfig.getString(
+            matches(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE,
+                FacebookConstants.CLIENT_NAME)),
+            matches(FacebookConstants.CLIENT_NAME), anyObject())).andReturn(clientRedirectUri);
         expect(handler.getZimbraMailbox(anyObject(String.class))).andReturn(mockZMailbox);
         expect(OAuth2Handler.getTokenRequest(anyObject(OAuthInfo.class), anyObject(String.class)))
             .andReturn(mockCredentials);
@@ -188,7 +203,8 @@ public class FacebookOAuth2HandlerTest {
         EasyMock.expectLastCall().once();
         expect(mockCredentials.get("access_token")).andReturn(mockCredentialsAToken);
         expect(mockCredentialsAToken.asText()).andReturn(accessToken);
-        expect(handler.getPrimaryEmail(anyObject(JsonNode.class))).andReturn(user_id);
+        expect(handler.getPrimaryEmail(anyObject(JsonNode.class), anyObject(Account.class)))
+            .andReturn(user_id);
 
         mockOAuthInfo.setClientId(matches(clientId));
         EasyMock.expectLastCall().once();
@@ -209,6 +225,7 @@ public class FacebookOAuth2HandlerTest {
         replay(handler);
         PowerMock.replay(OAuth2Handler.class);
         replay(mockOAuthInfo);
+        replay(mockConfig);
         replay(mockCredentials);
         replay(mockCredentialsAToken);
         replay(mockDataSource);
@@ -218,6 +235,7 @@ public class FacebookOAuth2HandlerTest {
         verify(handler);
         PowerMock.verify(OAuth2Handler.class);
         verify(mockOAuthInfo);
+        verify(mockConfig);
         verify(mockCredentials);
         verify(mockCredentialsAToken);
         verify(mockDataSource);
