@@ -156,7 +156,6 @@ public class FacebookContactsImport implements DataImport {
         final String clientRedirectUri = config.getString(String.format(
             OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, FacebookConstants.CLIENT_NAME),
             FacebookConstants.CLIENT_NAME, acct);
-
           // set client specific properties
           oauthInfo.setRefreshToken(refreshToken);
           oauthInfo.setClientId(clientId);

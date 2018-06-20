@@ -214,12 +214,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     public FacebookOAuth2Handler(Configuration config) {
 
         super(config, FacebookConstants.CLIENT_NAME, FacebookConstants.HOST_FACEBOOK);
-        scope = StringUtils.join(
-            new String[] { FacebookConstants.REQUIRED_SCOPES, config.getString(String
-                    .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, FacebookConstants.CLIENT_NAME)) },
-            ",");
         authenticateUri = FacebookConstants.AUTHENTICATE_URI;
-        authorizeUri = buildAuthorizeUri(FacebookConstants.AUTHORIZE_URI_TEMPLATE);
         relayKey = FacebookConstants.RELAY_KEY;
         dataSource.addImportClass(View.contact.name(),
                 FacebookContactsImport.class.getCanonicalName());
@@ -246,7 +241,6 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
             throw ServiceException.FAILURE("Required config(id, secret and redirectUri) parameters are not provided.", null);
         }
         final String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
-        // set client specific properties
         oauthInfo.setClientId(clientId);
         oauthInfo.setClientSecret(clientSecret);
         oauthInfo.setClientRedirectUri(clientRedirectUri);
@@ -256,7 +250,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         // ensure the response contains the necessary credentials
         validateTokenResponse(credentials);
         // determine account associated with credentials
-        final String username = getPrimaryEmail(credentials);
+        final String username = getPrimaryEmail(credentials, account);
         ZimbraLog.extensions.trace("Authentication performed for:" + username);
 
         // get zimbra mailbox
