@@ -48,10 +48,6 @@ import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
 import com.zimbra.cs.httpclient.HttpProxyUtil;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
-import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookConstants;
-import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler.GoogleConstants;
-import com.zimbra.oauth.handlers.impl.OutlookOAuth2Handler.OutlookConstants;
-import com.zimbra.oauth.handlers.impl.YahooOAuth2Handler.YahooConstants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
@@ -77,6 +73,21 @@ public abstract class OAuth2Handler {
      * Implementation authenticate uri.
      */
     protected String authenticateUri;
+
+    /**
+     * Implementation authorize uri template.
+     */
+    protected String authorizeUriTemplate;
+
+    /**
+     * Implementation required authorization scopes.
+     */
+    protected String requiredScopes;
+
+    /**
+     * Implementation authorization scope delimiter.
+     */
+    protected String scopeDelimiter;
 
     /**
      * Implementation relay key.
@@ -107,12 +118,14 @@ public abstract class OAuth2Handler {
      * Constructor.
      *
      * @param config A configuration object
+     * @param client The app client name (yahoo, facebook, google, etc)
+     * @param clientHost The hostname associated with the client
      */
     public OAuth2Handler(Configuration config, String client, String clientHost) {
         this.client = client;
         this.config = config;
         dataSource = OAuthDataSource.createDataSource(client, clientHost);
-        final String zimbraHostname =  config.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
+        final String zimbraHostname = config.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
         // warn if missing hostname
         if (StringUtils.isEmpty(zimbraHostname)) {
             ZimbraLog.extensions.warn("The zimbra server hostname is not configured.");
@@ -169,7 +182,8 @@ public abstract class OAuth2Handler {
         request.setParameter("redirect_uri", authInfo.getClientRedirectUri());
         request.setParameter("client_secret", authInfo.getClientSecret());
         request.setParameter("client_id", authInfo.getClientId());
-        request.setRequestHeader(OAuth2Constants.HEADER_CONTENT_TYPE, "application/x-www-form-urlencoded");
+        request.setRequestHeader(OAuth2Constants.HEADER_CONTENT_TYPE,
+            "application/x-www-form-urlencoded");
         request.setRequestHeader(OAuth2Constants.HEADER_AUTHORIZATION, "Basic " + basicToken);
         JsonNode json = null;
         try {
@@ -191,39 +205,29 @@ public abstract class OAuth2Handler {
      * `clientId`, `scope`.
      *
      * @param template The authorize uri template for this implementation
+     * @param account The account to acquire configuration by access level
      * @return The authorize uri
-     * @throws ServiceException 
+     * @throws ServiceException If there are issues with the app configuration
+     *             (missing credentials)
      */
     protected String buildAuthorizeUri(String template, Account account) throws ServiceException {
         final String responseType = "code";
         String encodedRedirectUri = "";
-        String clientId = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
-        String clientRedirectUri = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client, account);
+        final String clientId = config.getString(
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
+        final String clientRedirectUri = config.getString(
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,
+            account);
 
-        String scope = null;
-        switch (client) {
-            case FacebookConstants.CLIENT_NAME : {
-                scope = StringUtils.join(
-                    new String[] { FacebookConstants.REQUIRED_SCOPES, config.getString(String
-                        .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, client), client, account) },
-                    ",");
-                break;
-            }
-            case GoogleConstants.CLIENT_NAME : {
-                scope = StringUtils.join(
-                    new String[] { GoogleConstants.REQUIRED_SCOPES, config.getString(String
-                        .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, client), client, account) },
-                    "+");
-                break;
-            }
-            default : {
-                break;
-            }
-        }
+        final String scope = StringUtils.join(
+            new String[] { requiredScopes, config.getString(
+                String.format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, client), client, account) },
+            scopeDelimiter);
 
         if (StringUtil.isNullOrEmpty(clientId) || StringUtil.isNullOrEmpty(clientRedirectUri)) {
-            throw ServiceException.NOT_FOUND(String.format("The app: %s is not properly configured, please set Oauth credentials and redurect uri", client), 
-                new Exception("Invalid config"));
+            throw ServiceException.NOT_FOUND(String.format(
+                "The app: %s is not properly configured, please set Oauth credentials and redurect uri",
+                client), new Exception("Invalid config"));
         }
 
         try {
@@ -236,9 +240,9 @@ public abstract class OAuth2Handler {
     }
 
     /**
-     * @see IOAuth2Handler#authorize(String)
+     * @see IOAuth2Handler#authorize(String, Account)
      */
-    public String authorize(String relayState, Account acct) throws ServiceException {
+    public String authorize(String relayState, Account account) throws ServiceException {
         String relayValue = "";
         String relay = StringUtils.defaultString(relayState, "");
 
@@ -257,43 +261,23 @@ public abstract class OAuth2Handler {
             }
         }
 
-        String authorizeUri = null;
-        switch (client) {
-
-            case GoogleConstants.CLIENT_NAME:{
-               authorizeUri =  buildAuthorizeUri(GoogleConstants.AUTHORIZE_URI_TEMPLATE, acct);
-               break;
-            }
-            case YahooConstants.CLIENT_NAME:{
-                authorizeUri =  buildAuthorizeUri(YahooConstants.AUTHORIZE_URI_TEMPLATE, acct);
-                break;
-            }
-            case FacebookConstants.CLIENT_NAME:{
-                authorizeUri =  buildAuthorizeUri(FacebookConstants.AUTHORIZE_URI_TEMPLATE, acct);
-                break;
-            }
-            case OutlookConstants.CLIENT_NAME:{
-                authorizeUri =  buildAuthorizeUri(OutlookConstants.AUTHORIZE_URI_TEMPLATE, acct);
-                break;
-            }
-            default : {
-                break;
-            }
-        }
-        return authorizeUri + relayValue;
+        return buildAuthorizeUri(authorizeUriTemplate, account) + relayValue;
     }
 
     /**
      * @see IOAuth2Handler#authenticate(OAuthInfo)
      */
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
-        
-        Account account = oauthInfo.getAccount();
-        String clientId = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
-        String clientSecret = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client, account);
-        String clientRedirectUri = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client, account);
-        String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
-
+        final Account account = oauthInfo.getAccount();
+        final String clientId = config.getString(
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
+        final String clientSecret = config.getString(
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client,
+            account);
+        final String clientRedirectUri = config.getString(
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,
+            account);
+        final String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
         // set client specific properties
         oauthInfo.setClientId(clientId);
         oauthInfo.setClientSecret(clientSecret);
@@ -324,12 +308,13 @@ public abstract class OAuth2Handler {
      * Retrieves the social service account primary email from the `id_token`.
      *
      * @param credentials The get_token response containing an id_token
-     * @acct the user account for which datasource is being setup
+     * @param account The account to acquire configuration by access level
      * @return The primary email address associated with the credentials
      * @throws ServiceException If there are issues determining the primary
      *             address
      */
-    protected String getPrimaryEmail(JsonNode credentials, Account acct) throws ServiceException {
+    protected String getPrimaryEmail(JsonNode credentials, Account account)
+        throws ServiceException {
         final DecodedJWT jwt = JWT.decode(credentials.get("id_token").asText());
         final Claim emailClaim = jwt.getClaim("email");
         if (emailClaim == null || StringUtils.isEmpty(emailClaim.asString())) {

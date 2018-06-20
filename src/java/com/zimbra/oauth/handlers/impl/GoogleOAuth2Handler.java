@@ -104,6 +104,11 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         protected static final String REQUIRED_SCOPES = "email";
 
         /**
+         * The scope delimiter for Google.
+         */
+        protected static final String SCOPE_DELIMITER = "+";
+
+        /**
          * The relay key for Google.
          */
         protected static final String RELAY_KEY = "state";
@@ -124,9 +129,12 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
      *
      * @param config For accessing configured properties
      */
-    public GoogleOAuth2Handler(Configuration config)  {
+    public GoogleOAuth2Handler(Configuration config) {
         super(config, GoogleConstants.CLIENT_NAME, GoogleConstants.HOST_GOOGLE);
         authenticateUri = GoogleConstants.AUTHENTICATE_URI;
+        authorizeUriTemplate = GoogleConstants.AUTHORIZE_URI_TEMPLATE;
+        requiredScopes = GoogleConstants.REQUIRED_SCOPES;
+        scopeDelimiter = GoogleConstants.SCOPE_DELIMITER;
         relayKey = GoogleConstants.RELAY_KEY;
         dataSource.addImportClass(View.contact.name(),
             GoogleContactsImport.class.getCanonicalName());

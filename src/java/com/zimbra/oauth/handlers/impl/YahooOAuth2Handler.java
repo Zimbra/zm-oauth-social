@@ -139,6 +139,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
     public YahooOAuth2Handler(Configuration config) {
         super(config, YahooConstants.CLIENT_NAME, ZDataSource.SOURCE_HOST_YAHOO);
         authenticateUri = YahooConstants.AUTHENTICATE_URI;
+        authorizeUriTemplate = YahooConstants.AUTHORIZE_URI_TEMPLATE;
         relayKey = YahooConstants.RELAY_KEY;
         // add associated import classes
         dataSource.addImportClass(View.contact.name(),
@@ -217,13 +218,9 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
     }
 
     /**
-     * Retrieves the primary email of the user with the specified guid and auth
-     * token.
+     * Retrieves the primary email of the user from the profile api.
      *
-     * @param guid The identifier for the user
-     * @param authToken The auth for the user
-     * @return The user's primary email
-     * @throws ServiceExcpetion If there are issues
+     * @see OAuth2Handler#getPrimaryEmail(JsonNode, Account)
      */
     @Override
     protected String getPrimaryEmail(JsonNode credentials, Account acct) throws ServiceException {
@@ -231,7 +228,8 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         final String authToken = credentials.get("access_token").asText();
         final String url = String.format(YahooConstants.PROFILE_URI, guid);
         final GetMethod request = new GetMethod(url);
-        request.setRequestHeader(OAuth2Constants.HEADER_CONTENT_TYPE, "application/x-www-form-urlencoded");
+        request.setRequestHeader(OAuth2Constants.HEADER_CONTENT_TYPE,
+            "application/x-www-form-urlencoded");
         request.setRequestHeader(OAuth2Constants.HEADER_ACCEPT, "application/json");
         request.setRequestHeader(OAuth2Constants.HEADER_AUTHORIZATION, "Bearer " + authToken);
 
