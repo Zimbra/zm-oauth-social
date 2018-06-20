@@ -30,6 +30,7 @@ import org.apache.http.client.utils.URIBuilder;
 
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.managers.ClassManager;
 import com.zimbra.oauth.models.OAuthInfo;
@@ -49,12 +50,13 @@ public class OAuth2ResourceUtilities {
      * @param client The client
      * @param relay The relay state
      * @return Location to redirect to
+     * @acct the user account for which datasource is being setup
      * @throws ServiceException If there are issues
      */
-    public static final String authorize(String client, String relay) throws ServiceException {
+    public static final String authorize(String client, String relay, Account acct) throws ServiceException {
         final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
         ZimbraLog.extensions.debug("Client : %s, handler:%s, relay:%s ", client, oauth2Handler,relay);
-        return oauth2Handler.authorize(relay);
+        return oauth2Handler.authorize(relay, acct);
     }
 
     /**
@@ -63,12 +65,13 @@ public class OAuth2ResourceUtilities {
      *
      * @param client The client
      * @param queryParams Map of query params
+     * @acct the user account for which datasource is being setup
      * @param zmAuthToken The Zimbra auth token
      * @return Location to redirect to
      * @throws ServiceException If there are issues
      */
     public static String authenticate(String client, Map<String, String[]> queryParams,
-        String zmAuthToken) throws ServiceException {
+        Account account, String zmAuthToken) throws ServiceException {
         final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
         final Map<String, String> errorParams = new HashMap<String, String>();
         final Map<String, String> params = getParams(oauth2Handler.getAuthenticateParamKeys(),
@@ -103,6 +106,7 @@ public class OAuth2ResourceUtilities {
                     // no errors and auth token exists
                     // attempt to authenticate
                     final OAuthInfo authInfo = new OAuthInfo(params);
+                    authInfo.setAccount(account);
                     authInfo.setZmAuthToken(zmAuthToken);
                     oauth2Handler.authenticate(authInfo);
                 } catch (final ServiceException e) {

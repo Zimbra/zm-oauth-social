@@ -22,16 +22,17 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
 import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.lang.StringUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
+import com.zimbra.oauth.utilities.OAuth2Utilities;
 
 /**
  * The FacebookOAuth2Handler class.<br>
@@ -170,13 +171,9 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
      */
 
     public FacebookOAuth2Handler(Configuration config) {
+
         super(config, FacebookConstants.CLIENT_NAME, FacebookConstants.HOST_FACEBOOK);
-        scope = StringUtils.join(
-            new String[] { FacebookConstants.REQUIRED_SCOPES, config.getString(String
-                .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, FacebookConstants.CLIENT_NAME)) },
-            "+");
         authenticateUri = FacebookConstants.AUTHENTICATE_URI;
-        authorizeUri = buildAuthorizeUri(FacebookConstants.AUTHORIZE_URI_TEMPLATE);
         relayKey = FacebookConstants.RELAY_KEY;
     }
 
@@ -188,6 +185,12 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     @Override
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
         // set client specific properties
+        
+        Account account = oauthInfo.getAccount();
+        String clientId = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client),client, account);
+        String clientSecret = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client, account);
+        String clientRedirectUri = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,account);
+        String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
         oauthInfo.setClientId(clientId);
         oauthInfo.setClientSecret(clientSecret);
         oauthInfo.setClientRedirectUri(clientRedirectUri);
@@ -197,7 +200,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         // ensure the response contains the necessary credentials
         validateTokenResponse(credentials);
         // determine account associated with credentials
-        final String username = getPrimaryEmail(credentials);
+        final String username = getPrimaryEmail(credentials, account);
         ZimbraLog.extensions.trace("Authentication performed for:" + username);
 
         // get zimbra mailbox
@@ -314,18 +317,19 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
      * token.
      *
      * @param credentials The json containing an access_token
+     * @acct the user account for which datasource is being setup
      * @return The unique user ID
      * @throws ServiceException If there are issues determining the primary
      *             address
      */
     @Override
-    protected String getPrimaryEmail(JsonNode credentials) throws ServiceException {
+    protected String getPrimaryEmail(JsonNode credentials, Account acct) throws ServiceException {
         JsonNode json = null;
         final String authToken = credentials.get("access_token").asText();
         String queryString;
         try {
             queryString = "?input_token=" + authToken + "&access_token="
-                + URLEncoder.encode(getAppToken(), OAuth2Constants.ENCODING);
+                + URLEncoder.encode(getAppToken(acct), OAuth2Constants.ENCODING);
         } catch (final UnsupportedEncodingException e) {
             throw ServiceException.PARSE_ERROR("Url encoding the social service app token failed.",
                 e);
@@ -359,14 +363,18 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     /**
      * Retrieves the App Token.
      *
+     * @acct the user account for which datasource is being setup
      * @return The Facebook App token
      * @throws ServiceException If there was an issue with the request
      */
-    protected String getAppToken() throws ServiceException {
+    protected String getAppToken(Account account) throws ServiceException {
         JsonNode json = null;
         final String url = FacebookConstants.AUTHENTICATE_URI;
-        final String queryString = "?client_id=" + this.clientId + "&client_secret="
-            + this.clientSecret + "&grant_type=client_credentials";
+        String clientId = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
+        String clientSecret = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client, account);
+
+        final String queryString = "?client_id=" + clientId + "&client_secret="
+                + clientSecret + "&grant_type=client_credentials";
         try {
             final GetMethod request = new GetMethod(url);
             request.setQueryString(queryString);

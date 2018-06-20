@@ -16,8 +16,11 @@
  */
 package com.zimbra.oauth.utilities;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.Provisioning;
 
 /**
@@ -42,13 +45,15 @@ public class LdapConfiguration extends Configuration {
      * Get the associated value with the key.
      *
      * @param key A key to lookup
-     * @return A value for a given key
+     * @appName the social account name
+     * @acct the user account for which datasource is being setup
+     * @return A value for a given key for given social account and user account
+     *
      */
     @Override
-    public String getString(String key) {
+    public  String getString(String key, String appName, Account account) {
         
-        String appName = this.getClientId();
-        return getConfig(key, appName);
+        return getConfig(key, appName, account);
     }
 
     /**
@@ -56,75 +61,70 @@ public class LdapConfiguration extends Configuration {
      * @param appName client app name
      * @return value for the associated key
      */
-    public String getConfig(String key, String appName) {
+    public String getConfig(String key, String appName, Account acct) {
 
         String value = null;
-        try {
-           if (key.endsWith(OAuth2Constants.OAUTH_CLIENT_ID)) {
-                String[] registeredOAuth2Clients = Provisioning.getInstance().getConfig()
-                    .getMultiAttr(Provisioning.A_zimbraOAuthConsumerCredentials);
-                if (registeredOAuth2Clients != null && registeredOAuth2Clients.length != 0) {
-                    // {consumer-id}:{secret}:{consumer-app-name}
-                    for (String consumer : registeredOAuth2Clients) {
-                        String s[] = consumer.split(":");
-                        if (s.length == 3 && s[2].equals(appName)) {
-                            value = s[0];
-                            break;
-                        }
-                    }
-                }
-            } else if (key.endsWith(OAuth2Constants.OAUTH_CLIENT_SECRET)) {
-                String[] registeredOAuth2Clients = Provisioning.getInstance().getConfig()
-                    .getMultiAttr(Provisioning.A_zimbraOAuthConsumerCredentials);
-                if (registeredOAuth2Clients != null && registeredOAuth2Clients.length != 0) {
-                    // {consumer-id}:{secret}:{consumer-app-name}
-                    for (String consumer : registeredOAuth2Clients) {
-                        String s[] = consumer.split(":");
-                        if (s.length == 3 && s[2].equals(appName)) {
-                            value = s[1];
-                            break;
-                        }
-                    }
-                }
-            } else if (key.endsWith(OAuth2Constants.OAUTH_CLIENT_REDIRECT_URI)) {
-                String[] registeredOAuth2RedirectUrls = Provisioning.getInstance().getConfig()
-                    .getMultiAttr(Provisioning.A_zimbraOAuthConsumerRedirectUri);
-                if (registeredOAuth2RedirectUrls != null
-                    && registeredOAuth2RedirectUrls.length != 0) {
-                    // {redirectURI}:{consumer-app-name} (the redirect uri can contain ":")
-                    for (String consumer : registeredOAuth2RedirectUrls) {
-                        int index = consumer.lastIndexOf(':');
-                        if (index != -1) {
-                            String temp = consumer.substring(index+1);
-                            if (temp.equals(appName)) {
-                                value = consumer.substring(0, index);
-                                break;
-                            }
-                        }
-                    }
-                }
-            } else if (key.endsWith(OAuth2Constants.OAUTH_SCOPE)) {
-                String[] registeredOAuth2APIScope = Provisioning.getInstance().getConfig()
-                    .getMultiAttr(Provisioning.A_zimbraOAuthConsumerAPIScope);
+        ZimbraLog.extensions.debug("App name is:%s", appName);
 
-                if (registeredOAuth2APIScope != null && registeredOAuth2APIScope.length != 0) {
-                    for (String scope : registeredOAuth2APIScope) {
-                        int index = scope.lastIndexOf(':');
-                        if (index != -1) {
-                            String temp = scope.substring(index+1);
-                            if (temp.equals(appName)) {
-                                value = scope.substring(0, index);
-                                break;
-                            }
+       if (key.endsWith(OAuth2Constants.OAUTH_CLIENT_ID)) {
+            String[] registeredOAuth2Clients = loadConfiguration(acct, Provisioning.A_zimbraOAuthConsumerCredentials, appName);
+
+            if (registeredOAuth2Clients != null && registeredOAuth2Clients.length != 0) {
+                // {consumer-id}:{secret}:{consumer-app-name}
+                for (String consumer : registeredOAuth2Clients) {
+                    String s[] = consumer.split(":");
+                    
+                    if (s.length == 3 && s[2].equals(appName)) {
+                        value = s[0];
+                        break;
+                    }
+                }
+            }
+        } else if (key.endsWith(OAuth2Constants.OAUTH_CLIENT_SECRET)) {
+            String[] registeredOAuth2Clients = loadConfiguration(acct, Provisioning.A_zimbraOAuthConsumerCredentials, appName);
+            if (registeredOAuth2Clients != null && registeredOAuth2Clients.length != 0) {
+                // {consumer-id}:{secret}:{consumer-app-name}
+                for (String consumer : registeredOAuth2Clients) {
+                    String s[] = consumer.split(":");
+                    if (s.length == 3 && s[2].equals(appName)) {
+                        value = s[1];
+                        break;
+                    }
+                }
+            }
+        } else if (key.endsWith(OAuth2Constants.OAUTH_CLIENT_REDIRECT_URI)) {
+            String[] registeredOAuth2RedirectUrls = loadConfiguration(acct, Provisioning.A_zimbraOAuthConsumerRedirectUri, appName);
+            if (registeredOAuth2RedirectUrls != null
+                && registeredOAuth2RedirectUrls.length != 0) {
+                // {redirectURI}:{consumer-app-name} (the redirect uri can contain ":")
+                for (String consumer : registeredOAuth2RedirectUrls) {
+                    int index = consumer.lastIndexOf(':');
+                    if (index != -1) {
+                        String temp = consumer.substring(index+1);
+                        if (temp.equals(appName)) {
+                            value = consumer.substring(0, index);
+                            break;
                         }
                     }
                 }
-            } else {
-                value = getString(key, null);
             }
-        } catch (ServiceException e) {
-            ZimbraLog.extensions.info("Error fetching configuration : %s for : %s", key, appName);
-            ZimbraLog.extensions.debug(e);
+        } else if (key.endsWith(OAuth2Constants.OAUTH_SCOPE)) {
+            String[] registeredOAuth2APIScope = loadConfiguration(acct, Provisioning.A_zimbraOAuthConsumerAPIScope, appName);
+
+            if (registeredOAuth2APIScope != null && registeredOAuth2APIScope.length != 0) {
+                for (String scope : registeredOAuth2APIScope) {
+                    int index = scope.lastIndexOf(':');
+                    if (index != -1) {
+                        String temp = scope.substring(index+1);
+                        if (temp.equals(appName)) {
+                            value = scope.substring(0, index);
+                            break;
+                        }
+                    }
+                }
+            }
+        } else {
+            value = getString(key, null);
         }
         if (key.endsWith(OAuth2Constants.OAUTH_CLIENT_SECRET)) {
             ZimbraLog.extensions.trace("Requested : %s  and value is: %s ", key, "****");
@@ -134,6 +134,31 @@ public class LdapConfiguration extends Configuration {
         return value;
     }
 
+    /**
+     *
+     * @acct the user account for which datasource is being setup
+     * @param key the ldap config key
+     * @param appName the social app
+     * @return the attributes values
+     */
+    private static String[] loadConfiguration(Account acct, String key, String appName) {
+        String [] values = null;
+        ZimbraLog.extensions.debug("Loading configuration: %s for: %s", key, acct.getName());
+        try {
+            values = Provisioning.getInstance().getDomain(acct).getMultiAttr(key);
+            String temp = StringUtils.join(values);
+            if (values == null || values.length == 0 || !temp.contains(appName)) {
+                ZimbraLog.extensions.trace("Config:%s does not exist at domain level", key);
+                values = Provisioning.getInstance().getConfig()
+                    .getMultiAttr(key);
+            }
+        } catch (ServiceException e) {
+            ZimbraLog.extensions.info("Error loading configuration : %s for : %s", key, acct.getName());
+            ZimbraLog.extensions.debug(e);
+        }
+        ZimbraLog.extensions.debug("Configuration is: %s", StringUtils.join(values));
+        return values;
+    }
 
    /**
     * Loads a single configuration by name (no extension).<br>
