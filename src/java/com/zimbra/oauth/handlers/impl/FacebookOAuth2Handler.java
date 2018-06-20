@@ -215,12 +215,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     public FacebookOAuth2Handler(Configuration config) {
 
         super(config, FacebookConstants.CLIENT_NAME, FacebookConstants.HOST_FACEBOOK);
-        scope = StringUtils.join(
-            new String[] { FacebookConstants.REQUIRED_SCOPES, config.getString(String
-                    .format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, FacebookConstants.CLIENT_NAME)) },
-            ",");
         authenticateUri = FacebookConstants.AUTHENTICATE_URI;
-        authorizeUri = buildAuthorizeUri(FacebookConstants.AUTHORIZE_URI_TEMPLATE);
         relayKey = FacebookConstants.RELAY_KEY;
         // add associated import classes
         dataSource.addImportClass(View.contact.name(),
@@ -233,8 +228,14 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
      * @see IOAuth2Handler#authenticate(OAuthInfo)
      */
     @Override
-    public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
+    public Boolean authenticate(OAuthInfo oauthInfo) {
         // set client specific properties
+        try {
+        Account account = oauthInfo.getAccount();
+        String clientId = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client),client, account);
+        String clientSecret = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client, account);
+        String clientRedirectUri = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,account);
+        String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
         oauthInfo.setClientId(clientId);
         oauthInfo.setClientSecret(clientSecret);
         oauthInfo.setClientRedirectUri(clientRedirectUri);
@@ -244,7 +245,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         // ensure the response contains the necessary credentials
         validateTokenResponse(credentials);
         // determine account associated with credentials
-        final String username = getPrimaryEmail(credentials);
+        final String username = getPrimaryEmail(credentials, account);
         ZimbraLog.extensions.trace("Authentication performed for:" + username);
 
         // get zimbra mailbox
@@ -254,6 +255,9 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         oauthInfo.setUsername(username);
         oauthInfo.setRefreshToken(credentials.get("access_token").asText());
         dataSource.syncDatasource(mailbox, oauthInfo);
+        } catch(Exception e) {
+          ZimbraLog.extensions.info("ERROR:" + e.getMessage(), e);
+        }
         return true;
     }
 
@@ -366,7 +370,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
      *                         address
      */
     @Override
-    protected String getPrimaryEmail(JsonNode credentials) throws ServiceException {
+    protected String getPrimaryEmail(JsonNode credentials, Account acct) throws ServiceException {
         JsonNode json = null;
         final String authToken = credentials.get("access_token").asText();
         String url = String.format(FacebookConstants.USER_DETAILS_URI_TEMPLATE, authToken);
@@ -396,37 +400,4 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
             .error("The user id could not be retrieved from the social service api.");
         throw ServiceException.UNSUPPORTED();
     }
-
-    /**
-     * Retrieves the App Token.
-     *
-     * @return The Facebook App token
-     * @throws ServiceException If there was an issue with the request
-     */
-    protected String getAppToken() throws ServiceException {
-        JsonNode json = null;
-        final String url = FacebookConstants.AUTHENTICATE_URI;
-        final String queryString = "?client_id=" + this.clientId + "&client_secret="
-                + this.clientSecret + "&grant_type=client_credentials";
-        try {
-            final GetMethod request = new GetMethod(url);
-            request.setQueryString(queryString);
-            json = executeRequestForJson(request);
-        } catch (final IOException e) {
-            ZimbraLog.extensions.warnQuietly(
-                "There was an issue acquiring the social service app access token.", e);
-            throw ServiceException
-                .FAILURE("There was an issue acquiring the social service app access token.", null);
-        }
-
-        if (json.has("access_token")) {
-            return json.get("access_token").asText();
-        }
-
-        // if we couldn't retrieve the app token, the response from
-        // downstream is missing data
-        ZimbraLog.extensions.error("Unable to retrieve app token from social service api.");
-        throw ServiceException.UNSUPPORTED();
-    }
-
 }

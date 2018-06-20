@@ -27,6 +27,7 @@ import static com.zimbra.common.mailbox.ContactConstants.A_middleName;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.DataSource;
 import com.zimbra.cs.account.DataSource.DataImport;
 import com.zimbra.cs.mailbox.Contact;
@@ -91,7 +92,6 @@ public class FacebookContactsImport implements DataImport {
         }
     }
 
-
     @Override
     public void test() throws ServiceException {
         // list of contacts to create after parsing Facebook responses
@@ -144,26 +144,28 @@ public class FacebookContactsImport implements DataImport {
      * @throws ServiceException If there are issues
      */
     protected String refresh() throws ServiceException {
+
+        Account acct = this.mDataSource.getAccount();
         final OAuthInfo oauthInfo = new OAuthInfo(new HashMap<String, String>());
         final String refreshToken = OAuthDataSource.getRefreshToken(mDataSource);
-        final String clientId = config.getString(
-                String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, FacebookConstants.CLIENT_NAME));
+        final String clientId = config.getString(String
+          .format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, FacebookConstants.CLIENT_NAME), FacebookConstants.CLIENT_NAME, acct);
         final String clientSecret = config.getString(String
-                .format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, FacebookConstants.CLIENT_NAME));
+            .format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, FacebookConstants.CLIENT_NAME), FacebookConstants.CLIENT_NAME,  acct);
         final String clientRedirectUri = config.getString(String.format(
-                OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, FacebookConstants.CLIENT_NAME));
+            OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, FacebookConstants.CLIENT_NAME), FacebookConstants.CLIENT_NAME, acct);
 
-        // set client specific properties
-        oauthInfo.setRefreshToken(refreshToken);
-        oauthInfo.setClientId(clientId);
-        oauthInfo.setClientSecret(clientSecret);
-        oauthInfo.setClientRedirectUri(clientRedirectUri);
-        oauthInfo.setTokenUrl(FacebookConstants.AUTHENTICATE_URI);
+          // set client specific properties
+          oauthInfo.setRefreshToken(refreshToken);
+          oauthInfo.setClientId(clientId);
+          oauthInfo.setClientSecret(clientSecret);
+          oauthInfo.setClientRedirectUri(clientRedirectUri);
+          oauthInfo.setTokenUrl(FacebookConstants.AUTHENTICATE_URI);
 
-        ZimbraLog.extensions.debug("Fetching access credentials for import.");
-        final String codeResponse = getFacebookCodeRequest(oauthInfo);
-        final JsonNode credentials = getFacebookRefreshTokenRequest(oauthInfo, codeResponse);
-        return credentials.get("access_token").asText();
+          ZimbraLog.extensions.debug("Fetching access credentials for import.");
+          final String codeResponse = getFacebookCodeRequest(oauthInfo);
+          final JsonNode credentials = getFacebookRefreshTokenRequest(oauthInfo, codeResponse);
+          return credentials.get("access_token").asText();
     }
 
 
