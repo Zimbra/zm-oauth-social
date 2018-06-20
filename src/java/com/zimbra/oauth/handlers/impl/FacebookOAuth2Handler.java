@@ -348,7 +348,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
      */
     protected String inErrorCodeRange(String errorCode) {
         if (!errorCode.isEmpty()) {
-            final Integer errorCodeInt = Integer.getInteger(errorCode);
+            final Integer errorCodeInt = Integer.valueOf(errorCode);
             if (errorCodeInt >= 200 && errorCodeInt <= 299) {
                 errorCode = "200-299";
             }
