@@ -35,6 +35,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import com.zimbra.common.service.ServiceException;
+import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.managers.ClassManager;
 import com.zimbra.oauth.models.OAuthInfo;
@@ -76,12 +77,12 @@ public class OAuth2ResourceUtilitiesTest {
         final String location = "result-location";
 
         expect(ClassManager.getHandler(matches(client))).andReturn(mockHandler);
-        expect(mockHandler.authorize(matches(relay))).andReturn(location);
+        expect(mockHandler.authorize(matches(relay), anyObject(Account.class))).andReturn(location);
 
         PowerMock.replay(ClassManager.class);
         replay(mockHandler);
 
-        OAuth2ResourceUtilities.authorize(client, relay);
+        OAuth2ResourceUtilities.authorize(client, relay, null);
 
         PowerMock.verify(ClassManager.class);
         verify(mockHandler);
@@ -115,7 +116,7 @@ public class OAuth2ResourceUtilitiesTest {
         PowerMock.replay(ClassManager.class);
         replay(mockHandler);
 
-        OAuth2ResourceUtilities.authenticate(client, params, zmAuthToken);
+        OAuth2ResourceUtilities.authenticate(client, params, null, zmAuthToken);
 
         PowerMock.verify(ClassManager.class);
         verify(mockHandler);
@@ -150,7 +151,7 @@ public class OAuth2ResourceUtilitiesTest {
         PowerMock.replay(ClassManager.class);
         replay(mockHandler);
 
-        OAuth2ResourceUtilities.authenticate(client, params, zmAuthToken);
+        OAuth2ResourceUtilities.authenticate(client, params, null, zmAuthToken);
 
         PowerMock.verify(ClassManager.class);
         verify(mockHandler);
@@ -187,7 +188,7 @@ public class OAuth2ResourceUtilitiesTest {
         PowerMock.replay(ClassManager.class);
         replay(mockHandler);
 
-        OAuth2ResourceUtilities.authenticate(client, params, zmAuthToken);
+        OAuth2ResourceUtilities.authenticate(client, params, null, zmAuthToken);
 
         PowerMock.verify(ClassManager.class);
         verify(mockHandler);

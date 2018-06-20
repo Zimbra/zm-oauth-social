@@ -148,6 +148,11 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         protected static final String REQUIRED_SCOPES = "email";
 
         /**
+         * The scope delimiter for Facebook.
+         */
+        protected static final String SCOPE_DELIMITER = ",";
+
+        /**
          * The state parameter.
          */
         public static final String RELAY_KEY = "state";
@@ -169,11 +174,12 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
      *
      * @param config For accessing configured properties
      */
-
     public FacebookOAuth2Handler(Configuration config) {
-
         super(config, FacebookConstants.CLIENT_NAME, FacebookConstants.HOST_FACEBOOK);
         authenticateUri = FacebookConstants.AUTHENTICATE_URI;
+        authorizeUriTemplate = FacebookConstants.AUTHORIZE_URI_TEMPLATE;
+        requiredScopes = FacebookConstants.REQUIRED_SCOPES;
+        scopeDelimiter = FacebookConstants.SCOPE_DELIMITER;
         relayKey = FacebookConstants.RELAY_KEY;
     }
 
@@ -184,13 +190,17 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
      */
     @Override
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
+        final Account account = oauthInfo.getAccount();
+        final String clientId = config.getString(
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
+        final String clientSecret = config.getString(
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client,
+            account);
+        final String clientRedirectUri = config.getString(
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,
+            account);
+        final String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
         // set client specific properties
-        
-        Account account = oauthInfo.getAccount();
-        String clientId = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client),client, account);
-        String clientSecret = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client, account);
-        String clientRedirectUri = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,account);
-        String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
         oauthInfo.setClientId(clientId);
         oauthInfo.setClientSecret(clientSecret);
         oauthInfo.setClientRedirectUri(clientRedirectUri);
@@ -313,23 +323,23 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     }
 
     /**
-     * Retrieves the primary email of the user with the access_token and auth
-     * token.
+     * Retrieves the primary identifier of the user from the debug token uri.
      *
      * @param credentials The json containing an access_token
-     * @acct the user account for which datasource is being setup
+     * @param account The account to acquire configuration by access level
      * @return The unique user ID
      * @throws ServiceException If there are issues determining the primary
      *             address
      */
     @Override
-    protected String getPrimaryEmail(JsonNode credentials, Account acct) throws ServiceException {
+    protected String getPrimaryEmail(JsonNode credentials, Account account)
+        throws ServiceException {
         JsonNode json = null;
         final String authToken = credentials.get("access_token").asText();
         String queryString;
         try {
             queryString = "?input_token=" + authToken + "&access_token="
-                + URLEncoder.encode(getAppToken(acct), OAuth2Constants.ENCODING);
+                + URLEncoder.encode(getAppToken(account), OAuth2Constants.ENCODING);
         } catch (final UnsupportedEncodingException e) {
             throw ServiceException.PARSE_ERROR("Url encoding the social service app token failed.",
                 e);
@@ -356,25 +366,28 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         // this could be the result of a misconfigured application id/secret
         // (not enough scopes)
         ZimbraLog.extensions
-                .error("The user id could not be retrieved from the social service api.");
+            .error("The user id could not be retrieved from the social service api.");
         throw ServiceException.UNSUPPORTED();
     }
 
     /**
      * Retrieves the App Token.
      *
-     * @acct the user account for which datasource is being setup
+     * @param account The account to acquire configuration by access level
      * @return The Facebook App token
      * @throws ServiceException If there was an issue with the request
      */
     protected String getAppToken(Account account) throws ServiceException {
         JsonNode json = null;
         final String url = FacebookConstants.AUTHENTICATE_URI;
-        String clientId = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
-        String clientSecret = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client, account);
+        final String clientId = config.getString(
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
+        final String clientSecret = config.getString(
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client,
+            account);
 
-        final String queryString = "?client_id=" + clientId + "&client_secret="
-                + clientSecret + "&grant_type=client_credentials";
+        final String queryString = "?client_id=" + clientId + "&client_secret=" + clientSecret
+            + "&grant_type=client_credentials";
         try {
             final GetMethod request = new GetMethod(url);
             request.setQueryString(queryString);

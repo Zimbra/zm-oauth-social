@@ -37,6 +37,7 @@ public interface IOAuth2Handler {
      * Returns authorize endpoint for the client.
      *
      * @param relayState The location to direct the user after authenticating
+     * @param account The account to acquire configuration by access level
      * @return The authorize endpoint
      * @acct The user account
      * @throws ServiceException If there are issues determining the
@@ -45,8 +46,7 @@ public interface IOAuth2Handler {
     public String authorize(String relayState, Account acct) throws ServiceException;
 
     /**
-     * Authenticates a user with the endpoint and stores credentials in
-     * ephemeral-store.
+     * Authenticates a user with the endpoint and stores credentials.
      *
      * @param oauthInfo Contains a code provided by authorizing endpoint
      * @return True on success

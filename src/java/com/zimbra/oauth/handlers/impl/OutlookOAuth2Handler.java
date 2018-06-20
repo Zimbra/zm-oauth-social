@@ -108,6 +108,11 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         protected static final String REQUIRED_SCOPES = "email";
 
         /**
+         * The scope delimiter for Outlook.
+         */
+        protected static final String SCOPE_DELIMITER = "+";
+
+        /**
          * The implementation name.
          */
         public static final String CLIENT_NAME = "outlook";
@@ -126,12 +131,15 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
     public OutlookOAuth2Handler(Configuration config) {
         super(config, OutlookConstants.CLIENT_NAME, OutlookConstants.HOST_OUTLOOK);
         authenticateUri = OutlookConstants.AUTHENTICATE_URI;
+        authorizeUriTemplate = OutlookConstants.AUTHORIZE_URI_TEMPLATE;
+        requiredScopes = OutlookConstants.REQUIRED_SCOPES;
+        scopeDelimiter = OutlookConstants.SCOPE_DELIMITER;
         relayKey = OutlookConstants.RELAY_KEY;
     }
 
     /**
-     * Validates that the token response has no errors, and contains
-     * the requested access information.
+     * Validates that the token response has no errors, and contains the
+     * requested access information.
      *
      * @param response The json token response
      * @throws ServiceException<br>
@@ -159,8 +167,8 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
                 throw ServiceException
                     .OPERATION_DENIED("The token request parameters are invalid.");
             case OutlookConstants.RESPONSE_ERROR_UNAUTHORIZED_CLIENT:
-                ZimbraLog.extensions
-                    .warn("The specified client details provided to the social service are invalid: "
+                ZimbraLog.extensions.warn(
+                    "The specified client details provided to the social service are invalid: "
                         + errorMsg);
                 throw ServiceException.OPERATION_DENIED(
                     "The specified client details provided to the social service are invalid.");

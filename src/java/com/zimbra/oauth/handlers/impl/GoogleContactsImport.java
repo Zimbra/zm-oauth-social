@@ -96,6 +96,7 @@ import com.zimbra.cs.account.DataSource;
 import com.zimbra.cs.account.DataSource.DataImport;
 import com.zimbra.cs.account.Provisioning;
 import com.zimbra.cs.mailbox.Contact;
+import com.zimbra.cs.mailbox.Contact.Attachment;
 import com.zimbra.cs.mailbox.Mailbox;
 import com.zimbra.cs.mime.ParsedContact;
 import com.zimbra.cs.service.mail.CreateContact;
@@ -281,8 +282,8 @@ public class GoogleContactsImport implements DataImport {
         List<ParsedContact> createList) {
         for (final JsonNode contactElement : jsonContacts) {
             try {
-                ZimbraLog.extensions
-                    .trace("Verifying if new contact for: %s", jsonContacts.toString());
+                ZimbraLog.extensions.trace("Verifying if new contact for: %s",
+                    jsonContacts.toString());
                 String resourceName = null;
                 if (contactElement.has("resourceName")) {
                     resourceName = contactElement.get("resourceName").asText();
@@ -340,7 +341,7 @@ public class GoogleContactsImport implements DataImport {
     public void importData(List<Integer> folderIds, boolean fullSync) throws ServiceException {
         final Mailbox mailbox = mDataSource.getMailbox();
         final int folderId = mDataSource.getFolderId();
-        // list of contacts to create after parsing google responses
+        // list of contacts to create after parsing each google response
         final List<ParsedContact> createList = new ArrayList<ParsedContact>();
         // existing contacts from the datasource folder
         final Set<String> existingContacts = getExistingContacts(mailbox, folderId);
@@ -357,10 +358,14 @@ public class GoogleContactsImport implements DataImport {
         try {
             // loop to handle pagination
             do {
-                // build contacts url, query params with syncToken and current pageToken
-                final String url = buildContactsUrl(GoogleConstants.CONTACTS_URI, syncToken, pageToken);
+                // build contacts url, query params with syncToken and current
+                // pageToken
+                final String url = buildContactsUrl(GoogleConstants.CONTACTS_URI, syncToken,
+                    pageToken);
                 // always set an empty page token during pagination
                 pageToken = null;
+                // empty the create list
+                createList.clear();
                 // log only at most verbose level, this contains privileged info
                 ZimbraLog.extensions.trace(
                     "Attempting to sync Google contacts. URL: %s. authorizationHeader: %s", url,
@@ -381,6 +386,13 @@ public class GoogleContactsImport implements DataImport {
                         && jsonResponse.get("connections").isArray()) {
                         final JsonNode jsonContacts = jsonResponse.get("connections");
                         parseNewContacts(existingContacts, jsonContacts, createList);
+                        if (!createList.isEmpty()) {
+                            // create the contacts that need to be added
+                            ZimbraLog.extensions
+                                .debug("Creating set of contacts from parsed list.");
+                            CreateContact.createContacts(null, mailbox,
+                                new ItemId(mailbox, folderId), createList, null);
+                        }
                     } else {
                         throw ServiceException.FAILURE(
                             String.format("Unexpected response received during google contact import. Response received:%s"
@@ -399,20 +411,12 @@ public class GoogleContactsImport implements DataImport {
                         pageToken = jsonResponse.get("nextPageToken").asText();
                     }
                 } else {
-                    ZimbraLog.extensions
-                        .debug("Did not find JSON response object.");
+                    ZimbraLog.extensions.debug("Did not find JSON response object.");
                 }
             } while (pageToken != null);
         } catch (UnsupportedOperationException | IOException e) {
             throw ServiceException.FAILURE(
                 "Data source sync failed. Failed to fetch contacts from Google Contacts API.", e);
-        }
-
-        if (!createList.isEmpty()) {
-            // create the contacts we determined need to be added
-            ZimbraLog.extensions.debug("Creating contacts from parsed list.");
-            CreateContact.createContacts(null, mailbox, new ItemId(mailbox, folderId), createList,
-                null);
         }
     }
 
@@ -622,9 +626,12 @@ public class GoogleContactsImport implements DataImport {
                     if (stripHtml) {
                         // extract plain text from value if requested
                         try {
-                            value = HtmlBodyTextExtractor.extract(new StringReader(value), value.length());
+                            value = HtmlBodyTextExtractor.extract(new StringReader(value),
+                                value.length());
                         } catch (IOException | SAXException e) {
-                            ZimbraLog.extensions.trace("There was an issue parsing plain text from the html body: %s", value);
+                            ZimbraLog.extensions.trace(
+                                "There was an issue parsing plain text from the html body: %s",
+                                value);
                             // continue processing
                         }
                     }
@@ -658,7 +665,8 @@ public class GoogleContactsImport implements DataImport {
          * The mappingField must specify a default type mapping.
          *
          * @param fieldArray The array of typed objects
-         * @param mappingFields The social service key -> zimbra key mapping. Must contain a default mapping.
+         * @param mappingFields The social service key -> zimbra key mapping.
+         *            Must contain a default mapping.
          * @param fields The parsed contact fields to update
          */
         public static void parseTypedField(JsonNode fieldArray, Map<String, String> mappingFields,
@@ -734,13 +742,41 @@ public class GoogleContactsImport implements DataImport {
             }
         }
 
+        /**
+         * Fetches images from urls and creates attachments.
+         *
+         * @param fieldArray The json data containing the image urls
+         * @param key The field key
+         * @param attachments The list of attachments to add to
+         */
         public static void parseImageField(JsonNode fieldArray, String key,
-            Map<String, String> fields) {
+            List<Attachment> attachments) {
+            int i = 1;
             for (final JsonNode fieldObject : fieldArray) {
                 if (fieldObject.has(IMAGE_URL)) {
-                    final String value = fieldObject.get(IMAGE_URL).asText();
-                    if (!StringUtils.isEmpty(value)) {
-                        fields.put(key, value);
+                    final String imageUrl = fieldObject.get(IMAGE_URL).asText();
+                    if (!StringUtils.isEmpty(imageUrl)) {
+                        try {
+                            // fetch the image
+                            final GetMethod get = new GetMethod(imageUrl);
+                            OAuth2Handler.executeRequest(get);
+                            String imageNum = "";
+                            if (i > 1) {
+                                imageNum = String.valueOf(i++);
+                            }
+                            final String filename = String
+                                .format(GoogleConstants.CONTACTS_IMAGE_NAME_TEMPLATE, imageNum);
+                            // add to attachments
+                            final Attachment attachment = OAuth2Utilities
+                                .createAttachmentFromResponse(get, key + imageNum, filename);
+                            if (attachment != null) {
+                                attachments.add(attachment);
+                            }
+                        } catch (ServiceException | IOException e) {
+                            ZimbraLog.extensions
+                                .debug("There was an issue fetching a contact image.");
+                            // don't fail the rest
+                        }
                     }
                 }
             }
@@ -786,6 +822,7 @@ public class GoogleContactsImport implements DataImport {
         public static ParsedContact parseContact(JsonNode jsonContact, DataSource ds)
             throws ServiceException {
             final Map<String, String> contactFields = new HashMap<String, String>();
+            final List<Attachment> attachments = new ArrayList<Attachment>();
             for (final GContactFieldType type : GContactFieldType.values()) {
                 if (type != null) {
                     if (jsonContact.has(type.name())) {
@@ -841,7 +878,7 @@ public class GoogleContactsImport implements DataImport {
                             parseTypedField(fieldArray, LINK_FIELDS_MAP, contactFields);
                             break;
                         case photos:
-                            parseImageField(fieldArray, A_image, contactFields);
+                            parseImageField(fieldArray, A_image, attachments);
                             break;
                         case userDefined:
                             parseKeyValueField(fieldArray, contactFields);
@@ -854,7 +891,7 @@ public class GoogleContactsImport implements DataImport {
                 }
             }
             if (!contactFields.isEmpty()) {
-                return new ParsedContact(contactFields);
+                return new ParsedContact(contactFields, attachments);
             } else {
                 return null;
             }

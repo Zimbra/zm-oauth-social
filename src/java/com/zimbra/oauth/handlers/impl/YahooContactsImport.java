@@ -30,7 +30,6 @@ import static com.zimbra.common.mailbox.ContactConstants.A_homeState;
 import static com.zimbra.common.mailbox.ContactConstants.A_homeStreet;
 import static com.zimbra.common.mailbox.ContactConstants.A_homeURL;
 import static com.zimbra.common.mailbox.ContactConstants.A_imAddress1;
-import static com.zimbra.common.mailbox.ContactConstants.A_image;
 import static com.zimbra.common.mailbox.ContactConstants.A_jobTitle;
 import static com.zimbra.common.mailbox.ContactConstants.A_lastName;
 import static com.zimbra.common.mailbox.ContactConstants.A_middleName;
@@ -71,6 +70,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.lang.StringUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
@@ -80,6 +80,7 @@ import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.DataSource;
 import com.zimbra.cs.account.DataSource.DataImport;
 import com.zimbra.cs.account.Provisioning;
+import com.zimbra.cs.mailbox.Contact.Attachment;
 import com.zimbra.cs.mime.ParsedContact;
 import com.zimbra.cs.service.mail.CreateContact;
 import com.zimbra.cs.service.util.ItemId;
@@ -120,8 +121,8 @@ public class YahooContactsImport implements DataImport {
     public YahooContactsImport(DataSource datasource) {
         mDataSource = datasource;
         try {
-           config = LdapConfiguration.buildConfiguration(YahooConstants.CLIENT_NAME);
-        } catch (ServiceException e) {
+            config = LdapConfiguration.buildConfiguration(YahooConstants.CLIENT_NAME);
+        } catch (final ServiceException e) {
             ZimbraLog.extensions.info("Error loading configuration for yahoo: %s", e.getMessage());
             ZimbraLog.extensions.debug(e);
         }
@@ -133,36 +134,44 @@ public class YahooContactsImport implements DataImport {
         String respContent = "";
         ParsedContact testContact = null;
         try {
-            final String url = String.format(YahooConstants.CONTACTS_URI_TEMPLATE, tokenAndGuid.getSecond(), "json", 10);
+            final String url = String.format(YahooConstants.CONTACTS_URI_TEMPLATE,
+                tokenAndGuid.getSecond(), "json", 10);
             final String authorizationHeader = String.format("Bearer %s", tokenAndGuid.getFirst());
             final JsonNode jsonResponse = getContactsRequest(url, authorizationHeader);
             respContent = jsonResponse.toString();
-            if(jsonResponse != null && jsonResponse.isObject()) {
-                if(jsonResponse.has("contacts") && jsonResponse.get("contacts").isObject()) {
+            if (jsonResponse != null && jsonResponse.isObject()) {
+                if (jsonResponse.has("contacts") && jsonResponse.get("contacts").isObject()) {
                     final JsonNode contactsObject = jsonResponse.get("contacts");
-                    if(contactsObject.has("contact") && contactsObject.get("contact").isArray()) {
+                    if (contactsObject.has("contact") && contactsObject.get("contact").isArray()) {
                         final JsonNode jsonContacts = contactsObject.get("contact");
-                        for(final JsonNode contactElement : jsonContacts) {
-                            final ParsedContact contact = YahooContactsUtil.parseYContact(contactElement, mDataSource);
-                            if(contact != null) {
+                        for (final JsonNode contactElement : jsonContacts) {
+                            final ParsedContact contact = YahooContactsUtil
+                                .parseYContact(contactElement, mDataSource);
+                            if (contact != null) {
                                 testContact = contact;
                                 break;
                             }
                         }
                     } else {
-                        ZimbraLog.extensions.debug("Did not find 'contact' element in 'contacts' object");
+                        ZimbraLog.extensions
+                            .debug("Did not find 'contact' element in 'contacts' object");
                     }
                 } else {
-                    ZimbraLog.extensions.debug("Did not find 'contacts' element in JSON response object");
+                    ZimbraLog.extensions
+                        .debug("Did not find 'contacts' element in JSON response object");
                 }
             } else {
                 ZimbraLog.extensions.debug("Did not find JSON response object");
             }
         } catch (UnsupportedOperationException | IOException e) {
-            throw ServiceException.FAILURE("Data source test failed. Failed to fetch contacts from  Yahoo Contacts API for testing", e);
+            throw ServiceException.FAILURE(
+                "Data source test failed. Failed to fetch contacts from  Yahoo Contacts API for testing",
+                e);
         }
-        if(testContact == null) {
-            throw ServiceException.FAILURE(String.format("Data source test failed. Failed to fetch contacts from  Yahoo Contacts API for testing. Response status code %d. Response status line: %s. Response body %s", respContent), null);
+        if (testContact == null) {
+            throw ServiceException.FAILURE(String.format(
+                "Data source test failed. Failed to fetch contacts from  Yahoo Contacts API for testing. Response status code %d. Response status line: %s. Response body %s",
+                respContent), null);
         }
     }
 
@@ -207,7 +216,8 @@ public class YahooContactsImport implements DataImport {
      * @throws ServiceException If there are issues retrieving the data
      * @throws IOException If there are issues executing the request
      */
-    protected JsonNode getContactsRequest(String url, String authorizationHeader) throws ServiceException, IOException {
+    protected JsonNode getContactsRequest(String url, String authorizationHeader)
+        throws ServiceException, IOException {
         final GetMethod get = new GetMethod(url);
         get.addRequestHeader(OAuth2Constants.HEADER_AUTHORIZATION, authorizationHeader);
         ZimbraLog.extensions.debug("Fetching contacts for import.");
@@ -233,7 +243,8 @@ public class YahooContactsImport implements DataImport {
         }
         String respContent = "";
         try {
-            final String url = String.format(YahooConstants.CONTACTS_URI_TEMPLATE, tokenAndGuid.getSecond(), "json", rev);
+            final String url = String.format(YahooConstants.CONTACTS_URI_TEMPLATE,
+                tokenAndGuid.getSecond(), "json", rev);
             final String authorizationHeader = String.format("Bearer %s", tokenAndGuid.getFirst());
             // log this only at the most verbose level, because this contains
             // privileged information
@@ -253,7 +264,8 @@ public class YahooContactsImport implements DataImport {
                         && contactsObject.get("contacts").isArray()) {
                         final JsonNode jsonContacts = contactsObject.get("contacts");
                         final List<ParsedContact> clist = new ArrayList<ParsedContact>();
-                        ZimbraLog.extensions.debug("Cycling through list to determine new contacts to add.");
+                        ZimbraLog.extensions
+                            .debug("Cycling through list to determine new contacts to add.");
                         for (final JsonNode contactElement : jsonContacts) {
                             if (contactElement.isObject() && contactElement.has("op")) {
                                 final String op = contactElement.get("op").asText();
@@ -350,6 +362,7 @@ public class YahooContactsImport implements DataImport {
         public static final String SUFFIX = "suffix";
 
         public static final Map<String, String> NAME_FIELDS_MAP = new HashMap<String, String>() {
+
             {
                 put(A_firstName, GIVENNAME);
                 put(A_middleName, MIDDLE);
@@ -367,6 +380,7 @@ public class YahooContactsImport implements DataImport {
         public static final String COUNTRY = "country";
         public static final String COUNTRYCODE = "countryCode";
         public static final Map<String, List<String>> WORK_ADDRESS_FIELDS_MAP = new HashMap<String, List<String>>() {
+
             {
                 put(A_workStreet, Arrays.asList(STREET));
                 put(A_workCity, Arrays.asList(CITY));
@@ -376,6 +390,7 @@ public class YahooContactsImport implements DataImport {
             }
         };
         public static final Map<String, List<String>> HOME_ADDRESS_FIELDS_MAP = new HashMap<String, List<String>>() {
+
             {
                 put(A_homeStreet, Arrays.asList(STREET));
                 put(A_homeCity, Arrays.asList(CITY));
@@ -385,6 +400,7 @@ public class YahooContactsImport implements DataImport {
             }
         };
         public static final Map<String, List<String>> OTHER_ADDRESS_FIELDS_MAP = new HashMap<String, List<String>>() {
+
             {
                 put(A_otherStreet, Arrays.asList(STREET));
                 put(A_otherCity, Arrays.asList(CITY));
@@ -398,12 +414,14 @@ public class YahooContactsImport implements DataImport {
         public static final String MONTH = "month";
         public static final String YEAR = "year";
         public static final Map<String, String> DATE_FIELDS_MAP = new HashMap<String, String>() {
+
             {
                 put("birthday", A_birthday);
                 put("anniversary", A_anniversary);
             }
         };
         public static final Map<String, String> PHONE_FIELDS_MAP = new HashMap<String, String>() {
+
             {
                 put("personal", A_homePhone);
                 put("work", A_workPhone);
@@ -416,6 +434,7 @@ public class YahooContactsImport implements DataImport {
             }
         };
         public static final Map<String, String> EMAIL_FIELDS_MAP = new HashMap<String, String>() {
+
             {
                 put("personal", A_email);
                 put("home", A_email);
@@ -423,6 +442,7 @@ public class YahooContactsImport implements DataImport {
             }
         };
         public static final Map<String, String> LINK_FIELDS_MAP = new HashMap<String, String>() {
+
             {
                 put("personal", A_homeURL);
                 put("home", A_homeURL);
@@ -533,15 +553,35 @@ public class YahooContactsImport implements DataImport {
             }
         }
 
+        /**
+         * Fetches an image from url and creates an attachment.
+         *
+         * @param fieldObject The json data containing the image url
+         * @param key The field key
+         * @param attachments The list of attachments to add to
+         */
         public static void parseImageField(JsonNode fieldObject, String key,
-            Map<String, String> fields) {
+            List<Attachment> attachments) {
             if (fieldObject.has(VALUE)) {
                 final JsonNode valueObject = fieldObject.get(VALUE);
-                if (valueObject.isObject()) {
-                    if (valueObject.has(IMAGE_URL)) {
-                        final String value = valueObject.get(IMAGE_URL).asText();
-                        if (value != null && !value.isEmpty()) {
-                            fields.put(key, value);
+                if (valueObject.isObject() && valueObject.has(IMAGE_URL)) {
+                    final String imageUrl = valueObject.get(IMAGE_URL).asText();
+                    if (!StringUtils.isEmpty(imageUrl)) {
+                        try {
+                            // fetch the image
+                            final GetMethod get = new GetMethod(imageUrl);
+                            OAuth2Handler.executeRequest(get);
+                            // add to attachments
+                            final Attachment attachment = OAuth2Utilities
+                                .createAttachmentFromResponse(get, key,
+                                    YahooConstants.CONTACTS_IMAGE_NAME);
+                            if (attachment != null) {
+                                attachments.add(attachment);
+                            }
+                        } catch (ServiceException | IOException e) {
+                            ZimbraLog.extensions
+                                .debug("There was an issue fetching a contact image.");
+                            // don't fail the rest
                         }
                     }
                 }
@@ -610,6 +650,8 @@ public class YahooContactsImport implements DataImport {
         public static ParsedContact parseYContact(JsonNode jsonContact, DataSource ds)
             throws ServiceException {
             final Map<String, String> contactFields = new HashMap<String, String>();
+            // will contain attachments in future iterations - assuming API support
+            final List<Attachment> attachments = new ArrayList<Attachment>();
             if (jsonContact.has(FIELDS)) {
                 final JsonNode jsonFields = jsonContact.get(FIELDS);
                 if (jsonFields.isArray()) {
@@ -689,7 +731,6 @@ public class YahooContactsImport implements DataImport {
                                         parseSimpleField(fieldObj, A_jobTitle, contactFields);
                                         break;
                                     case image:
-                                        parseImageField(fieldObj, A_image, contactFields);
                                         break;
                                     default:
                                         parseSimpleField(fieldObj, A_otherCustom1, contactFields);
@@ -704,7 +745,7 @@ public class YahooContactsImport implements DataImport {
                 }
             }
             if (!contactFields.isEmpty()) {
-                return new ParsedContact(contactFields);
+                return new ParsedContact(contactFields, attachments);
             } else {
                 return null;
             }
