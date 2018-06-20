@@ -49,14 +49,15 @@ public class OAuth2ResourceUtilities {
      *
      * @param client The client
      * @param relay The relay state
+     * @param account The user requesting
      * @return Location to redirect to
      * @acct the user account for which datasource is being setup
      * @throws ServiceException If there are issues
      */
-    public static final String authorize(String client, String relay, Account acct) throws ServiceException {
+    public static final String authorize(String client, String relay, Account account) throws ServiceException {
         final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
         ZimbraLog.extensions.debug("Client : %s, handler:%s, relay:%s ", client, oauth2Handler,relay);
-        return oauth2Handler.authorize(relay, acct);
+        return oauth2Handler.authorize(relay, account);
     }
 
     /**
@@ -65,7 +66,7 @@ public class OAuth2ResourceUtilities {
      *
      * @param client The client
      * @param queryParams Map of query params
-     * @acct the user account for which datasource is being setup
+     * @param account The user requesting
      * @param zmAuthToken The Zimbra auth token
      * @return Location to redirect to
      * @throws ServiceException If there are issues
