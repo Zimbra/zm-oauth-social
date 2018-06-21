@@ -229,7 +229,7 @@ public abstract class OAuth2Handler {
 
         if (StringUtil.isNullOrEmpty(clientId) || StringUtil.isNullOrEmpty(clientRedirectUri)) {
             throw ServiceException.NOT_FOUND(String.format(
-                "The app: %s is not properly configured, please set Oauth credentials and redurect uri",
+                "The app: %s is not properly configured, please set Oauth credentials and redirect uri",
                 client), new Exception("Invalid config"));
         }
 
