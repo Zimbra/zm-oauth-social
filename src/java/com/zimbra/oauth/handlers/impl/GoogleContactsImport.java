@@ -192,7 +192,7 @@ public class GoogleContactsImport implements DataImport {
      * @throws ServiceException If there are issues
      */
     protected String refresh() throws ServiceException {
-        Account acct = this.mDataSource.getAccount();
+        final Account acct = this.mDataSource.getAccount();
         final OAuthInfo oauthInfo = new OAuthInfo(new HashMap<String, String>());
         final String refreshToken = OAuthDataSource.getRefreshToken(mDataSource);
         final String clientId = config.getString(String
@@ -394,9 +394,9 @@ public class GoogleContactsImport implements DataImport {
                                 new ItemId(mailbox, folderId), createList, null);
                         }
                     } else {
-                        throw ServiceException.FAILURE(
-                            String.format("Unexpected response received during google contact import. Response received:%s"
-                               , jsonResponse.findValue("error")), new Exception("Contact import failed.")) ;
+                        ZimbraLog.extensions.debug(
+                            "Did not find 'connections' element in JSON response object. Response body: %s",
+                            respContent);
                     }
                     // update the sync token if available
                     if (jsonResponse.has("nextSyncToken")) {
