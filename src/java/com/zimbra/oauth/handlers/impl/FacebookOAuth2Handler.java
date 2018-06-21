@@ -210,19 +210,21 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
      *
      * @param config For accessing configured properties
      */
-
     public FacebookOAuth2Handler(Configuration config) {
-
         super(config, FacebookConstants.CLIENT_NAME, FacebookConstants.HOST_FACEBOOK);
         authenticateUri = FacebookConstants.AUTHENTICATE_URI;
+        authorizeUriTemplate = FacebookConstants.AUTHORIZE_URI_TEMPLATE;
+        requiredScopes = FacebookConstants.REQUIRED_SCOPES;
+        scopeDelimiter = FacebookConstants.SCOPE_DELIMITER;
         relayKey = FacebookConstants.RELAY_KEY;
         dataSource.addImportClass(View.contact.name(),
-                FacebookContactsImport.class.getCanonicalName());
+            FacebookContactsImport.class.getCanonicalName());
     }
 
     /**
      * Facebook authenticate handler.
      *
+     * @throws ServiceException Thrown if an error was encountered
      * @see IOAuth2Handler#authenticate(OAuthInfo)
      */
     @Override
