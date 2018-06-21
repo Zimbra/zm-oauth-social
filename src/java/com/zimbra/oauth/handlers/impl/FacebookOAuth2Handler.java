@@ -132,21 +132,17 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         /**
          * The authorize uri template for Facebook.
          */
-        protected static final String AUTHORIZE_URI_TEMPLATE =
-            "https://www.facebook.com/v3.0/dialog/oauth"
-            + "?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s";
+        protected static final String AUTHORIZE_URI_TEMPLATE = "https://www.facebook.com/v3.0/dialog/oauth?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s";
 
         /**
          * The user details uri, used to fetch the authorized OAuth user details from Facebook.
          */
-        public static final String USER_DETAILS_URI_TEMPLATE = "https://graph.facebook.com/me"
-            + "?access_token=%s&fields=first_name,middle_name,last_name,email";
+        public static final String USER_DETAILS_URI_TEMPLATE = "https://graph.facebook.com/me?access_token=%s&fields=first_name,middle_name,last_name,email";
 
         /**
          * The uri used to make backend call to fetch an access token.
          */
-        public static final String AUTHENTICATE_URI =
-            "https://graph.facebook.com/v3.0/oauth/access_token";
+        public static final String AUTHENTICATE_URI = "https://graph.facebook.com/v3.0/oauth/access_token";
 
         /**
          * The scope required for Facebook.
@@ -156,7 +152,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         /**
          * The scope delimiter to use.
          */
-        public static final String SCOPE_DELIMITER = " ";
+        public static final String SCOPE_DELIMITER = ",";
 
         /**
          * The state parameter.
@@ -175,9 +171,12 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
 
         /**
          * The contacts uri template.
+         *
+         * CSV list of data fields to import or limit the import to.
+         * (Please note that this list may require permission scopes
+         * be added to the localconfig.xml for the related fields)
          */
-        public static final String CONTACTS_URI_TEMPLATE =
-            "https://graph.facebook.com/v3.0/me/friends?access_token=%s&fields=%s&limit=%s";
+        public static final String CONTACTS_URI_TEMPLATE = "https://graph.facebook.com/v3.0/me/friends?access_token=%s&fields=email,address,name,location,birthday,about,gender,hometown,locale,first_name,middle_name,last_name&limit=%s";
 
         /**
         * The contacts pagination size for Facebook.
@@ -188,26 +187,14 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
          * The refresh token code request uri template.<br>
          * Uses a code to request a fresh access token.
          */
-        public static final String REFRESH_TOKEN_CODE_REQUEST_URI_TEMPLATE =
-            "https://graph.facebook.com/oauth/client_code"
-            + "?access_token=%s&client_id=%s&client_secret=%s&redirect_uri=%s";
+        public static final String REFRESH_TOKEN_CODE_REQUEST_URI_TEMPLATE = "https://graph.facebook.com/oauth/client_code?access_token=%s&client_id=%s&client_secret=%s&redirect_uri=%s";
 
         /**
          * The access request uri template code, uses the existing, valid access token
          * to fetch a code.
          * This code will be used to request a fresh access token.
          */
-        public static final String REFRESH_ACCESS_TOKEN_FOR_CODE_REQUEST_URI_TEMPLATE =
-            "https://graph.facebook.com/oauth/access_token"
-            + "?client_id=%s&redirect_uri=%s&code=%s";
-
-        /*
-         * CSV list of data fields to import or limit the import to.
-         * (Please note that this list may require permission scopes
-         * be added to the localconfig.xml for the related fields)
-         */
-        public static final String IMPORT_FIELDS_LIST = "email,address,name,location,"
-            + "birthday,about,gender,hometown,locale,first_name,middle_name,last_name";
+        public static final String REFRESH_ACCESS_TOKEN_FOR_CODE_REQUEST_URI_TEMPLATE = "https://graph.facebook.com/oauth/access_token?client_id=%s&redirect_uri=%s&code=%s";
 
     }
 
@@ -230,7 +217,6 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     /**
      * Facebook authenticate handler.
      *
-     * @throws ServiceException Thrown if an error was encountered
      * @see IOAuth2Handler#authenticate(OAuthInfo)
      */
     @Override
@@ -382,7 +368,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     protected String getPrimaryEmail(JsonNode credentials, Account acct) throws ServiceException {
         JsonNode json = null;
         final String authToken = credentials.get("access_token").asText();
-        String url = String.format(FacebookConstants.USER_DETAILS_URI_TEMPLATE, authToken);
+        final String url = String.format(FacebookConstants.USER_DETAILS_URI_TEMPLATE, authToken);
 
         try {
             final GetMethod request = new GetMethod(url);

@@ -71,7 +71,6 @@ public class FacebookContactsImport implements DataImport {
      */
     private final DataSource mDataSource;
 
-
     /**
      * Configuration wrapper.
      */
@@ -144,7 +143,6 @@ public class FacebookContactsImport implements DataImport {
      * @throws ServiceException If there are issues
      */
     protected String refresh() throws ServiceException {
-
         Account acct = this.mDataSource.getAccount();
         final OAuthInfo oauthInfo = new OAuthInfo(new HashMap<String, String>());
         final String refreshToken = OAuthDataSource.getRefreshToken(mDataSource);
@@ -277,7 +275,6 @@ public class FacebookContactsImport implements DataImport {
      * @throws IOException If there are issues executing the request
      */
     protected JsonNode getContactsRequest(String url) throws ServiceException, IOException {
-
         final GetMethod get = new GetMethod(url);
         ZimbraLog.extensions.trace("Fetching contacts for import.");
         return OAuth2Handler.executeRequestForJson(get);
@@ -304,21 +301,18 @@ public class FacebookContactsImport implements DataImport {
                 ZimbraLog.extensions.debug(
                         "Attempting to sync Facebook contacts. URL: %s", url);
                 final JsonNode jsonResponse = getContactsRequest(url);
-                respContent = jsonResponse.toString();
-                if (jsonResponse.has("error") && jsonResponse.get("error").isContainerNode()) {
-                    ZimbraLog.extensions.debug(
-                            "Error found in JSON response object while fetching contacts. Response body: %s",
-                            respContent);
-                    throw ServiceException.FAILURE("An error was found in the api response. "
-                            + jsonResponse.get("error").asText(""), null);
-                }
-                // log this only at the most verbose level, because this contains
-                // privileged information
                 if (jsonResponse != null && jsonResponse.isContainerNode()) {
-                    if (jsonResponse.has("data")
-                            && jsonResponse.get("data").isContainerNode()) {
+                    respContent = jsonResponse.toString();
+                    if (jsonResponse.has("error")) {
+                        ZimbraLog.extensions.debug(
+                                "Error found in JSON response object while fetching contacts. Response body: %s",
+                                respContent);
+                        throw ServiceException.FAILURE("An error was found in the api response. "
+                                + jsonResponse.get("error").asText(""), null);
+                    }
+                    if (jsonResponse.has("data")) {
                         final JsonNode contactsObject = jsonResponse.get("data");
-                        handleApiResponse(existingContacts, contactsObject);
+                        createNewContacts(existingContacts, contactsObject);
                         // check for next page
                         if (jsonResponse.has("paging")
                                 && jsonResponse.get("paging").has("next")) {
@@ -326,7 +320,7 @@ public class FacebookContactsImport implements DataImport {
                         }
                     } else {
                         ZimbraLog.extensions
-                        .info("Did not find 'data' element in json object");
+                        .info("Did not find required 'data' node in json object.");
                     }
                 } else {
                     ZimbraLog.extensions.debug("Did not find JSON response object.");
@@ -346,23 +340,23 @@ public class FacebookContactsImport implements DataImport {
     }
 
     /**
-     * Handles contacts from the Facebook api excluding existing contacts in the datasource.
+     * Creates new contacts from the Facebook api excluding existing contacts in the datasource.
      *
      * @param existingContacts Existing contacts
      * @param contactsObject JSON from Facebook api response
      * @throws ServiceException If an error is encountered
      */
-    protected void handleApiResponse(Set<String> existingContacts, JsonNode contactsObject)
+    protected void createNewContacts(Set<String> existingContacts, JsonNode contactsObject)
             throws ServiceException {
-
         List<ParsedContact> contactList = new ArrayList<ParsedContact>();
         parseNewContacts(existingContacts, contactsObject, "id", contactList);
 
         if (!contactList.isEmpty()) {
-            final ItemId iidFolder = new ItemId(mDataSource.getMailbox(), mDataSource.getFolderId());
+            final ItemId iidFolder = new ItemId(mDataSource.getMailbox(),
+                mDataSource.getFolderId());
             ZimbraLog.extensions.trace("Creating contacts from parsed list.");
-            CreateContact.createContacts(null, mDataSource.getMailbox(), iidFolder,
-                    contactList, null);
+            CreateContact.createContacts(null, mDataSource.getMailbox(), iidFolder, contactList,
+                null);
         }
     }
 
@@ -408,12 +402,11 @@ public class FacebookContactsImport implements DataImport {
      * @return A Url to fetch contacts
      */
     protected String buildContactsUrl(String nextPageUrl, String refreshToken) {
-
         if (nextPageUrl != null) {
             return nextPageUrl;
         }
         return String.format(FacebookConstants.CONTACTS_URI_TEMPLATE, refreshToken,
-                FacebookConstants.IMPORT_FIELDS_LIST, FacebookConstants.CONTACTS_PAGE_SIZE);
+            FacebookConstants.CONTACTS_PAGE_SIZE);
     }
 
     /**
@@ -428,7 +421,6 @@ public class FacebookContactsImport implements DataImport {
      */
     protected Set<String> getExistingContacts(Mailbox mailbox, int folderId, String resourceId)
             throws ServiceException {
-
         // fetch the list of existing contacts for the specified folder
         List<Contact> contacts = null;
         try {
@@ -504,7 +496,6 @@ public class FacebookContactsImport implements DataImport {
          * @param fields Map of fields
          */
         public static void parseBirthdayField(JsonNode fieldObject, Map<String, String> fields) {
-
             if (fieldObject.has("birthday")) {
                 loadField(A_birthday, fieldObject.get("birthday").asText(), fields);
             }
@@ -517,7 +508,6 @@ public class FacebookContactsImport implements DataImport {
          * @param fields Map of fields
          */
         public static void parseNameFields(JsonNode fieldObject, Map<String, String> fields) {
-
             for (final String key : NAME_FIELDS_MAP.keySet()) {
                 if (fieldObject.has(NAME_FIELDS_MAP.get(key))) {
                     loadField(key, fieldObject.get(NAME_FIELDS_MAP.get(key)).asText(), fields);
@@ -534,7 +524,6 @@ public class FacebookContactsImport implements DataImport {
          */
         public static void loadField(String fieldName, String value,
                 Map<String, String> fields) {
-
             if (!value.isEmpty()) {
                 fields.put(fieldName, value);
             }
@@ -550,7 +539,6 @@ public class FacebookContactsImport implements DataImport {
          */
         public static ParsedContact parseNewContact(JsonNode jsonContact, DataSource ds)
                 throws ServiceException {
-
             final Map<String, String> contactFields = new HashMap<String, String>();
             // set the Facebook ID as an IM Address
             contactFields.put(A_imAddress1, jsonContact.get("id").asText());
