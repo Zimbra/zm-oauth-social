@@ -149,11 +149,15 @@ public class FacebookContactsImport implements DataImport {
         final OAuthInfo oauthInfo = new OAuthInfo(new HashMap<String, String>());
         final String refreshToken = OAuthDataSource.getRefreshToken(mDataSource);
         final String clientId = config.getString(String
-          .format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, FacebookConstants.CLIENT_NAME), FacebookConstants.CLIENT_NAME, acct);
+          .format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, FacebookConstants.CLIENT_NAME),
+          FacebookConstants.CLIENT_NAME, acct);
         final String clientSecret = config.getString(String
-            .format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, FacebookConstants.CLIENT_NAME), FacebookConstants.CLIENT_NAME,  acct);
+            .format(
+                OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE,
+                FacebookConstants.CLIENT_NAME), FacebookConstants.CLIENT_NAME,  acct);
         final String clientRedirectUri = config.getString(String.format(
-            OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, FacebookConstants.CLIENT_NAME), FacebookConstants.CLIENT_NAME, acct);
+            OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, FacebookConstants.CLIENT_NAME),
+            FacebookConstants.CLIENT_NAME, acct);
 
           // set client specific properties
           oauthInfo.setRefreshToken(refreshToken);
@@ -186,7 +190,8 @@ public class FacebookContactsImport implements DataImport {
             ZimbraLog.extensions
             .errorQuietly("There was an issue encoding the url.", e1);
             throw ServiceException
-                .FAILURE("There was an issue encoding the url. " + authInfo.getClientRedirectUri(), null);
+                .FAILURE("There was an issue encoding the url. "
+                    + authInfo.getClientRedirectUri(), null);
         }
         String queryString = String.format(
                 FacebookConstants.REFRESH_ACCESS_TOKEN_FOR_CODE_REQUEST_URI_TEMPLATE,

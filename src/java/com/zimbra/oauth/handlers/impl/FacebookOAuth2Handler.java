@@ -154,6 +154,11 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         protected static final String REQUIRED_SCOPES = "email";
 
         /**
+         * The scope delimiter to use.
+         */
+        public static final String SCOPE_DELIMITER = " ";
+
+        /**
          * The state parameter.
          */
         public static final String RELAY_KEY = "state";
@@ -211,31 +216,36 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
      *
      * @param config For accessing configured properties
      */
-
     public FacebookOAuth2Handler(Configuration config) {
-
         super(config, FacebookConstants.CLIENT_NAME, FacebookConstants.HOST_FACEBOOK);
         authenticateUri = FacebookConstants.AUTHENTICATE_URI;
+        authorizeUriTemplate = FacebookConstants.AUTHORIZE_URI_TEMPLATE;
+        requiredScopes = FacebookConstants.REQUIRED_SCOPES;
+        scopeDelimiter = FacebookConstants.SCOPE_DELIMITER;
         relayKey = FacebookConstants.RELAY_KEY;
-        // add associated import classes
         dataSource.addImportClass(View.contact.name(),
-                FacebookContactsImport.class.getCanonicalName());
+            FacebookContactsImport.class.getCanonicalName());
     }
 
     /**
      * Facebook authenticate handler.
      *
+     * @throws ServiceException Thrown if an error was encountered
      * @see IOAuth2Handler#authenticate(OAuthInfo)
      */
     @Override
-    public Boolean authenticate(OAuthInfo oauthInfo) {
+    public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
+        final Account account = oauthInfo.getAccount();
+        final String clientId = config.getString(
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
+        final String clientSecret = config.getString(
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client,
+            account);
+        final String clientRedirectUri = config.getString(
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,
+            account);
+        final String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
         // set client specific properties
-        try {
-        Account account = oauthInfo.getAccount();
-        String clientId = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client),client, account);
-        String clientSecret = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client, account);
-        String clientRedirectUri = config.getString(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,account);
-        String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
         oauthInfo.setClientId(clientId);
         oauthInfo.setClientSecret(clientSecret);
         oauthInfo.setClientRedirectUri(clientRedirectUri);
@@ -255,9 +265,6 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         oauthInfo.setUsername(username);
         oauthInfo.setRefreshToken(credentials.get("access_token").asText());
         dataSource.syncDatasource(mailbox, oauthInfo);
-        } catch(Exception e) {
-          ZimbraLog.extensions.info("ERROR:" + e.getMessage(), e);
-        }
         return true;
     }
 
@@ -289,7 +296,8 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
 
             switch (errorCode) {
                 case FacebookConstants.RESPONSE_ERROR_INVALID_CODE:
-                    ZimbraLog.extensions.debug("Invalid request error from Facebook: " + errorMsg);
+                    ZimbraLog.extensions.debug("Invalid request error from Facebook: "
+                        + errorMsg);
                     throw ServiceException.INVALID_REQUEST(
                             "The authentication " + "request parameters are invalid.", null);
                 case FacebookConstants.RESPONSE_ERROR_SESSION_EXPIRED:
@@ -299,8 +307,8 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
                 case FacebookConstants.RESPONSE_ERROR_API_UNKNOWN:
                     ZimbraLog.extensions.debug("API Unknown: " + errorMsg);
                     throw ServiceException.OPERATION_DENIED("API Unknown. Possibly a temporary "
-                            + "issue due to downtime. If it occurs again, check you are requesting an "
-                            + "existing API.");
+                            + "issue due to downtime. If it occurs again, check you are "
+                            + "requesting an existing API.");
                 case FacebookConstants.RESPONSE_ERROR_API_SERVICE:
                     ZimbraLog.extensions.debug("API Service issue: " + errorMsg);
                     throw ServiceException.TEMPORARILY_UNAVAILABLE();
@@ -317,7 +325,8 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
                 case FacebookConstants.RESPONSE_ERROR_PERMISSIONS_ERROR:
                     ZimbraLog.extensions.debug("API Permissions issue: " + errorMsg);
                     throw ServiceException
-                            .PERM_DENIED("Permission is either not granted or has " + "been removed.");
+                            .PERM_DENIED("Permission is either not granted or has "
+                                + "been removed.");
                 case FacebookConstants.RESPONSE_ERROR_LIMIT_REACHED:
                     ZimbraLog.extensions.debug("Application limit reached: " + errorMsg);
                     throw ServiceException.TEMPORARILY_UNAVAILABLE();
