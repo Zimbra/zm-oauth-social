@@ -26,6 +26,7 @@ import org.apache.commons.httpclient.methods.GetMethod;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.common.service.ServiceException;
+import com.zimbra.common.util.StringUtil;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
@@ -199,6 +200,10 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         final String clientRedirectUri = config.getString(
             String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,
             account);
+        if (StringUtil.isNullOrEmpty(clientId) || StringUtil.isNullOrEmpty(clientSecret)
+            || StringUtil.isNullOrEmpty(clientRedirectUri)) {
+            throw ServiceException.FAILURE("Required config(id, secret and redirectUri) parameters are not provided.", null);
+        }
         final String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
         // set client specific properties
         oauthInfo.setClientId(clientId);
