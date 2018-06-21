@@ -75,7 +75,6 @@ import org.apache.commons.lang.StringUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.Pair;
-import com.zimbra.common.util.StringUtil;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.DataSource;
@@ -193,8 +192,8 @@ public class YahooContactsImport implements DataImport {
         final String clientRedirectUri = config.getString(String.format(
             OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, YahooConstants.CLIENT_NAME), YahooConstants.CLIENT_NAME, acct);
 
-        if (StringUtil.isNullOrEmpty(clientId) || StringUtil.isNullOrEmpty(clientSecret)
-            || StringUtil.isNullOrEmpty(clientRedirectUri)) {
+        if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientSecret)
+            || StringUtils.isEmpty(clientRedirectUri)) {
             throw ServiceException.FAILURE("Required config(id, secret and redirectUri) parameters are not provided.", null);
         }
         // set client specific properties

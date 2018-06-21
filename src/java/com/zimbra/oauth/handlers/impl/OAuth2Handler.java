@@ -42,7 +42,6 @@ import com.zimbra.client.ZMailbox;
 import com.zimbra.common.auth.ZAuthToken;
 import com.zimbra.common.httpclient.HttpClientUtil;
 import com.zimbra.common.service.ServiceException;
-import com.zimbra.common.util.StringUtil;
 import com.zimbra.common.util.ZimbraHttpConnectionManager;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
@@ -218,7 +217,7 @@ public abstract class OAuth2Handler {
         final String clientRedirectUri = config.getString(
             String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,
             account);
-        if (StringUtil.isNullOrEmpty(clientId)  || StringUtil.isNullOrEmpty(clientRedirectUri)) {
+        if (StringUtils.isEmpty(clientId)  || StringUtils.isEmpty(clientRedirectUri)) {
             throw ServiceException.FAILURE("Required config(id, and redirectUri) parameters are not provided.", null);
         }
 
@@ -227,7 +226,7 @@ public abstract class OAuth2Handler {
                 String.format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, client), client, account) },
             scopeDelimiter);
 
-        if (StringUtil.isNullOrEmpty(clientId) || StringUtil.isNullOrEmpty(clientRedirectUri)) {
+        if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientRedirectUri)) {
             throw ServiceException.NOT_FOUND(String.format(
                 "The app: %s is not properly configured, please set Oauth credentials and redirect uri",
                 client), new Exception("Invalid config"));
@@ -280,8 +279,8 @@ public abstract class OAuth2Handler {
         final String clientRedirectUri = config.getString(
             String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,
             account);
-        if (StringUtil.isNullOrEmpty(clientId) || StringUtil.isNullOrEmpty(clientSecret)
-            || StringUtil.isNullOrEmpty(clientRedirectUri)) {
+        if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientSecret)
+            || StringUtils.isEmpty(clientRedirectUri)) {
             throw ServiceException.FAILURE("Required config(id, secret and redirectUri) parameters are not provided.", null);
         }
         final String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
