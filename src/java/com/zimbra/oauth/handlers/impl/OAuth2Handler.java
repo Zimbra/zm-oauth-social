@@ -218,6 +218,9 @@ public abstract class OAuth2Handler {
         final String clientRedirectUri = config.getString(
             String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,
             account);
+        if (StringUtil.isNullOrEmpty(clientId)  || StringUtil.isNullOrEmpty(clientRedirectUri)) {
+            throw ServiceException.FAILURE("Required config(id, and redirectUri) parameters are not provided.", null);
+        }
 
         final String scope = StringUtils.join(
             new String[] { requiredScopes, config.getString(
@@ -277,6 +280,10 @@ public abstract class OAuth2Handler {
         final String clientRedirectUri = config.getString(
             String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,
             account);
+        if (StringUtil.isNullOrEmpty(clientId) || StringUtil.isNullOrEmpty(clientSecret)
+            || StringUtil.isNullOrEmpty(clientRedirectUri)) {
+            throw ServiceException.FAILURE("Required config(id, secret and redirectUri) parameters are not provided.", null);
+        }
         final String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
         // set client specific properties
         oauthInfo.setClientId(clientId);
