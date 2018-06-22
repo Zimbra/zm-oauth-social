@@ -22,6 +22,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
 import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.lang.StringUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZMailbox;
@@ -199,6 +200,10 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         final String clientRedirectUri = config.getString(
             String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,
             account);
+        if (StringUtils.isEmpty(clientId) ||StringUtils.isEmpty(clientSecret)
+            || StringUtils.isEmpty(clientRedirectUri)) {
+            throw ServiceException.FAILURE("Required config(id, secret and redirectUri) parameters are not provided.", null);
+        }
         final String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
         // set client specific properties
         oauthInfo.setClientId(clientId);
@@ -386,6 +391,9 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
             String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client,
             account);
 
+        if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientSecret)) {
+            throw ServiceException.FAILURE("Required config(id, secret) parameters are not provided.", null);
+        }
         final String queryString = "?client_id=" + clientId + "&client_secret=" + clientSecret
             + "&grant_type=client_credentials";
         try {

@@ -202,6 +202,10 @@ public class GoogleContactsImport implements DataImport {
         final String clientRedirectUri = config.getString(String.format(
             OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, GoogleConstants.CLIENT_NAME), GoogleConstants.CLIENT_NAME, acct);
 
+        if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientSecret)
+            || StringUtils.isEmpty(clientRedirectUri)) {
+            throw ServiceException.FAILURE("Required config(id, secret and redirectUri) parameters are not provided.", null);
+        }
         // set client specific properties
         oauthInfo.setRefreshToken(refreshToken);
         oauthInfo.setClientId(clientId);
