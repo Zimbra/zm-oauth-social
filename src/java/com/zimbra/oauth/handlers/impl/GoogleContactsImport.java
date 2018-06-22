@@ -345,8 +345,6 @@ public class GoogleContactsImport implements DataImport {
     public void importData(List<Integer> folderIds, boolean fullSync) throws ServiceException {
         final Mailbox mailbox = mDataSource.getMailbox();
         final int folderId = mDataSource.getFolderId();
-        // list of contacts to create after parsing each google response
-        final List<ParsedContact> createList = new ArrayList<ParsedContact>();
         // existing contacts from the datasource folder
         final Set<String> existingContacts = getExistingContacts(mailbox, folderId);
         // get a new access token and build the auth header
@@ -368,8 +366,6 @@ public class GoogleContactsImport implements DataImport {
                     pageToken);
                 // always set an empty page token during pagination
                 pageToken = null;
-                // empty the create list
-                createList.clear();
                 // log only at most verbose level, this contains privileged info
                 ZimbraLog.extensions.trace(
                     "Attempting to sync Google contacts. URL: %s. authorizationHeader: %s", url,
@@ -389,14 +385,7 @@ public class GoogleContactsImport implements DataImport {
                     } else if (jsonResponse.has("connections")
                         && jsonResponse.get("connections").isArray()) {
                         final JsonNode jsonContacts = jsonResponse.get("connections");
-                        parseNewContacts(existingContacts, jsonContacts, createList);
-                        if (!createList.isEmpty()) {
-                            // create the contacts that need to be added
-                            ZimbraLog.extensions
-                                .debug("Creating set of contacts from parsed list.");
-                            CreateContact.createContacts(null, mailbox,
-                                new ItemId(mailbox, folderId), createList, null);
-                        }
+                        createNewContacts(existingContacts, jsonContacts);
                     } else {
                         ZimbraLog.extensions.debug(
                             "Did not find 'connections' element in JSON response object. Response body: %s",
@@ -421,6 +410,28 @@ public class GoogleContactsImport implements DataImport {
         } catch (UnsupportedOperationException | IOException e) {
             throw ServiceException.FAILURE(
                 "Data source sync failed. Failed to fetch contacts from Google Contacts API.", e);
+        }
+    }
+
+
+    /**
+     * Creates new contacts from the api excluding existing contacts in the datasource.
+     *
+     * @param existingContacts Existing contacts
+     * @param contactsObject JSON from the api response
+     * @throws ServiceException If an error is encountered
+     */
+    protected void createNewContacts(Set<String> existingContacts, JsonNode contactsObject)
+            throws ServiceException {
+        List<ParsedContact> contactList = new ArrayList<ParsedContact>();
+        parseNewContacts(existingContacts, contactsObject, contactList);
+        if (!contactList.isEmpty()) {
+            final ItemId iidFolder = new ItemId(mDataSource.getMailbox(), mDataSource.getFolderId());
+            // create the contacts that need to be added
+            ZimbraLog.extensions
+                .debug("Creating set of contacts from parsed list.");
+            CreateContact.createContacts(null, mDataSource.getMailbox(), iidFolder, contactList,
+                null);
         }
     }
 
