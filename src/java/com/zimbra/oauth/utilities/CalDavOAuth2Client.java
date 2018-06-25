@@ -34,8 +34,9 @@ public class CalDavOAuth2Client extends CalDavClient {
         super(baseUrl);
     }
 
+    @Override
     protected HttpMethod executeMethod(HttpMethod m, Depth d, String bodyForLogging) throws IOException {
-        HttpMethodParams p = m.getParams();
+        final HttpMethodParams p = m.getParams();
         if ( p != null )
             p.setCredentialCharset("UTF-8");
 
@@ -56,10 +57,10 @@ public class CalDavOAuth2Client extends CalDavClient {
         }
         m.setRequestHeader("Depth", depth);
         final String authorizationHeader = String.format("Bearer %s", accessToken);
-        m.addRequestHeader(OAuth2Constants.HEADER_AUTHORIZATION, authorizationHeader);
+        m.addRequestHeader(OAuth2Constants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
         m.setRequestHeader("Depth", depth);
         logRequestInfo(m, bodyForLogging);
-        ArrayList<String> authPrefs = new ArrayList<String>();
+        final ArrayList<String> authPrefs = new ArrayList<String>();
         authPrefs.add(AuthPolicy.BASIC);
         mClient.getParams().setParameter(AuthPolicy.AUTH_SCHEME_PRIORITY, authPrefs);
         mClient.getParams().setAuthenticationPreemptive(true);

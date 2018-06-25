@@ -96,12 +96,13 @@ public class ClassManagerTest {
     public void testGetHandler() throws Exception {
         LdapConfiguration.buildConfiguration(anyObject(String.class));
         PowerMock.expectLastCall().andReturn(mockConfig);
-        expect(mockConfig.getString(matches(OAuth2Constants.LC_HANDLER_CLASS_PREFIX + client)))
+        expect(mockConfig.getString(matches(OAuth2Constants.LC_HANDLER_CLASS_PREFIX.getValue() + client)))
             .andReturn("com.zimbra.oauth.handlers.impl.YahooOAuth2Handler");
-        expect(mockConfig.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME)).andReturn(hostname);
-        expect(mockConfig.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE,
-            OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
-                .andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
+        expect(mockConfig.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME.getValue()))
+            .andReturn(hostname);
+        expect(mockConfig.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE.getValue(),
+            OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE.getValue()))
+                .andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE.getValue());
 
         PowerMock.replay(LdapConfiguration.class);
         replay(mockConfig);

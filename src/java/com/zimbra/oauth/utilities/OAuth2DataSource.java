@@ -124,43 +124,44 @@ public class OAuth2DataSource {
         final String refreshToken = credentials.getRefreshToken();
         final String type = credentials.getParam("type");
         final String dsFolderName = String
-                .format(OAuth2Constants.DEFAULT_OAUTH_FOLDER_TEMPLATE, username, type);
+                .format(OAuth2Constants.DEFAULT_OAUTH_FOLDER_TEMPLATE.getValue(), username, type);
         try {
             // get datasource, create if missing
             ZDataSource osource = mailbox.getDataSourceByName(dsFolderName);
             if (osource == null) {
-                DataSourceType dsType = getDataSourceTypeForOAuth2(type);
-                View view = getViewForDataSource(dsType);
+                final DataSourceType dsType = getDataSourceTypeForOAuth2(type);
+                final View view = getViewForDataSource(dsType);
                 // define the import class and polling interval
                 ZimbraLog.extensions.debug("Setting datasource polling interval and import class.");
                 // build up attributes
                 final Map<String, Object> dsAttrs = new HashMap<String, Object>();
                 if (importClassMap.containsKey(dsType.name())) {
-                    dsAttrs.put(Provisioning.A_zimbraDataSourceImportClassName, importClassMap.get(dsType.name()));
+                    dsAttrs.put(Provisioning.A_zimbraDataSourceImportClassName,
+                        importClassMap.get(dsType.name()));
                 } else {
-                    ZimbraLog.extensions.error("Missing import class for %s datasource type", dsType.name());
-                    throw ServiceException.FAILURE("Missing import class for " + dsType.name() + " datasource type", null);
+                    ZimbraLog.extensions.error("Missing import class for %s datasource type",
+                        dsType.name());
+                    throw ServiceException.FAILURE(
+                        "Missing import class for " + dsType.name() + " datasource type", null);
                 }
-
-                dsAttrs.put(Provisioning.A_zimbraDataSourcePollingInterval, OAuth2Constants.DATASOURCE_POLLING_INTERVAL);
+                dsAttrs.put(Provisioning.A_zimbraDataSourcePollingInterval,
+                    OAuth2Constants.DATASOURCE_POLLING_INTERVAL.getValue());
                 dsAttrs.put(Provisioning.A_zimbraDataSourceEnabled, "TRUE");
                 dsAttrs.put(Provisioning.A_zimbraDataSourceConnectionType, "cleartext");
                 dsAttrs.put(Provisioning.A_zimbraDataSourceOAuthRefreshToken, refreshToken);
                 dsAttrs.put(Provisioning.A_zimbraDataSourceHost, host);
                 dsAttrs.put(Provisioning.A_zimbraDataSourceImportOnly, "FALSE");
-
                 // ensure the specified storage folder exists
                 final String storageFolderId = ensureFolder(mailbox, dsFolderName, view);
                 dsAttrs.put(Provisioning.A_zimbraDataSourceFolderId, storageFolderId);
-
                 if (dsCustomAttrs != null) {
                     dsAttrs.putAll(dsCustomAttrs);
                 }
                 // create the new datasource
                 ZimbraLog.extensions.debug("Creating new datasource.");
                 final Provisioning prov = Provisioning.getInstance();
-                final DataSource source = prov.createDataSource(prov.getAccountById(mailbox.getAccountId()), dsType,
-                        dsFolderName, dsAttrs);
+                final DataSource source = prov.createDataSource(
+                    prov.getAccountById(mailbox.getAccountId()), dsType, dsFolderName, dsAttrs);
                 // fetch as ZDataSource so we can trigger it
                 osource = mailbox.getDataSourceById(source.getId());
             } else {

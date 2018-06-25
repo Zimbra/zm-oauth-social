@@ -99,13 +99,16 @@ public class FacebookOAuth2HandlerTest {
         handler = PowerMock.createPartialMockForAllMethodsExcept(FacebookOAuth2Handler.class,
             "authorize", "authenticate");
         Whitebox.setInternalState(handler, "config", mockConfig);
-        Whitebox.setInternalState(handler, "relayKey", FacebookConstants.RELAY_KEY);
-        Whitebox.setInternalState(handler, "authenticateUri", FacebookConstants.AUTHENTICATE_URI);
+        Whitebox.setInternalState(handler, "relayKey", FacebookConstants.RELAY_KEY.getValue());
+        Whitebox.setInternalState(handler, "authenticateUri",
+            FacebookConstants.AUTHENTICATE_URI.getValue());
         Whitebox.setInternalState(handler, "authorizeUriTemplate",
-            FacebookConstants.AUTHORIZE_URI_TEMPLATE);
-        Whitebox.setInternalState(handler, "requiredScopes", FacebookConstants.REQUIRED_SCOPES);
-        Whitebox.setInternalState(handler, "scopeDelimiter", FacebookConstants.SCOPE_DELIMITER);
-        Whitebox.setInternalState(handler, "client", FacebookConstants.CLIENT_NAME);
+            FacebookConstants.AUTHORIZE_URI_TEMPLATE.getValue());
+        Whitebox.setInternalState(handler, "requiredScopes",
+            FacebookConstants.REQUIRED_SCOPES.getValue());
+        Whitebox.setInternalState(handler, "scopeDelimiter",
+            FacebookConstants.SCOPE_DELIMITER.getValue());
+        Whitebox.setInternalState(handler, "client", FacebookConstants.CLIENT_NAME.getValue());
         Whitebox.setInternalState(handler, "dataSource", mockDataSource);
     }
 
@@ -119,13 +122,14 @@ public class FacebookOAuth2HandlerTest {
     public void testFacebookOAuth2Handler() throws Exception {
         final OAuth2DataSource mockDataSource = EasyMock.createMock(OAuth2DataSource.class);
 
-        expect(mockConfig.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE,
-            OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
-                .andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
-        expect(mockConfig.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME)).andReturn(hostname);
+        expect(mockConfig.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE.getValue(),
+            OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE.getValue()))
+                .andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE.getValue());
+        expect(mockConfig.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME.getValue()))
+            .andReturn(hostname);
         PowerMock.mockStatic(OAuth2DataSource.class);
-        expect(OAuth2DataSource.createDataSource(FacebookConstants.CLIENT_NAME,
-            FacebookConstants.HOST_FACEBOOK)).andReturn(mockDataSource);
+        expect(OAuth2DataSource.createDataSource(FacebookConstants.CLIENT_NAME.getValue(),
+            FacebookConstants.HOST_FACEBOOK.getValue())).andReturn(mockDataSource);
 
         replay(mockConfig);
         PowerMock.replay(OAuth2DataSource.class);
@@ -145,12 +149,14 @@ public class FacebookOAuth2HandlerTest {
      */
     @Test
     public void testAuthorize() throws Exception {
-        final String encodedUri = URLEncoder.encode(clientRedirectUri, OAuth2Constants.ENCODING);
-        final String expectedAuthorize = String.format(FacebookConstants.AUTHORIZE_URI_TEMPLATE,
-            clientId, encodedUri, "code", FacebookConstants.REQUIRED_SCOPES);
+        final String encodedUri = URLEncoder.encode(clientRedirectUri,
+            OAuth2Constants.ENCODING.getValue());
+        final String expectedAuthorize = String.format(
+            FacebookConstants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code",
+            FacebookConstants.REQUIRED_SCOPES.getValue());
 
         // expect buildAuthorize call
-        expect(handler.buildAuthorizeUri(FacebookConstants.AUTHORIZE_URI_TEMPLATE, null, "contact"))
+        expect(handler.buildAuthorizeUri(FacebookConstants.AUTHORIZE_URI_TEMPLATE.getValue(), null, "contact"))
             .andReturn(expectedAuthorize);
 
         replay(handler);
@@ -161,8 +167,8 @@ public class FacebookOAuth2HandlerTest {
         verify(handler);
 
         assertNotNull(authorizeLocation);
-        assertEquals(String.format(FacebookConstants.AUTHORIZE_URI_TEMPLATE, clientId, encodedUri,
-            "code", FacebookConstants.REQUIRED_SCOPES), authorizeLocation);
+        assertEquals(String.format(FacebookConstants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId,
+            encodedUri, "code", FacebookConstants.REQUIRED_SCOPES.getValue()), authorizeLocation);
     }
 
     /**
@@ -185,17 +191,19 @@ public class FacebookOAuth2HandlerTest {
 
         expect(mockOAuthInfo.getAccount()).andReturn(null);
         expect(mockConfig.getString(
-            matches(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE,
-                FacebookConstants.CLIENT_NAME)),
-            matches(FacebookConstants.CLIENT_NAME), anyObject())).andReturn(clientId);
+            matches(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(),
+                FacebookConstants.CLIENT_NAME.getValue())),
+            matches(FacebookConstants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientId);
         expect(mockConfig.getString(
-            matches(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE,
-                FacebookConstants.CLIENT_NAME)),
-            matches(FacebookConstants.CLIENT_NAME), anyObject())).andReturn(clientSecret);
+            matches(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(),
+                FacebookConstants.CLIENT_NAME.getValue())),
+            matches(FacebookConstants.CLIENT_NAME.getValue()), anyObject()))
+                .andReturn(clientSecret);
         expect(mockConfig.getString(
-            matches(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE,
-                FacebookConstants.CLIENT_NAME)),
-            matches(FacebookConstants.CLIENT_NAME), anyObject())).andReturn(clientRedirectUri);
+            matches(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(),
+                FacebookConstants.CLIENT_NAME.getValue())),
+            matches(FacebookConstants.CLIENT_NAME.getValue()), anyObject()))
+                .andReturn(clientRedirectUri);
         expect(handler.getZimbraMailbox(anyObject(String.class))).andReturn(mockZMailbox);
         expect(OAuth2Handler.getTokenRequest(anyObject(OAuthInfo.class), anyObject(String.class)))
             .andReturn(mockCredentials);
@@ -212,7 +220,7 @@ public class FacebookOAuth2HandlerTest {
         EasyMock.expectLastCall().once();
         mockOAuthInfo.setClientRedirectUri(matches(clientRedirectUri));
         EasyMock.expectLastCall().once();
-        mockOAuthInfo.setTokenUrl(matches(FacebookConstants.AUTHENTICATE_URI));
+        mockOAuthInfo.setTokenUrl(matches(FacebookConstants.AUTHENTICATE_URI.getValue()));
         EasyMock.expectLastCall().once();
         expect(mockOAuthInfo.getZmAuthToken()).andReturn(zmAuthToken);
         mockOAuthInfo.setUsername(user_id);

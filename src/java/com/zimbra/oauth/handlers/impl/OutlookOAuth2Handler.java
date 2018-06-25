@@ -35,92 +35,111 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
     /**
      * Contains constants used in this implementation.
      */
-    protected class OutlookConstants {
+    protected enum OutlookConstants {
 
         /**
          * Invalid request error from Outlook.<br>
          * Protocol error, such as a missing required parameter.
          */
-        protected static final String RESPONSE_ERROR_INVALID_REQUEST = "invalid_request";
+        RESPONSE_ERROR_INVALID_REQUEST("invalid_request"),
 
         /**
          * Unauthorized client error from Outlook.<br>
          * The client application is not permitted to request an authorization
          * code.
          */
-        protected static final String RESPONSE_ERROR_UNAUTHORIZED_CLIENT = "unauthorized_client";
+        RESPONSE_ERROR_UNAUTHORIZED_CLIENT("unauthorized_client"),
 
         /**
          * Access denied error from Outlook.<br>
          * Resource owner denied consent.
          */
-        protected static final String RESPONSE_ERROR_ACCESS_DENIED = "access_denied";
+        RESPONSE_ERROR_ACCESS_DENIED("access_denied"),
 
         /**
          * Server error, error from Outlook.<br>
          * The server encountered an unexpected error.
          */
-        protected static final String RESPONSE_ERROR_SERVER_ERROR = "server_error";
+        RESPONSE_ERROR_SERVER_ERROR("server_error"),
 
         /**
          * Temporarily unavailable error from Outlook.<br>
          * The server is temporarily too busy to handle the request.
          */
-        protected static final String RESPONSE_ERROR_TEMPORARILY_UNAVAILABLE = "temporarily_unavailable";
+        RESPONSE_ERROR_TEMPORARILY_UNAVAILABLE("temporarily_unavailable"),
 
         /**
          * Invalid resource error from Outlook.<br>
          * The target resource is invalid because it does not exist, Azure AD
          * cannot find it, or it is not correctly configured.
          */
-        protected static final String RESPONSE_ERROR_INVALID_RESOURCE = "invalid_resource";
+        RESPONSE_ERROR_INVALID_RESOURCE("invalid_resource"),
 
         /**
          * Unsupported response type error from Outlook.<br>
          * The authorization server does not support the response type in the
          * request.
          */
-        protected static final String RESPONSE_ERROR_RESPONSE_TYPE = "unsupported_response_type";
+        RESPONSE_ERROR_RESPONSE_TYPE("unsupported_response_type"),
 
         /**
          * The authorize endpoint for Outlook.
          */
-        protected static final String AUTHORIZE_URI_TEMPLATE = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s";
+        AUTHORIZE_URI_TEMPLATE("https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s"),
 
         /**
          * The profile endpoint for Outlook.
          */
-        protected static final String PROFILE_URI = "https://www.outlookapis.com/auth/userinfo.email";
+        PROFILE_URI("https://www.outlookapis.com/auth/userinfo.email"),
 
         /**
          * The authenticate endpoint for Outlook.
          */
-        protected static final String AUTHENTICATE_URI = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
+        AUTHENTICATE_URI("https://login.microsoftonline.com/common/oauth2/v2.0/token"),
 
         /**
          * The relay key for Outlook.
          */
-        protected static final String RELAY_KEY = "state";
+        RELAY_KEY("state"),
 
         /**
          * The scope required for Outlook.
          */
-        protected static final String REQUIRED_SCOPES = "email";
+        REQUIRED_SCOPES("email"),
 
         /**
          * The scope delimiter for Outlook.
          */
-        protected static final String SCOPE_DELIMITER = "+";
+        SCOPE_DELIMITER("+"),
 
         /**
          * The implementation name.
          */
-        public static final String CLIENT_NAME = "outlook";
+        CLIENT_NAME("outlook"),
 
         /**
          * The implementation host.
          */
-        public static final String HOST_OUTLOOK = "microsoftonline.com";
+        HOST_OUTLOOK("microsoftonline.com");
+
+        /**
+         * The value of this enum.
+         */
+        private String constant;
+
+        /**
+         * @return The enum value
+         */
+        public String getValue() {
+            return constant;
+        }
+
+        /**
+         * @param constant The enum value to set
+         */
+        private OutlookConstants(String constant) {
+            this.constant = constant;
+        }
     }
 
     /**
@@ -129,12 +148,13 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
      * @param config For accessing configured properties
      */
     public OutlookOAuth2Handler(Configuration config) {
-        super(config, OutlookConstants.CLIENT_NAME, OutlookConstants.HOST_OUTLOOK);
-        authenticateUri = OutlookConstants.AUTHENTICATE_URI;
-        authorizeUriTemplate = OutlookConstants.AUTHORIZE_URI_TEMPLATE;
-        requiredScopes = OutlookConstants.REQUIRED_SCOPES;
-        scopeDelimiter = OutlookConstants.SCOPE_DELIMITER;
-        relayKey = OutlookConstants.RELAY_KEY;
+        super(config, OutlookConstants.CLIENT_NAME.getValue(),
+            OutlookConstants.HOST_OUTLOOK.getValue());
+        authenticateUri = OutlookConstants.AUTHENTICATE_URI.getValue();
+        authorizeUriTemplate = OutlookConstants.AUTHORIZE_URI_TEMPLATE.getValue();
+        requiredScopes = OutlookConstants.REQUIRED_SCOPES.getValue();
+        scopeDelimiter = OutlookConstants.SCOPE_DELIMITER.getValue();
+        relayKey = OutlookConstants.RELAY_KEY.getValue();
     }
 
     /**
@@ -161,32 +181,32 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         if (response.has("error")) {
             final String error = response.get("error").asText();
             final JsonNode errorMsg = response.get("error_description");
-            switch (error) {
-            case OutlookConstants.RESPONSE_ERROR_INVALID_REQUEST:
+            switch (OutlookConstants.valueOf(error)) {
+            case RESPONSE_ERROR_INVALID_REQUEST:
                 ZimbraLog.extensions.warn("Invalid token request parameters: " + errorMsg);
                 throw ServiceException
                     .OPERATION_DENIED("The token request parameters are invalid.");
-            case OutlookConstants.RESPONSE_ERROR_UNAUTHORIZED_CLIENT:
+            case RESPONSE_ERROR_UNAUTHORIZED_CLIENT:
                 ZimbraLog.extensions.warn(
                     "The specified client details provided to the social service are invalid: "
                         + errorMsg);
                 throw ServiceException.OPERATION_DENIED(
                     "The specified client details provided to the social service are invalid.");
-            case OutlookConstants.RESPONSE_ERROR_ACCESS_DENIED:
+            case RESPONSE_ERROR_ACCESS_DENIED:
                 ZimbraLog.extensions
                     .info("User did not provide authorization for this service: " + errorMsg);
                 throw ServiceException
                     .FORBIDDEN("User did not provide authorization for this service.");
-            case OutlookConstants.RESPONSE_ERROR_SERVER_ERROR:
-            case OutlookConstants.RESPONSE_ERROR_TEMPORARILY_UNAVAILABLE:
+            case RESPONSE_ERROR_SERVER_ERROR:
+            case RESPONSE_ERROR_TEMPORARILY_UNAVAILABLE:
                 ZimbraLog.extensions
                     .debug("There was an issue with the remote social service: " + errorMsg);
                 throw ServiceException
                     .PROXY_ERROR("There was an issue with the remote social service.", null);
-            case OutlookConstants.RESPONSE_ERROR_INVALID_RESOURCE:
+            case RESPONSE_ERROR_INVALID_RESOURCE:
                 ZimbraLog.extensions.debug("Invalid resource: " + errorMsg);
                 throw ServiceException.PERM_DENIED("The specified resource is invalid.");
-            case OutlookConstants.RESPONSE_ERROR_RESPONSE_TYPE:
+            case RESPONSE_ERROR_RESPONSE_TYPE:
                 ZimbraLog.extensions.info("Requested response type is not supported: " + errorMsg);
                 throw ServiceException.OPERATION_DENIED(
                     "Requested response type is not supported by the social service.");

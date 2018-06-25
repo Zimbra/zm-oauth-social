@@ -39,7 +39,7 @@ public class OAuth2Extension implements ZimbraExtension {
 
     @Override
     public String getName() {
-        return OAuth2Constants.API_NAME;
+        return OAuth2Constants.API_NAME.getValue();
     }
 
     @Override

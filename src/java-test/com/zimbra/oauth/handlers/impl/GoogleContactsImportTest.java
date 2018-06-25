@@ -113,7 +113,7 @@ public class GoogleContactsImportTest {
         expect(importer.refresh()).andReturn(accessToken);
         // expect buildContactsUrl to be called
         expect(importer.buildContactsUrl(anyObject(), anyObject(), anyObject()))
-            .andReturn(GoogleConstants.CONTACTS_URI);
+            .andReturn(GoogleConstants.CONTACTS_URI.getValue());
         final String jsonData = "{\"connections\":[{\"biographies\":[{\"contentType\":\"TEXT_PLAIN\",\"value\":\"lionnsss!\"}],\"emailAddresses\":[{\"value\":\"lionel@example.com\"}],\"etag\":\"fake-etag\",\"names\":[{\"displayName\":\"Lionel Ronkerts\",\"displayNameLastFirst\":\"Ronkerts, Lionel\",\"familyName\":\"Ronkerts\",\"givenName\":\"Lionel\",\"metadata\":{\"primary\":true,\"source\":{\"id\":\"fake-id\",\"type\":\"CONTACT\"}}}],\"organizations\":[{\"name\":\"Synacor\",\"title\":\"Tester\"}],\"photos\":[{\"default\":true,\"metadata\":{\"primary\":true,\"source\":{\"id\":\"fake-id\",\"type\":\"CONTACT\"}},\"url\":\"https://example.com/photo.jpg\"}],\"resourceName\":\"people/fake-people-id\"}],\"totalItems\":9,\"totalPeople\":9}";
         final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
         expect(importer.getContactsRequest(anyObject(), anyObject())).andReturn(jsonResponse);

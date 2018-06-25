@@ -42,7 +42,6 @@ import com.zimbra.client.ZMailbox;
 import com.zimbra.common.auth.ZAuthToken;
 import com.zimbra.common.httpclient.HttpClientUtil;
 import com.zimbra.common.service.ServiceException;
-import com.zimbra.common.util.StringUtil;
 import com.zimbra.common.util.ZimbraHttpConnectionManager;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
@@ -51,8 +50,8 @@ import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
-import com.zimbra.oauth.utilities.OAuth2Utilities;
 import com.zimbra.oauth.utilities.OAuth2DataSource;
+import com.zimbra.oauth.utilities.OAuth2Utilities;
 
 /**
  * The OAuth2Handler class.<br>
@@ -130,16 +129,18 @@ public abstract class OAuth2Handler {
     public OAuth2Handler(Configuration config, String client, String clientHost) {
         this.client = client;
         this.config = config;
-        typeKey = OAuth2Constants.TYPE_KEY;
+        typeKey = OAuth2Constants.TYPE_KEY.getValue();
         dataSource = OAuth2DataSource.createDataSource(client, clientHost);
-        final String zimbraHostname = config.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
+        final String zimbraHostname = config
+            .getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME.getValue());
         // warn if missing hostname
         if (StringUtils.isEmpty(zimbraHostname)) {
             ZimbraLog.extensions.warn("The zimbra server hostname is not configured.");
         }
         // cache the host uri
-        zimbraHostUri = String.format(config.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE,
-            OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE), zimbraHostname);
+        zimbraHostUri = String
+            .format(config.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE.getValue(),
+                OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE.getValue()), zimbraHostname);
     }
 
     /**
@@ -189,9 +190,10 @@ public abstract class OAuth2Handler {
         request.setParameter("redirect_uri", authInfo.getClientRedirectUri());
         request.setParameter("client_secret", authInfo.getClientSecret());
         request.setParameter("client_id", authInfo.getClientId());
-        request.setRequestHeader(OAuth2Constants.HEADER_CONTENT_TYPE,
+        request.setRequestHeader(OAuth2Constants.HEADER_CONTENT_TYPE.getValue(),
             "application/x-www-form-urlencoded");
-        request.setRequestHeader(OAuth2Constants.HEADER_AUTHORIZATION, "Basic " + basicToken);
+        request.setRequestHeader(OAuth2Constants.HEADER_AUTHORIZATION.getValue(),
+            "Basic " + basicToken);
         JsonNode json = null;
         try {
             json = executeRequestForJson(request);
@@ -221,18 +223,23 @@ public abstract class OAuth2Handler {
         final String responseType = "code";
         String encodedRedirectUri = "";
         final String clientId = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
-        final String clientRedirectUri = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(), client), client,
             account);
-        if (StringUtils.isEmpty(clientId)  || StringUtils.isEmpty(clientRedirectUri)) {
-            throw ServiceException.FAILURE("Required config(id, and redirectUri) parameters are not provided.", null);
+        final String clientRedirectUri = config.getString(
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(), client),
+            client, account);
+        if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientRedirectUri)) {
+            throw ServiceException
+                .FAILURE("Required config(id, and redirectUri) parameters are not provided.", null);
         }
 
-        String scopeIdentifier = StringUtil.isNullOrEmpty(datasourceType) ? client : client + "_" + datasourceType;
-        final String scope = StringUtils.join(
-            new String[] { requiredScopes, config.getString(
-                String.format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, client), scopeIdentifier, account) },
+        final String scopeIdentifier = StringUtils.isEmpty(datasourceType)
+            ? client
+            : client + "_" + datasourceType;
+        final String scope = StringUtils.join(new String[] { requiredScopes,
+            config.getString(
+                String.format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE.getValue(), client),
+                scopeIdentifier, account) },
             scopeDelimiter);
 
         if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientRedirectUri)) {
@@ -242,7 +249,8 @@ public abstract class OAuth2Handler {
         }
 
         try {
-            encodedRedirectUri = URLEncoder.encode(clientRedirectUri, OAuth2Constants.ENCODING);
+            encodedRedirectUri = URLEncoder.encode(clientRedirectUri,
+                OAuth2Constants.ENCODING.getValue());
         } catch (final UnsupportedEncodingException e) {
             ZimbraLog.extensions.errorQuietly("Invalid redirect URI found in client config.", e);
         }
@@ -254,21 +262,21 @@ public abstract class OAuth2Handler {
      * @see IOAuth2Handler#authorize(String, Account)
      */
     public String authorize(Map<String, String> params, Account account) throws ServiceException {
-        String relayState = params.get(relayKey);
-        String type = StringUtils.defaultString(params.get(typeKey), "");
+        final String relayState = params.get(relayKey);
+        final String type = StringUtils.defaultString(params.get(typeKey), "");
         String relayValue = "";
         String relay = StringUtils.defaultString(relayState, "");
 
         if (!relay.isEmpty()) {
             try {
-                relay = URLDecoder.decode(relay, OAuth2Constants.ENCODING);
+                relay = URLDecoder.decode(relay, OAuth2Constants.ENCODING.getValue());
             } catch (final UnsupportedEncodingException e) {
                 throw ServiceException.INVALID_REQUEST("Unable to decode relay parameter.", e);
             }
 
             try {
                 relayValue = "&" + relayKey + "="
-                    + URLEncoder.encode(relay, OAuth2Constants.ENCODING);
+                    + URLEncoder.encode(relay, OAuth2Constants.ENCODING.getValue());
             } catch (final UnsupportedEncodingException e) {
                 throw ServiceException.INVALID_REQUEST("Unable to encode relay parameter.", e);
             }
@@ -279,7 +287,7 @@ public abstract class OAuth2Handler {
                 if (relayValue.isEmpty()) {
                     relayValue = "&" + relayKey + "=";
                 }
-                relayValue += RELAY_DELIMETER + URLEncoder.encode(type, OAuth2Constants.ENCODING);
+                relayValue += RELAY_DELIMETER + URLEncoder.encode(type, OAuth2Constants.ENCODING.getValue());
             } catch (final UnsupportedEncodingException e) {
                 throw ServiceException.INVALID_REQUEST("Unable to decode type parameter.", e);
             }
@@ -297,13 +305,14 @@ public abstract class OAuth2Handler {
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
         final Account account = oauthInfo.getAccount();
         final String clientId = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(), client), client,
+            account);
         final String clientSecret = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client,
-            account);
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(), client),
+            client, account);
         final String clientRedirectUri = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,
-            account);
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(), client),
+            client, account);
         if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientSecret)
             || StringUtils.isEmpty(clientRedirectUri)) {
             throw ServiceException.FAILURE("Required config(id, secret and redirectUri) parameters are not provided.", null);
@@ -330,7 +339,7 @@ public abstract class OAuth2Handler {
         oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
         dataSource.syncDatasource(mailbox, oauthInfo, getDatasourceCustomAttrs(oauthInfo));
         // add new datasource for calendar using oauth2calendar, if you want to use same
-        // oauthinfo for calendar datasource. see example below 
+        // oauthinfo for calendar datasource. see example below
         // e.g. dataSource.syncDatasource(mailbox, oauthInfo, DataSourceType.oauth2calendar);
         return true;
     }
@@ -393,28 +402,30 @@ public abstract class OAuth2Handler {
      * @see IOAuth2Handler#verifyAuthenticateParams()
      */
     public void verifyAndSplitAuthenticateParams(Map<String, String> params) throws ServiceException {
+        // split available params before checking for errors
         if (params.containsKey(relayKey)) {
-            String[] origVal = params.get(relayKey).split(RELAY_DELIMETER);
+            final String[] origVal = params.get(relayKey).split(RELAY_DELIMETER);
             if (origVal.length != 2) {
-                throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_TYPE_MISSING, null);
+                throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_TYPE_MISSING.getValue(), null);
             }
             params.put(relayKey, origVal[0]);
             if (origVal[1].isEmpty()) {
-                throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_TYPE_MISSING, null);
+                throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_TYPE_MISSING.getValue(), null);
             } else {
                 ZimbraLog.extensions.debug("Adding %s = %s", typeKey, origVal[1]);
                 params.put(typeKey, origVal[1]);
             }
         } else {
-            throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_TYPE_MISSING, null);
+            throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_TYPE_MISSING.getValue(), null);
         }
+
         final String error = params.get("error");
         // check for errors
         if (!StringUtils.isEmpty(error)) {
             throw ServiceException.PERM_DENIED(error);
             // ensure code exists
         } else if (!params.containsKey("code")) {
-            throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_INVALID_AUTH_CODE, null);
+            throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_INVALID_AUTH_CODE.getValue(), null);
         }
     }
 
@@ -426,16 +437,16 @@ public abstract class OAuth2Handler {
      * @see IOAuth2Handler#verifyAuthorizeParams(Map)
      */
     public void verifyAuthorizeParams(Map<String, String> params) throws ServiceException {
-        String relay = params.get(relayKey);
-        if (!StringUtil.isNullOrEmpty(relay)) {
+        final String relay = params.get(relayKey);
+        if (!StringUtils.isEmpty(relay)) {
             ZimbraLog.extensions.debug("Relay not passed in authorize request");
         }
-        String type = params.get(typeKey);
-        if (StringUtil.isNullOrEmpty(type)) {
+        final String type = params.get(typeKey);
+        if (StringUtils.isEmpty(type)) {
             ZimbraLog.extensions.debug("\"type\" not received in authorize request");
             throw ServiceException.FAILURE("Missing type in authorize request", null);
         } else {
-            //validate if type is valid 
+            //validate if type is valid
             OAuth2DataSource.getDataSourceTypeForOAuth2(type);
         }
     }

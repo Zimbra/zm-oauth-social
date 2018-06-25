@@ -96,7 +96,7 @@ public class Configuration {
     }
 
     /**
-     * 
+     *
      * @param key A key to lookup
      * @param appName the social client name
      * @param acct the user account
@@ -135,7 +135,7 @@ public class Configuration {
      * @return The default Configuration object
      */
     public static Configuration getDefaultConfiguration() {
-        return new Configuration(OAuth2Constants.PROPERTIES_NAME_APPLICATION);
+        return new Configuration(OAuth2Constants.PROPERTIES_NAME_APPLICATION.getValue());
     }
 
     /**
@@ -148,7 +148,7 @@ public class Configuration {
      * @return True if the client name is known by the service
      */
     protected static boolean isValidClient(String name) {
-        return !StringUtils.isEmpty(LC.get(OAuth2Constants.LC_HANDLER_CLASS_PREFIX + name));
+        return !StringUtils.isEmpty(LC.get(OAuth2Constants.LC_HANDLER_CLASS_PREFIX.getValue() + name));
     }
 
     /**

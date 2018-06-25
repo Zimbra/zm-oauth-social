@@ -24,58 +24,77 @@ package com.zimbra.oauth.utilities;
  * @package com.zimbra.oauth.utilities
  * @copyright Copyright © 2018
  */
-public class OAuth2Constants {
+public enum OAuth2Constants {
 
-    public static final String API_NAME = "zm-oauth-social";
-    public static final String ENCODING = "utf-8";
-    public static final String DEFAULT_SERVER_PATH = "/oauth2";
+    API_NAME("zm-oauth-social"),
+    ENCODING("utf-8"),
+    DEFAULT_SERVER_PATH("/oauth2"),
 
-    public static final String OAUTH2_RELAY_KEY = "state";
-    public static final String DEFAULT_SUCCESS_REDIRECT = "/";
-    public static final String DEFAULT_HOST_URI_TEMPLATE = "https://%s:443";
-    public static final String DEFAULT_OAUTH_FOLDER_TEMPLATE = "%s-%s";
+    OAUTH2_RELAY_KEY("state"),
+    DEFAULT_SUCCESS_REDIRECT("/"),
+    DEFAULT_HOST_URI_TEMPLATE("https://%s:443"),
+    DEFAULT_OAUTH_FOLDER_TEMPLATE("%s-%s"),
 
-    public static final String DATASOURCE_POLLING_INTERVAL = "1d";
+    DATASOURCE_POLLING_INTERVAL("1d"),
 
-    public static final long CONTACTS_IMAGE_BUFFER_SIZE = 2048;
+    CONTACTS_IMAGE_BUFFER_SIZE("2048"),
 
     // http related
-    public static final String HEADER_AUTHORIZATION = "Authorization";
-    public static final String HEADER_CONTENT_TYPE = "Content-Type";
-    public static final String HEADER_ACCEPT = "Accept";
-    public static final String HEADER_LOCATION = "Location";
-    public static final String QUERY_ERROR = "error";
-    public static final String QUERY_ERROR_MSG = "error_msg";
-    public static final String COOKIE_AUTH_TOKEN = "ZM_AUTH_TOKEN";
+    HEADER_AUTHORIZATION("Authorization"),
+    HEADER_CONTENT_TYPE("Content-Type"),
+    HEADER_ACCEPT("Accept"),
+    HEADER_LOCATION("Location"),
+    QUERY_ERROR("error"),
+    QUERY_ERROR_MSG("error_msg"),
+    COOKIE_AUTH_TOKEN("ZM_AUTH_TOKEN"),
 
-    public static final String PROPERTIES_NAME_APPLICATION = "application";
+    PROPERTIES_NAME_APPLICATION("application"),
 
     // http query error related
-    public static final String ERROR_ACCESS_DENIED = "access_denied";
-    public static final String ERROR_INVALID_AUTH_CODE = "invalid_auth_code";
-    public static final String ERROR_INVALID_ZM_AUTH_CODE = "invalid_zm_auth_code";
-    public static final String ERROR_INVALID_ZM_AUTH_CODE_MSG = "Invalid or missing Zimbra session.";
-    public static final String ERROR_AUTHENTICATION_ERROR = "authentication_error";
-    public static final String ERROR_UNHANDLED_ERROR = "unhandled_error";
-    public static final String ERROR_TYPE_MISSING = "missing_type";
+    ERROR_ACCESS_DENIED("access_denied"),
+    ERROR_INVALID_AUTH_CODE("invalid_auth_code"),
+    ERROR_INVALID_ZM_AUTH_CODE("invalid_zm_auth_code"),
+    ERROR_INVALID_ZM_AUTH_CODE_MSG("Invalid or missing Zimbra session."),
+    ERROR_AUTHENTICATION_ERROR("authentication_error"),
+    ERROR_UNHANDLED_ERROR("unhandled_error"),
+    ERROR_TYPE_MISSING("missing_type"),
 
     // LC properties related
-    public static final String LC_ZIMBRA_SERVER_HOSTNAME = "zimbra_server_hostname";
-    public static final String LC_HANDLER_CLASS_PREFIX = "zm_oauth_classes_handlers_";
-    public static final String LC_SOAP_HOST = "soap_host";
-    public static final String LC_HOST_URI_TEMPLATE = "host_uri_template";
+    LC_ZIMBRA_SERVER_HOSTNAME("zimbra_server_hostname"),
+    LC_HANDLER_CLASS_PREFIX("zm_oauth_classes_handlers_"),
+    LC_SOAP_HOST("soap_host"),
+    LC_HOST_URI_TEMPLATE("host_uri_template"),
 
-    public static final String LC_OAUTH_CLIENT_ID_TEMPLATE = "zm_oauth_%s_client_id";
-    public static final String LC_OAUTH_CLIENT_SECRET_TEMPLATE = "zm_oauth_%s_client_secret";
-    public static final String LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE = "zm_oauth_%s_client_redirect_uri";
-    public static final String LC_OAUTH_SCOPE_TEMPLATE = "zm_oauth_%s_scope";
-    public static final String LC_OAUTH_IMPORT_CLASS_TEMPLATE = "zm_oauth_%s_import_class";
+    LC_OAUTH_CLIENT_ID_TEMPLATE("zm_oauth_%s_client_id"),
+    LC_OAUTH_CLIENT_SECRET_TEMPLATE("zm_oauth_%s_client_secret"),
+    LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE("zm_oauth_%s_client_redirect_uri"),
+    LC_OAUTH_SCOPE_TEMPLATE("zm_oauth_%s_scope"),
+    LC_OAUTH_IMPORT_CLASS_TEMPLATE("zm_oauth_%s_import_class"),
 
 
-    public static final String OAUTH_CLIENT_ID = "client_id";
-    public static final String OAUTH_CLIENT_SECRET = "client_secret";
-    public static final String OAUTH_CLIENT_REDIRECT_URI = "client_redirect_uri";
-    public static final String OAUTH_SCOPE = "scope";
+    OAUTH_CLIENT_ID("client_id"),
+    OAUTH_CLIENT_SECRET("client_secret"),
+    OAUTH_CLIENT_REDIRECT_URI("client_redirect_uri"),
+    OAUTH_SCOPE("scope"),
 
-    public static final String TYPE_KEY = "type";
+    TYPE_KEY("type");
+
+    /**
+     * The value of this enum.
+     */
+    private String constant;
+
+    /**
+     * @return The enum value
+     */
+    public String getValue() {
+        return constant;
+    }
+
+    /**
+     * @param constant The enum value to set
+     */
+    private OAuth2Constants(String constant) {
+        this.constant = constant;
+    }
 }

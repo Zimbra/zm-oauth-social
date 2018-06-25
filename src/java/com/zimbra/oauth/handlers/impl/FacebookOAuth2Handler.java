@@ -23,7 +23,6 @@ import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.lang.StringUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.zimbra.client.ZFolder.View;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
@@ -43,26 +42,25 @@ import com.zimbra.soap.admin.type.DataSourceType;
  * @package com.zimbra.oauth.handlers.impl
  * @copyright Copyright © 2018
  */
-
 public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
 
     /**
      * Contains the constants used in this implementation.
      */
-    protected class FacebookConstants {
+    protected enum FacebookConstants {
 
         /**
          * Invalid request error from Facebook.<br>
          * Protocol error, such as a invalid or missing required parameter.
          */
-        protected static final String RESPONSE_ERROR_INVALID_CODE = "100";
+        RESPONSE_ERROR_INVALID_CODE("100"),
 
         /**
          * API Session.<br>
          * The login status or access token has expired,<br>
          * been revoked, or is otherwise invalid.
          */
-        protected static final String RESPONSE_ERROR_SESSION_EXPIRED = "102";
+        RESPONSE_ERROR_SESSION_EXPIRED("102"),
 
         /**
          * API Unknown.<br>
@@ -70,107 +68,104 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
          * Wait and retry the operation.<br>
          * If it occurs again, check you are requesting an existing API.
          */
-        protected static final String RESPONSE_ERROR_API_UNKNOWN = "1";
+        RESPONSE_ERROR_API_UNKNOWN("1"),
 
         /**
          * API Service.<br>
          * Temporary issue due to downtime. Wait and retry the operation.
          */
-        protected static final String RESPONSE_ERROR_API_SERVICE = "2";
+        RESPONSE_ERROR_API_SERVICE("2"),
 
         /**
          * API Too Many Calls.<br>
          * Temporary issue due to throttling.<br>
          * Wait and retry the operation, or examine your API request volume.
          */
-        protected static final String RESPONSE_ERROR_EXCESSIVE_CALLS = "4";
+        RESPONSE_ERROR_EXCESSIVE_CALLS("4"),
 
         /**
          * API User Too Many Calls.<br>
          * Temporary issue due to throttling.<br>
          * Wait and retry the operation, or examine your API request volume.
          */
-        protected static final String RESPONSE_ERROR_USER_EXCESSIVE_CALLS = "17";
+        RESPONSE_ERROR_USER_EXCESSIVE_CALLS("17"),
 
         /**
          * API Permission Denied.<br>
          * Permission is either not granted or has been removed.
          */
-        protected static final String RESPONSE_ERROR_PERM_DENIED = "10";
+        RESPONSE_ERROR_PERM_DENIED("10"),
 
         /**
          * Access token has expired.<br>
          * Expired access token.
          */
-        protected static final String RESPONSE_ERROR_TOKEN_EXPIRED = "190";
+        RESPONSE_ERROR_TOKEN_EXPIRED("190"),
 
         /**
          * API Permission.<br>
          * Permission is either not granted or has been removed.
          */
-        protected static final String RESPONSE_ERROR_PERMISSIONS_ERROR = "200-299";
+        RESPONSE_ERROR_PERMISSIONS_ERROR("200-299"),
 
         /**
          * Application limit reached.<br>
          * Temporary issue due to downtime or throttling.<br>
          * Wait and retry the operation, or examine your API request volume.
          */
-        protected static final String RESPONSE_ERROR_LIMIT_REACHED = "341";
+        RESPONSE_ERROR_LIMIT_REACHED("341"),
 
         /**
          * Temporarily blocked for policies violations.<br>
          * Wait and retry the operation.
          */
-        protected static final String RESPONSE_ERROR_POLICIES_VIOLATION = "368";
+        RESPONSE_ERROR_POLICIES_VIOLATION("368"),
 
         /**
          * Too many requests.<br>
          * Picture profile URL rate-limit reached. Wait and retry the operation.
          */
-        protected static final String RESPONSE_ERROR_TOO_MANY_REQUESTS = "429";
+        RESPONSE_ERROR_TOO_MANY_REQUESTS("429"),
 
         /**
          * The authorize uri template for Facebook.
          */
-        protected static final String AUTHORIZE_URI_TEMPLATE =
-            "https://www.facebook.com/v3.0/dialog/oauth"
-            + "?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s";
+        AUTHORIZE_URI_TEMPLATE("https://www.facebook.com/v3.0/dialog/oauth?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s"),
 
         /**
          * The user details uri, used to fetch the authorized OAuth user details from Facebook.
          */
-        public static final String USER_DETAILS_URI_TEMPLATE = "https://graph.facebook.com/me?access_token=%s&fields=first_name,middle_name,last_name,email";
+        USER_DETAILS_URI_TEMPLATE("https://graph.facebook.com/me?access_token=%s&fields=first_name,middle_name,last_name,email"),
 
         /**
          * The uri used to make backend call to fetch an access token.
          */
-        public static final String AUTHENTICATE_URI =
-            "https://graph.facebook.com/v3.0/oauth/access_token";
+        AUTHENTICATE_URI("https://graph.facebook.com/v3.0/oauth/access_token"),
 
         /**
          * The scope required for Facebook.
          */
-        protected static final String REQUIRED_SCOPES = "email";
+        REQUIRED_SCOPES("email"),
 
         /**
          * The scope delimiter to use.
          */
-        public static final String SCOPE_DELIMITER = ",";
+        SCOPE_DELIMITER(","),
 
         /**
          * The state parameter.
          */
-        public static final String RELAY_KEY = "state";
+        RELAY_KEY("state"),
 
         /**
          * The implementation name.
          */
-        public static final String CLIENT_NAME = "facebook";
+        CLIENT_NAME("facebook"),
 
         /**
          * The implementation host.
          */
-        public static final String HOST_FACEBOOK = "graph.facebook.com";
+        HOST_FACEBOOK("graph.facebook.com"),
 
         /**
          * The contacts uri template.
@@ -179,30 +174,44 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
          * (Please note that this list may require permission scopes
          * be added to the localconfig.xml for the related fields)
          */
-        public static final String CONTACTS_URI_TEMPLATE = "https://graph.facebook.com/v3.0/me/friends?access_token=%s&fields=email,address,name,location,birthday,about,gender,hometown,locale,first_name,middle_name,last_name&limit=%s";
+        CONTACTS_URI_TEMPLATE("https://graph.facebook.com/v3.0/me/friends?access_token=%s&fields=email,address,name,location,birthday,about,gender,hometown,locale,first_name,middle_name,last_name&limit=%s"),
 
         /**
         * The contacts pagination size for Facebook.
         */
-        protected static final String CONTACTS_PAGE_SIZE = "100";
+        CONTACTS_PAGE_SIZE("100"),
 
         /**
          * The refresh token code request uri template.<br>
          * Uses a code to request a fresh access token.
          */
-        public static final String REFRESH_TOKEN_CODE_REQUEST_URI_TEMPLATE =
-            "https://graph.facebook.com/oauth/client_code"
-            + "?access_token=%s&client_id=%s&client_secret=%s&redirect_uri=%s";
+        REFRESH_TOKEN_CODE_REQUEST_URI_TEMPLATE("https://graph.facebook.com/oauth/client_code?access_token=%s&client_id=%s&client_secret=%s&redirect_uri=%s"),
 
         /**
          * The access request uri template code, uses the existing, valid access token
          * to fetch a code.
          * This code will be used to request a fresh access token.
          */
-        public static final String REFRESH_ACCESS_TOKEN_FOR_CODE_REQUEST_URI_TEMPLATE =
-            "https://graph.facebook.com/oauth/access_token"
-            + "?client_id=%s&redirect_uri=%s&code=%s";
+        REFRESH_ACCESS_TOKEN_FOR_CODE_REQUEST_URI_TEMPLATE("https://graph.facebook.com/oauth/access_token?client_id=%s&redirect_uri=%s&code=%s");
 
+        /**
+         * The value of this enum.
+         */
+        private String constant;
+
+        /**
+         * @return The enum value
+         */
+        public String getValue() {
+            return constant;
+        }
+
+        /**
+         * @param constant The enum value to set
+         */
+        private FacebookConstants(String constant) {
+            this.constant = constant;
+        }
     }
 
     /**
@@ -211,12 +220,13 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
      * @param config For accessing configured properties
      */
     public FacebookOAuth2Handler(Configuration config) {
-        super(config, FacebookConstants.CLIENT_NAME, FacebookConstants.HOST_FACEBOOK);
-        authenticateUri = FacebookConstants.AUTHENTICATE_URI;
-        authorizeUriTemplate = FacebookConstants.AUTHORIZE_URI_TEMPLATE;
-        requiredScopes = FacebookConstants.REQUIRED_SCOPES;
-        scopeDelimiter = FacebookConstants.SCOPE_DELIMITER;
-        relayKey = FacebookConstants.RELAY_KEY;
+        super(config, FacebookConstants.CLIENT_NAME.getValue(),
+            FacebookConstants.HOST_FACEBOOK.getValue());
+        authenticateUri = FacebookConstants.AUTHENTICATE_URI.getValue();
+        authorizeUriTemplate = FacebookConstants.AUTHORIZE_URI_TEMPLATE.getValue();
+        requiredScopes = FacebookConstants.REQUIRED_SCOPES.getValue();
+        scopeDelimiter = FacebookConstants.SCOPE_DELIMITER.getValue();
+        relayKey = FacebookConstants.RELAY_KEY.getValue();
         dataSource.addImportClass(DataSourceType.oauth2contact.name(),
             FacebookContactsImport.class.getCanonicalName());
     }
@@ -231,13 +241,14 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
         final Account account = oauthInfo.getAccount();
         final String clientId = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, client), client, account);
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(), client), client,
+            account);
         final String clientSecret = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, client), client,
-            account);
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(), client),
+            client, account);
         final String clientRedirectUri = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, client), client,
-            account);
+            String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(), client),
+            client, account);
         if (StringUtils.isEmpty(clientId) ||StringUtils.isEmpty(clientSecret)
             || StringUtils.isEmpty(clientRedirectUri)) {
             throw ServiceException.FAILURE("Required config(id, secret and redirectUri) parameters are not provided.", null);
@@ -291,47 +302,47 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
 
             errorCode = inErrorCodeRange(errorCode);
 
-            switch (errorCode) {
-                case FacebookConstants.RESPONSE_ERROR_INVALID_CODE:
+            switch (FacebookConstants.valueOf(errorCode)) {
+                case RESPONSE_ERROR_INVALID_CODE:
                     ZimbraLog.extensions.debug("Invalid request error from Facebook: "
                         + errorMsg);
                     throw ServiceException.INVALID_REQUEST(
                             "The authentication " + "request parameters are invalid.", null);
-                case FacebookConstants.RESPONSE_ERROR_SESSION_EXPIRED:
+                case RESPONSE_ERROR_SESSION_EXPIRED:
                     ZimbraLog.extensions.debug("API Session error: " + errorMsg);
                     throw ServiceException.OPERATION_DENIED("The login status or "
                             + "access token has expired, been revoked, or is otherwise invalid.");
-                case FacebookConstants.RESPONSE_ERROR_API_UNKNOWN:
+                case RESPONSE_ERROR_API_UNKNOWN:
                     ZimbraLog.extensions.debug("API Unknown: " + errorMsg);
                     throw ServiceException.OPERATION_DENIED("API Unknown. Possibly a temporary "
                             + "issue due to downtime. If it occurs again, check you are "
                             + "requesting an existing API.");
-                case FacebookConstants.RESPONSE_ERROR_API_SERVICE:
+                case RESPONSE_ERROR_API_SERVICE:
                     ZimbraLog.extensions.debug("API Service issue: " + errorMsg);
                     throw ServiceException.TEMPORARILY_UNAVAILABLE();
-                case FacebookConstants.RESPONSE_ERROR_EXCESSIVE_CALLS:
+                case RESPONSE_ERROR_EXCESSIVE_CALLS:
                     ZimbraLog.extensions.debug("Too Many Calls: " + errorMsg);
                     throw ServiceException.TEMPORARILY_UNAVAILABLE();
-                case FacebookConstants.RESPONSE_ERROR_USER_EXCESSIVE_CALLS:
+                case RESPONSE_ERROR_USER_EXCESSIVE_CALLS:
                     ZimbraLog.extensions.debug("User, Too Many Calls: " + errorMsg);
                     throw ServiceException.TEMPORARILY_UNAVAILABLE();
-                case FacebookConstants.RESPONSE_ERROR_TOKEN_EXPIRED:
+                case RESPONSE_ERROR_TOKEN_EXPIRED:
                     ZimbraLog.extensions.debug("Access token has expired: " + errorMsg);
                     throw ServiceException.OPERATION_DENIED("Expired access token.");
-                case FacebookConstants.RESPONSE_ERROR_PERM_DENIED:
-                case FacebookConstants.RESPONSE_ERROR_PERMISSIONS_ERROR:
+                case RESPONSE_ERROR_PERM_DENIED:
+                case RESPONSE_ERROR_PERMISSIONS_ERROR:
                     ZimbraLog.extensions.debug("API Permissions issue: " + errorMsg);
                     throw ServiceException
                             .PERM_DENIED("Permission is either not granted or has "
                                 + "been removed.");
-                case FacebookConstants.RESPONSE_ERROR_LIMIT_REACHED:
+                case RESPONSE_ERROR_LIMIT_REACHED:
                     ZimbraLog.extensions.debug("Application limit reached: " + errorMsg);
                     throw ServiceException.TEMPORARILY_UNAVAILABLE();
-                case FacebookConstants.RESPONSE_ERROR_POLICIES_VIOLATION:
+                case RESPONSE_ERROR_POLICIES_VIOLATION:
                     ZimbraLog.extensions
                             .debug("Temporarily blocked for policies violations: " + errorMsg);
                     throw ServiceException.TEMPORARILY_UNAVAILABLE();
-                case FacebookConstants.RESPONSE_ERROR_TOO_MANY_REQUESTS:
+                case RESPONSE_ERROR_TOO_MANY_REQUESTS:
                     ZimbraLog.extensions.debug("Too many requests: " + errorMsg);
                     throw ServiceException.TEMPORARILY_UNAVAILABLE();
                 default:
@@ -379,7 +390,8 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     protected String getPrimaryEmail(JsonNode credentials, Account acct) throws ServiceException {
         JsonNode json = null;
         final String authToken = credentials.get("access_token").asText();
-        final String url = String.format(FacebookConstants.USER_DETAILS_URI_TEMPLATE, authToken);
+        final String url = String.format(FacebookConstants.USER_DETAILS_URI_TEMPLATE.getValue(),
+            authToken);
 
         try {
             final GetMethod request = new GetMethod(url);

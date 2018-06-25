@@ -88,7 +88,7 @@ public class ResponseObject<E> {
     @XmlRootElement
     protected class Meta {
 
-        protected final String api = OAuth2Constants.API_NAME;
+        protected final String api = OAuth2Constants.API_NAME.getValue();
 
         public String getApi() {
             return api;

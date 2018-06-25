@@ -69,7 +69,7 @@ public class ClassManager {
 
                         // load the handler class
                         final Class<?> daoClass = Class.forName(
-                            config.getString(OAuth2Constants.LC_HANDLER_CLASS_PREFIX + client));
+                            config.getString(OAuth2Constants.LC_HANDLER_CLASS_PREFIX.getValue() + client));
                         handler = (IOAuth2Handler) daoClass.getConstructor(Configuration.class)
                             .newInstance(config);
 
