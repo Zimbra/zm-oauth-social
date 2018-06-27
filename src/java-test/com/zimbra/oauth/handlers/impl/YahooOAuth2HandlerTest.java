@@ -25,6 +25,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.net.URLEncoder;
+import java.util.HashMap;
 
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -156,7 +157,7 @@ public class YahooOAuth2HandlerTest {
 
         replay(handler);
 
-        final String authorizeLocation = handler.authorize(null, null);
+        final String authorizeLocation = handler.authorize(new HashMap<String, String>(), null);
 
         // verify build was called
         verify(handler);

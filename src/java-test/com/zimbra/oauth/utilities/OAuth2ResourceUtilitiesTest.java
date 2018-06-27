@@ -35,7 +35,6 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import com.zimbra.common.service.ServiceException;
-import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.managers.ClassManager;
 import com.zimbra.oauth.models.OAuthInfo;
@@ -66,7 +65,7 @@ public class OAuth2ResourceUtilitiesTest {
     /**
      * Test method for {@link OAuth2ResourceUtilities#authorize}<br>
      * Validates that authorize retrieves a location and responds with a
-     * Status.SEE_OTHER response.
+     * location string.
      *
      * @throws Exception If there are issues testing
      */
@@ -76,18 +75,26 @@ public class OAuth2ResourceUtilitiesTest {
         final String relay = "test-relay";
         final String location = "result-location";
 
+        // expect the handler to be fetched
         expect(ClassManager.getHandler(matches(client))).andReturn(mockHandler);
-        Map<String, String> params = new HashMap<String, String>();
-        params.put("relay", matches(relay));
-        expect(mockHandler.authorize(params, anyObject(Account.class))).andReturn(location);
+        // expect the client's required params to be fetched
+        expect(mockHandler.getAuthorizeParamKeys()).andReturn(Arrays.asList("relay", "type"));
+        // expect to verify the present params
+        mockHandler.verifyAuthorizeParams(anyObject());
+        EasyMock.expectLastCall();
+        // expect to have the handler authorize using a relay param
+        final Map<String, String> params = new HashMap<String, String>();
+        params.put("relay", relay);
+        expect(mockHandler.authorize(params, null)).andReturn(location);
 
         PowerMock.replay(ClassManager.class);
         replay(mockHandler);
 
-        Map<String, String[]> params2 = new HashMap<String, String[]>();
-        String[] arr = { matches(relay) };
-        params2.put("relay", arr);
-        OAuth2ResourceUtilities.authorize(client, params2, null);
+        // pass in multi-valued params and expect them to be parsed
+        final Map<String, String[]> rawParams = new HashMap<String, String[]>();
+        final String[] multiRelay = { relay };
+        rawParams.put("relay", multiRelay);
+        OAuth2ResourceUtilities.authorize(client, rawParams, null);
 
         PowerMock.verify(ClassManager.class);
         verify(mockHandler);
@@ -96,7 +103,7 @@ public class OAuth2ResourceUtilitiesTest {
     /**
      * Test method for {@link OAuth2ResourceUtilities#authenticate}<br>
      * Validates that authenticate triggers the handler authenticate and
-     * responds with a Status.SEE_OTHER response.
+     * responds with a location string.
      *
      * @throws Exception If there are issues testing
      */
@@ -130,7 +137,7 @@ public class OAuth2ResourceUtilitiesTest {
     /**
      * Test method for {@link OAuth2ResourceUtilities#authenticate}<br>
      * Validates that authenticate with error param responds with a
-     * Status.SEE_OTHER response.
+     * location string.
      *
      * @throws Exception If there are issues testing
      */
@@ -164,7 +171,7 @@ public class OAuth2ResourceUtilitiesTest {
 
     /**
      * Test method for {@link OAuth2ResourceUtilities#authenticate}<br>
-     * Validates that authenticate responds with a Status.SEE_OTHER response
+     * Validates that authenticate responds with a location string response
      * when a ServiceException is thrown during authentication.
      *
      * @throws Exception If there are issues testing
