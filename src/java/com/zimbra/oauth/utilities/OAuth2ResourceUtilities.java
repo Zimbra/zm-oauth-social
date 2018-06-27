@@ -84,7 +84,7 @@ public class OAuth2ResourceUtilities {
 
         // verify the expected params exist, with no errors
         try {
-            oauth2Handler.verifyAuthenticateParams(params);
+            oauth2Handler.verifyAndSplitAuthenticateParams(params);
         } catch (final ServiceException e) {
             if (StringUtils.equals(ServiceException.PERM_DENIED, e.getCode())) {
                 // if unauthorized, pass along the error message

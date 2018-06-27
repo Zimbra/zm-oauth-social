@@ -74,7 +74,7 @@ public interface IOAuth2Handler {
      * @param params The authenticate request params
      * @throws ServiceException If any params are invalid
      */
-    public void verifyAuthenticateParams(Map<String, String> params) throws ServiceException;
+    public void verifyAndSplitAuthenticateParams(Map<String, String> params) throws ServiceException;
 
     /**
      * Throws an exception if there are invalid params passed in.
