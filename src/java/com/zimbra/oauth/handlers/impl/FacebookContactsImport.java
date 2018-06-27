@@ -40,7 +40,7 @@ import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.LdapConfiguration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
-import com.zimbra.oauth.utilities.OAuthDataSource;
+import com.zimbra.oauth.utilities.OAuth2DataSource;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -145,7 +145,7 @@ public class FacebookContactsImport implements DataImport {
     protected String refresh() throws ServiceException {
         Account acct = this.mDataSource.getAccount();
         final OAuthInfo oauthInfo = new OAuthInfo(new HashMap<String, String>());
-        final String refreshToken = OAuthDataSource.getRefreshToken(mDataSource);
+        final String refreshToken = OAuth2DataSource.getRefreshToken(mDataSource);
         final String clientId = config.getString(String
           .format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, FacebookConstants.CLIENT_NAME),
           FacebookConstants.CLIENT_NAME, acct);

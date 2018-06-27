@@ -52,7 +52,7 @@ import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
-import com.zimbra.oauth.utilities.OAuthDataSource;
+import com.zimbra.oauth.utilities.OAuth2DataSource;
 
 /**
  * The OAuth2Handler class.<br>
@@ -103,7 +103,7 @@ public abstract class OAuth2Handler {
     /**
      * DataSource handler for the implementation.
      */
-    protected final OAuthDataSource dataSource;
+    protected final OAuth2DataSource dataSource;
 
     /**
      * Configuration object.
@@ -131,7 +131,7 @@ public abstract class OAuth2Handler {
         this.client = client;
         this.config = config;
         typeKey = OAuth2Constants.TYPE_KEY;
-        dataSource = OAuthDataSource.createDataSource(client, clientHost);
+        dataSource = OAuth2DataSource.createDataSource(client, clientHost);
         final String zimbraHostname = config.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME);
         // warn if missing hostname
         if (StringUtils.isEmpty(zimbraHostname)) {
@@ -217,7 +217,7 @@ public abstract class OAuth2Handler {
      * @throws ServiceException If there are issues with the app configuration
      *             (missing credentials)
      */
-    protected String buildAuthorizeUri(String template, Account account) throws ServiceException {
+    protected String buildAuthorizeUri(String template, Account account, String datasourceType) throws ServiceException {
         final String responseType = "code";
         String encodedRedirectUri = "";
         final String clientId = config.getString(
@@ -229,9 +229,10 @@ public abstract class OAuth2Handler {
             throw ServiceException.FAILURE("Required config(id, and redirectUri) parameters are not provided.", null);
         }
 
+        String scopeIdentifier = StringUtil.isNullOrEmpty(datasourceType) ? client : client + "_" + datasourceType;
         final String scope = StringUtils.join(
             new String[] { requiredScopes, config.getString(
-                String.format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, client), client, account) },
+                String.format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE, client), scopeIdentifier, account) },
             scopeDelimiter);
 
         if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientRedirectUri)) {
@@ -282,9 +283,12 @@ public abstract class OAuth2Handler {
             } catch (final UnsupportedEncodingException e) {
                 throw ServiceException.INVALID_REQUEST("Unable to decode type parameter.", e);
             }
+        } else {
+            ZimbraLog.extensions.error("Missing data source type");
+            throw ServiceException.FAILURE("Missing data source type", null);
         }
 
-        return buildAuthorizeUri(authorizeUriTemplate, account) + relayValue;
+        return buildAuthorizeUri(authorizeUriTemplate, account, type) + relayValue;
     }
 
     /**
@@ -324,7 +328,7 @@ public abstract class OAuth2Handler {
         // store refreshToken
         oauthInfo.setUsername(username);
         oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
-        dataSource.syncDatasource(mailbox, oauthInfo);
+        dataSource.syncDatasource(mailbox, oauthInfo, getDatasourceCustomAttrs(oauthInfo));
         // add new datasource for calendar using oauth2calendar, if you want to use same
         // oauthinfo for calendar datasource. see example below 
         // e.g. dataSource.syncDatasource(mailbox, oauthInfo, DataSourceType.oauth2calendar);
@@ -428,8 +432,11 @@ public abstract class OAuth2Handler {
         }
         String type = params.get(typeKey);
         if (StringUtil.isNullOrEmpty(type)) {
-            ZimbraLog.extensions.debug("\"type\" not received in authorize request, setting default type to \"contact\"");
-            params.put(typeKey, "contact");
+            ZimbraLog.extensions.debug("\"type\" not received in authorize request");
+            throw ServiceException.FAILURE("Missing type in authorize request", null);
+        } else {
+            //validate if type is valid 
+            OAuth2DataSource.getDataSourceTypeForOAuth2(type);
         }
     }
 
@@ -527,4 +534,13 @@ public abstract class OAuth2Handler {
         }
     }
 
+    /**
+     * hook to provide data source specific attributes for data source creation
+     * @param oauthInfo
+     * @return
+     * @throws ServiceException
+     */
+    protected Map<String, Object> getDatasourceCustomAttrs(OAuthInfo oauthInfo) throws ServiceException {
+        return null;
+    }
 }

@@ -90,7 +90,7 @@ import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.LdapConfiguration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
-import com.zimbra.oauth.utilities.OAuthDataSource;
+import com.zimbra.oauth.utilities.OAuth2DataSource;
 
 /**
  * The YahooContactsImport class.<br>
@@ -184,7 +184,7 @@ public class YahooContactsImport implements DataImport {
     protected Pair<String, String> refresh() throws ServiceException {
         Account acct = this.mDataSource.getAccount();
         final OAuthInfo oauthInfo = new OAuthInfo(new HashMap<String, String>());
-        final String refreshToken = OAuthDataSource.getRefreshToken(mDataSource);
+        final String refreshToken = OAuth2DataSource.getRefreshToken(mDataSource);
         final String clientId = config.getString(
             String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, YahooConstants.CLIENT_NAME), YahooConstants.CLIENT_NAME, acct);
         final String clientSecret = config.getString(String

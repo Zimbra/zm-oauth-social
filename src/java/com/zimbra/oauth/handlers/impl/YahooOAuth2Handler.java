@@ -29,6 +29,7 @@ import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
+import com.zimbra.soap.admin.type.DataSourceType;
 
 /**
  * The YahooOAuth2Handler class.<br>
@@ -142,7 +143,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         authorizeUriTemplate = YahooConstants.AUTHORIZE_URI_TEMPLATE;
         relayKey = YahooConstants.RELAY_KEY;
         // add associated import classes
-        dataSource.addImportClass(View.contact.name(),
+        dataSource.addImportClass(DataSourceType.oauth2contact.name(),
             YahooContactsImport.class.getCanonicalName());
     }
 

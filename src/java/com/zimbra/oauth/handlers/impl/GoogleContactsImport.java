@@ -107,7 +107,7 @@ import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.LdapConfiguration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
-import com.zimbra.oauth.utilities.OAuthDataSource;
+import com.zimbra.oauth.utilities.OAuth2DataSource;
 
 /**
  * The GoogleContactsImport class.<br>
@@ -194,7 +194,7 @@ public class GoogleContactsImport implements DataImport {
     protected String refresh() throws ServiceException {
         final Account acct = this.mDataSource.getAccount();
         final OAuthInfo oauthInfo = new OAuthInfo(new HashMap<String, String>());
-        final String refreshToken = OAuthDataSource.getRefreshToken(mDataSource);
+        final String refreshToken = OAuth2DataSource.getRefreshToken(mDataSource);
         final String clientId = config.getString(String
             .format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, GoogleConstants.CLIENT_NAME), GoogleConstants.CLIENT_NAME, acct);
         final String clientSecret = config.getString(String

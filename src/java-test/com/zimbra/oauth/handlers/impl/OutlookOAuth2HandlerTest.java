@@ -43,13 +43,13 @@ import com.zimbra.oauth.handlers.impl.OutlookOAuth2Handler.OutlookConstants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
-import com.zimbra.oauth.utilities.OAuthDataSource;
+import com.zimbra.oauth.utilities.OAuth2DataSource;
 
 /**
  * Test class for {@link OutlookOAuth2Handler}.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ OAuthDataSource.class, OAuth2Handler.class, OutlookOAuth2Handler.class, ZMailbox.class })
+@PrepareForTest({ OAuth2DataSource.class, OAuth2Handler.class, OutlookOAuth2Handler.class, ZMailbox.class })
 @SuppressStaticInitializationFor("com.zimbra.client.ZMailbox")
 public class OutlookOAuth2HandlerTest {
 
@@ -66,7 +66,7 @@ public class OutlookOAuth2HandlerTest {
     /**
      * Mock data source handler property.
      */
-    protected OAuthDataSource mockDataSource = EasyMock.createMock(OAuthDataSource.class);
+    protected OAuth2DataSource mockDataSource = EasyMock.createMock(OAuth2DataSource.class);
 
     /**
      * ClientId for testing.
@@ -116,23 +116,23 @@ public class OutlookOAuth2HandlerTest {
      */
     @Test
     public void testOutlookOAuth2Handler() throws Exception {
-        final OAuthDataSource mockDataSource = EasyMock.createMock(OAuthDataSource.class);
+        final OAuth2DataSource mockDataSource = EasyMock.createMock(OAuth2DataSource.class);
 
         expect(mockConfig.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE,
             OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
                 .andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
         expect(mockConfig.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME)).andReturn(hostname);
-        PowerMock.mockStatic(OAuthDataSource.class);
-        expect(OAuthDataSource.createDataSource(OutlookConstants.CLIENT_NAME,
+        PowerMock.mockStatic(OAuth2DataSource.class);
+        expect(OAuth2DataSource.createDataSource(OutlookConstants.CLIENT_NAME,
             OutlookConstants.HOST_OUTLOOK)).andReturn(mockDataSource);
 
         replay(mockConfig);
-        PowerMock.replay(OAuthDataSource.class);
+        PowerMock.replay(OAuth2DataSource.class);
 
         new OutlookOAuth2Handler(mockConfig);
 
         verify(mockConfig);
-        PowerMock.verify(OAuthDataSource.class);
+        PowerMock.verify(OAuth2DataSource.class);
     }
 
     /**
@@ -149,7 +149,7 @@ public class OutlookOAuth2HandlerTest {
             clientId, encodedUri, "code", OutlookConstants.REQUIRED_SCOPES);
 
         // expect buildAuthorize call
-        expect(handler.buildAuthorizeUri(OutlookConstants.AUTHORIZE_URI_TEMPLATE, null))
+        expect(handler.buildAuthorizeUri(OutlookConstants.AUTHORIZE_URI_TEMPLATE, null, "contact"))
             .andReturn(expectedAuthorize);
 
         replay(handler);
@@ -221,7 +221,7 @@ public class OutlookOAuth2HandlerTest {
         EasyMock.expectLastCall().once();
         mockOAuthInfo.setRefreshToken(refreshToken);
         EasyMock.expectLastCall().once();
-        mockDataSource.syncDatasource(mockZMailbox, mockOAuthInfo);
+        mockDataSource.syncDatasource(mockZMailbox, mockOAuthInfo, null);
         EasyMock.expectLastCall().once();
 
         replay(handler);

@@ -33,6 +33,7 @@ import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
+import com.zimbra.soap.admin.type.DataSourceType;
 
 /**
  * The FacebookOAuth2Handler class.<br>
@@ -216,7 +217,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         requiredScopes = FacebookConstants.REQUIRED_SCOPES;
         scopeDelimiter = FacebookConstants.SCOPE_DELIMITER;
         relayKey = FacebookConstants.RELAY_KEY;
-        dataSource.addImportClass(View.contact.name(),
+        dataSource.addImportClass(DataSourceType.oauth2contact.name(),
             FacebookContactsImport.class.getCanonicalName());
     }
 
@@ -260,7 +261,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         // store refreshToken
         oauthInfo.setUsername(username);
         oauthInfo.setRefreshToken(credentials.get("access_token").asText());
-        dataSource.syncDatasource(mailbox, oauthInfo);
+        dataSource.syncDatasource(mailbox, oauthInfo, null);
         return true;
     }
 

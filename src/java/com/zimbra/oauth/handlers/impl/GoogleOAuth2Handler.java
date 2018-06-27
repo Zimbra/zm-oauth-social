@@ -16,12 +16,18 @@
  */
 package com.zimbra.oauth.handlers.impl;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.fasterxml.jackson.databind.JsonNode;
-import com.zimbra.client.ZFolder.View;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.account.Provisioning;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
+import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.OAuth2DataSource;
+import com.zimbra.soap.admin.type.DataSourceType;
 
 /**
  * The GoogleOAuth2Handler class.<br>
@@ -125,6 +131,27 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
     }
 
     /**
+     * enum for constants related to google caldav datasource
+     *
+     */
+    public enum GoogleCaldavConstants {
+        HOST("apidata.googleusercontent.com"),
+        DS_POLLING_INTERVAL("1m"),
+        DS_PORT("443"),
+        DS_CONNECTION_TYPE("ssl"),
+        DS_ATTR_VAL("p:/caldav/v2/_USERNAME_/user");
+        private String constant;
+
+        public String getValue() {
+            return constant;
+        }
+
+        private GoogleCaldavConstants(String constant) {
+            this.constant = constant;
+        }
+    }
+
+    /**
      * Constructs a GoogleOAuth2Handler object.
      *
      * @param config For accessing configured properties
@@ -136,8 +163,10 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         requiredScopes = GoogleConstants.REQUIRED_SCOPES;
         scopeDelimiter = GoogleConstants.SCOPE_DELIMITER;
         relayKey = GoogleConstants.RELAY_KEY;
-        dataSource.addImportClass(View.contact.name(),
+        dataSource.addImportClass(DataSourceType.oauth2contact.name(),
             GoogleContactsImport.class.getCanonicalName());
+        dataSource.addImportClass(DataSourceType.oauth2caldav.name(),
+                CalDavOAuth2DataImport.class.getCanonicalName());
 
     }
 
@@ -199,6 +228,21 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
             throw ServiceException.PARSE_ERROR("Unexpected response from social service.", null);
         }
 
+    }
+
+    protected Map<String, Object> getDatasourceCustomAttrs(OAuthInfo oauthInfo) throws ServiceException {
+        final String type = oauthInfo.getParam("type");
+        final Map<String, Object> dsAttrs = new HashMap<String, Object>();
+        if (DataSourceType.oauth2caldav == OAuth2DataSource.getDataSourceTypeForOAuth2(type)) {
+            String[] dsAttrArr = new String[] {GoogleCaldavConstants.DS_ATTR_VAL.getValue()};
+            dsAttrs.put(Provisioning.A_zimbraDataSourcePort, GoogleCaldavConstants.DS_PORT.getValue());
+            dsAttrs.put(Provisioning.A_zimbraDataSourceConnectionType, GoogleCaldavConstants.DS_CONNECTION_TYPE.getValue());
+            dsAttrs.put(Provisioning.A_zimbraDataSourceAttribute, dsAttrArr);
+            dsAttrs.put(Provisioning.A_zimbraDataSourcePollingInterval, GoogleCaldavConstants.DS_POLLING_INTERVAL.getValue());
+            dsAttrs.put(Provisioning.A_zimbraDataSourceHost, GoogleCaldavConstants.HOST.getValue());
+            dsAttrs.put(Provisioning.A_zimbraDataSourceUsername, oauthInfo.getUsername());
+        }
+        return dsAttrs;
     }
 
 }
