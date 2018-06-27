@@ -47,10 +47,12 @@ import com.zimbra.cs.mailbox.Mailbox;
 import com.zimbra.cs.mime.ParsedContact;
 import com.zimbra.cs.service.mail.CreateContact;
 import com.zimbra.cs.service.util.ItemId;
-import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookConstants;
+import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookContactConstants;
+import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookOAuthConstants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.LdapConfiguration;
+import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2DataSource;
 
@@ -83,7 +85,7 @@ public class FacebookContactsImport implements DataImport {
     public FacebookContactsImport(DataSource datasource) {
         mDataSource = datasource;
         try {
-            config = LdapConfiguration.buildConfiguration(FacebookConstants.CLIENT_NAME.getValue());
+            config = LdapConfiguration.buildConfiguration(FacebookOAuthConstants.CLIENT_NAME.getValue());
         } catch (final ServiceException e) {
             ZimbraLog.extensions.info("Error loading configuration for Facebook: %s",
                 e.getMessage());
@@ -147,23 +149,23 @@ public class FacebookContactsImport implements DataImport {
         final OAuthInfo oauthInfo = new OAuthInfo(new HashMap<String, String>());
         final String refreshToken = OAuth2DataSource.getRefreshToken(mDataSource);
         final String clientId = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(),
-                FacebookConstants.CLIENT_NAME.getValue()),
-            FacebookConstants.CLIENT_NAME.getValue(), acct);
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(),
+                FacebookOAuthConstants.CLIENT_NAME.getValue()),
+            FacebookOAuthConstants.CLIENT_NAME.getValue(), acct);
         final String clientSecret = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(),
-                FacebookConstants.CLIENT_NAME.getValue()),
-            FacebookConstants.CLIENT_NAME.getValue(), acct);
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(),
+                FacebookOAuthConstants.CLIENT_NAME.getValue()),
+            FacebookOAuthConstants.CLIENT_NAME.getValue(), acct);
         final String clientRedirectUri = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(),
-                FacebookConstants.CLIENT_NAME.getValue()),
-            FacebookConstants.CLIENT_NAME.getValue(), acct);
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(),
+                FacebookOAuthConstants.CLIENT_NAME.getValue()),
+            FacebookOAuthConstants.CLIENT_NAME.getValue(), acct);
         // set client specific properties
         oauthInfo.setRefreshToken(refreshToken);
         oauthInfo.setClientId(clientId);
         oauthInfo.setClientSecret(clientSecret);
         oauthInfo.setClientRedirectUri(clientRedirectUri);
-        oauthInfo.setTokenUrl(FacebookConstants.AUTHENTICATE_URI.getValue());
+        oauthInfo.setTokenUrl(FacebookOAuthConstants.AUTHENTICATE_URI.getValue());
 
         ZimbraLog.extensions.debug("Fetching access credentials for import.");
         final String codeResponse = getFacebookCodeRequest(oauthInfo);
@@ -191,7 +193,7 @@ public class FacebookContactsImport implements DataImport {
                 "There was an issue encoding the url. " + authInfo.getClientRedirectUri(), null);
         }
         final String queryString = String.format(
-            FacebookConstants.REFRESH_ACCESS_TOKEN_FOR_CODE_REQUEST_URI_TEMPLATE.getValue(),
+            FacebookOAuthConstants.REFRESH_ACCESS_TOKEN_FOR_CODE_REQUEST_URI_TEMPLATE.getValue(),
             authInfo.getClientId(), encodedUrl, code);
 
         final GetMethod request = new GetMethod(queryString);
@@ -240,7 +242,7 @@ public class FacebookContactsImport implements DataImport {
         }
 
         final String queryString = String.format(
-            FacebookConstants.REFRESH_TOKEN_CODE_REQUEST_URI_TEMPLATE.getValue(), refreshToken,
+            FacebookOAuthConstants.REFRESH_TOKEN_CODE_REQUEST_URI_TEMPLATE.getValue(), refreshToken,
             authInfo.getClientId(), authInfo.getClientSecret(), encodedUrl);
         final GetMethod request = new GetMethod(queryString);
 
@@ -404,8 +406,8 @@ public class FacebookContactsImport implements DataImport {
         if (nextPageUrl != null) {
             return nextPageUrl;
         }
-        return String.format(FacebookConstants.CONTACTS_URI_TEMPLATE.getValue(), refreshToken,
-            FacebookConstants.CONTACTS_PAGE_SIZE.getValue());
+        return String.format(FacebookContactConstants.CONTACTS_URI_TEMPLATE.getValue(), refreshToken,
+            FacebookContactConstants.CONTACTS_PAGE_SIZE.getValue());
     }
 
     /**

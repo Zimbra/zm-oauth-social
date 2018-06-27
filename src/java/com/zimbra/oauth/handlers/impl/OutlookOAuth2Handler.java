@@ -33,9 +33,9 @@ import com.zimbra.oauth.utilities.Configuration;
 public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
 
     /**
-     * Contains constants used in this implementation.
+     * Contains error constants used in this implementation.
      */
-    protected enum OutlookConstants {
+    protected enum OutlookErrorConstants {
 
         /**
          * Invalid request error from Outlook.<br>
@@ -80,7 +80,33 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
          * The authorization server does not support the response type in the
          * request.
          */
-        RESPONSE_ERROR_RESPONSE_TYPE("unsupported_response_type"),
+        RESPONSE_ERROR_RESPONSE_TYPE("unsupported_response_type");
+
+        /**
+         * The value of this enum.
+         */
+        private String constant;
+
+        /**
+         * @return The enum value
+         */
+        public String getValue() {
+            return constant;
+        }
+
+        /**
+         * @param constant The enum value to set
+         */
+        private OutlookErrorConstants(String constant) {
+            this.constant = constant;
+        }
+
+    }
+
+    /**
+     * Contains constants used in this implementation.
+     */
+    protected enum OutlookOAuthConstants {
 
         /**
          * The authorize endpoint for Outlook.
@@ -137,7 +163,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         /**
          * @param constant The enum value to set
          */
-        private OutlookConstants(String constant) {
+        private OutlookOAuthConstants(String constant) {
             this.constant = constant;
         }
     }
@@ -148,13 +174,13 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
      * @param config For accessing configured properties
      */
     public OutlookOAuth2Handler(Configuration config) {
-        super(config, OutlookConstants.CLIENT_NAME.getValue(),
-            OutlookConstants.HOST_OUTLOOK.getValue());
-        authenticateUri = OutlookConstants.AUTHENTICATE_URI.getValue();
-        authorizeUriTemplate = OutlookConstants.AUTHORIZE_URI_TEMPLATE.getValue();
-        requiredScopes = OutlookConstants.REQUIRED_SCOPES.getValue();
-        scopeDelimiter = OutlookConstants.SCOPE_DELIMITER.getValue();
-        relayKey = OutlookConstants.RELAY_KEY.getValue();
+        super(config, OutlookOAuthConstants.CLIENT_NAME.getValue(),
+            OutlookOAuthConstants.HOST_OUTLOOK.getValue());
+        authenticateUri = OutlookOAuthConstants.AUTHENTICATE_URI.getValue();
+        authorizeUriTemplate = OutlookOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue();
+        requiredScopes = OutlookOAuthConstants.REQUIRED_SCOPES.getValue();
+        scopeDelimiter = OutlookOAuthConstants.SCOPE_DELIMITER.getValue();
+        relayKey = OutlookOAuthConstants.RELAY_KEY.getValue();
     }
 
     /**
@@ -181,7 +207,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         if (response.has("error")) {
             final String error = response.get("error").asText();
             final JsonNode errorMsg = response.get("error_description");
-            switch (OutlookConstants.valueOf(error)) {
+            switch (OutlookErrorConstants.valueOf(error)) {
             case RESPONSE_ERROR_INVALID_REQUEST:
                 ZimbraLog.extensions.warn("Invalid token request parameters: " + errorMsg);
                 throw ServiceException

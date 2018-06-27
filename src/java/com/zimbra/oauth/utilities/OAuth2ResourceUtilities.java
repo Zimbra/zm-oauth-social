@@ -58,7 +58,7 @@ public class OAuth2ResourceUtilities {
             throws ServiceException {
         final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
         ZimbraLog.extensions.debug("Client : %s, handler:%s, relay:%s, type:%s ", client,
-            oauth2Handler, params.get("relay"), params.get(OAuth2Constants.TYPE_KEY.getValue()));
+            oauth2Handler, params.get("relay"), params.get(OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue()));
         final Map<String, String> paramsForAuthorize = getParams(
             oauth2Handler.getAuthorizeParamKeys(), params);
         oauth2Handler.verifyAuthorizeParams(paramsForAuthorize);
@@ -89,12 +89,12 @@ public class OAuth2ResourceUtilities {
         } catch (final ServiceException e) {
             if (StringUtils.equals(ServiceException.PERM_DENIED, e.getCode())) {
                 // if unauthorized, pass along the error message
-                errorParams.put(OAuth2Constants.QUERY_ERROR.getValue(),
-                    OAuth2Constants.ERROR_ACCESS_DENIED.getValue());
-                errorParams.put(OAuth2Constants.QUERY_ERROR_MSG.getValue(), e.getMessage());
+                errorParams.put(OAuth2HttpConstants.QUERY_ERROR.getValue(),
+                    OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue());
+                errorParams.put(OAuth2HttpConstants.QUERY_ERROR_MSG.getValue(), e.getMessage());
             } else {
                 // if invalid op, pass along the error message
-                errorParams.put(OAuth2Constants.QUERY_ERROR.getValue(), e.getCode());
+                errorParams.put(OAuth2HttpConstants.QUERY_ERROR.getValue(), e.getCode());
             }
         }
 
@@ -104,10 +104,10 @@ public class OAuth2ResourceUtilities {
             // this happens if the request has no zimbra cookie identifying a
             // session
             if (StringUtils.isEmpty(zmAuthToken)) {
-                errorParams.put(OAuth2Constants.QUERY_ERROR.getValue(),
-                    OAuth2Constants.ERROR_INVALID_ZM_AUTH_CODE.getValue());
-                errorParams.put(OAuth2Constants.QUERY_ERROR_MSG.getValue(),
-                    OAuth2Constants.ERROR_INVALID_ZM_AUTH_CODE_MSG.getValue());
+                errorParams.put(OAuth2HttpConstants.QUERY_ERROR.getValue(),
+                    OAuth2ErrorConstants.ERROR_INVALID_ZM_AUTH_CODE.getValue());
+                errorParams.put(OAuth2HttpConstants.QUERY_ERROR_MSG.getValue(),
+                    OAuth2ErrorConstants.ERROR_INVALID_ZM_AUTH_CODE_MSG.getValue());
             } else {
                 try {
                     // no errors and auth token exists
@@ -120,12 +120,12 @@ public class OAuth2ResourceUtilities {
                     // unauthorized does not have an error message associated
                     // with it
                     if (StringUtils.equals(ServiceException.PERM_DENIED, e.getCode())) {
-                        errorParams.put(OAuth2Constants.QUERY_ERROR.getValue(),
-                            OAuth2Constants.ERROR_ACCESS_DENIED.getValue());
+                        errorParams.put(OAuth2HttpConstants.QUERY_ERROR.getValue(),
+                            OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue());
                     } else {
-                        errorParams.put(OAuth2Constants.QUERY_ERROR.getValue(),
-                            OAuth2Constants.ERROR_AUTHENTICATION_ERROR.getValue());
-                        errorParams.put(OAuth2Constants.QUERY_ERROR_MSG.getValue(), e.getMessage());
+                        errorParams.put(OAuth2HttpConstants.QUERY_ERROR.getValue(),
+                            OAuth2ErrorConstants.ERROR_AUTHENTICATION_ERROR.getValue());
+                        errorParams.put(OAuth2HttpConstants.QUERY_ERROR_MSG.getValue(), e.getMessage());
                     }
                 }
             }

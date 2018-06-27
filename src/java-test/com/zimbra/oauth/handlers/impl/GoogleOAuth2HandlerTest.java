@@ -40,9 +40,10 @@ import org.powermock.reflect.Whitebox;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.cs.account.Account;
-import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler.GoogleConstants;
+import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler.GoogleOAuthConstants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2DataSource;
 
@@ -99,16 +100,16 @@ public class GoogleOAuth2HandlerTest {
         handler = PowerMock.createPartialMockForAllMethodsExcept(GoogleOAuth2Handler.class,
             "authorize", "authenticate");
         Whitebox.setInternalState(handler, "config", mockConfig);
-        Whitebox.setInternalState(handler, "relayKey", GoogleConstants.RELAY_KEY.getValue());
+        Whitebox.setInternalState(handler, "relayKey", GoogleOAuthConstants.RELAY_KEY.getValue());
         Whitebox.setInternalState(handler, "authenticateUri",
-            GoogleConstants.AUTHENTICATE_URI.getValue());
+            GoogleOAuthConstants.AUTHENTICATE_URI.getValue());
         Whitebox.setInternalState(handler, "authorizeUriTemplate",
-            GoogleConstants.AUTHORIZE_URI_TEMPLATE.getValue());
+            GoogleOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue());
         Whitebox.setInternalState(handler, "requiredScopes",
-            GoogleConstants.REQUIRED_SCOPES.getValue());
+            GoogleOAuthConstants.REQUIRED_SCOPES.getValue());
         Whitebox.setInternalState(handler, "scopeDelimiter",
-            GoogleConstants.SCOPE_DELIMITER.getValue());
-        Whitebox.setInternalState(handler, "client", GoogleConstants.CLIENT_NAME.getValue());
+            GoogleOAuthConstants.SCOPE_DELIMITER.getValue());
+        Whitebox.setInternalState(handler, "client", GoogleOAuthConstants.CLIENT_NAME.getValue());
         Whitebox.setInternalState(handler, "dataSource", mockDataSource);
     }
 
@@ -122,14 +123,14 @@ public class GoogleOAuth2HandlerTest {
     public void testGoogleOAuth2Handler() throws Exception {
         final OAuth2DataSource mockDataSource = EasyMock.createMock(OAuth2DataSource.class);
 
-        expect(mockConfig.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE.getValue(),
+        expect(mockConfig.getString(OAuth2ConfigConstants.LC_HOST_URI_TEMPLATE.getValue(),
             OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE.getValue()))
                 .andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE.getValue());
-        expect(mockConfig.getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME.getValue()))
+        expect(mockConfig.getString(OAuth2ConfigConstants.LC_ZIMBRA_SERVER_HOSTNAME.getValue()))
             .andReturn(hostname);
         PowerMock.mockStatic(OAuth2DataSource.class);
-        expect(OAuth2DataSource.createDataSource(GoogleConstants.CLIENT_NAME.getValue(),
-            GoogleConstants.HOST_GOOGLE.getValue())).andReturn(mockDataSource);
+        expect(OAuth2DataSource.createDataSource(GoogleOAuthConstants.CLIENT_NAME.getValue(),
+            GoogleOAuthConstants.HOST_GOOGLE.getValue())).andReturn(mockDataSource);
 
         replay(mockConfig);
         PowerMock.replay(OAuth2DataSource.class);
@@ -152,12 +153,12 @@ public class GoogleOAuth2HandlerTest {
         final String encodedUri = URLEncoder.encode(clientRedirectUri,
             OAuth2Constants.ENCODING.getValue());
         final String expectedAuthorize = String.format(
-            GoogleConstants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code",
-            GoogleConstants.REQUIRED_SCOPES.getValue());
+            GoogleOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code",
+            GoogleOAuthConstants.REQUIRED_SCOPES.getValue());
 
         // expect buildAuthorize call
-        expect(handler.buildAuthorizeUri(GoogleConstants.AUTHORIZE_URI_TEMPLATE.getValue(), null, "contact"))
-            .andReturn(expectedAuthorize);
+        expect(handler.buildAuthorizeUri(GoogleOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue(),
+            null, "contact")).andReturn(expectedAuthorize);
 
         replay(handler);
 
@@ -167,8 +168,8 @@ public class GoogleOAuth2HandlerTest {
         verify(handler);
 
         assertNotNull(authorizeLocation);
-        assertEquals(String.format(GoogleConstants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId,
-            encodedUri, "code", GoogleConstants.REQUIRED_SCOPES.getValue()), authorizeLocation);
+        assertEquals(String.format(GoogleOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId,
+            encodedUri, "code", GoogleOAuthConstants.REQUIRED_SCOPES.getValue()), authorizeLocation);
     }
 
     /**
@@ -191,17 +192,17 @@ public class GoogleOAuth2HandlerTest {
 
         expect(mockOAuthInfo.getAccount()).andReturn(null);
         expect(mockConfig.getString(
-            matches(String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(),
-                GoogleConstants.CLIENT_NAME.getValue())),
-            matches(GoogleConstants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientId);
+            matches(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(),
+                GoogleOAuthConstants.CLIENT_NAME.getValue())),
+            matches(GoogleOAuthConstants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientId);
         expect(mockConfig.getString(
-            matches(String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(),
-                GoogleConstants.CLIENT_NAME.getValue())),
-            matches(GoogleConstants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientSecret);
+            matches(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(),
+                GoogleOAuthConstants.CLIENT_NAME.getValue())),
+            matches(GoogleOAuthConstants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientSecret);
         expect(mockConfig.getString(
-            matches(String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(),
-                GoogleConstants.CLIENT_NAME.getValue())),
-            matches(GoogleConstants.CLIENT_NAME.getValue()), anyObject()))
+            matches(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(),
+                GoogleOAuthConstants.CLIENT_NAME.getValue())),
+            matches(GoogleOAuthConstants.CLIENT_NAME.getValue()), anyObject()))
                 .andReturn(clientRedirectUri);
         expect(handler.getZimbraMailbox(anyObject(String.class))).andReturn(mockZMailbox);
         expect(OAuth2Handler.getTokenRequest(anyObject(OAuthInfo.class), anyObject(String.class)))
@@ -219,7 +220,7 @@ public class GoogleOAuth2HandlerTest {
         EasyMock.expectLastCall().once();
         mockOAuthInfo.setClientRedirectUri(matches(clientRedirectUri));
         EasyMock.expectLastCall().once();
-        mockOAuthInfo.setTokenUrl(matches(GoogleConstants.AUTHENTICATE_URI.getValue()));
+        mockOAuthInfo.setTokenUrl(matches(GoogleOAuthConstants.AUTHENTICATE_URI.getValue()));
         EasyMock.expectLastCall().once();
         expect(mockOAuthInfo.getZmAuthToken()).andReturn(zmAuthToken);
         mockOAuthInfo.setUsername(username);

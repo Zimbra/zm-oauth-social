@@ -45,7 +45,7 @@ import com.zimbra.common.service.ServiceException;
 import com.zimbra.cs.account.DataSource;
 import com.zimbra.cs.mime.ParsedContact;
 import com.zimbra.oauth.handlers.impl.FacebookContactsImport.FacebookContactsUtil;
-import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookConstants;
+import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookContactConstants;
 import com.zimbra.oauth.utilities.Configuration;
 
 /**
@@ -117,7 +117,7 @@ public class FacebookContactsImportTest {
     expect(importer.refresh()).andReturn(accessToken);
     // expect buildContactsUrl to be called
     expect(importer.buildContactsUrl(anyObject(), anyObject()))
-        .andReturn(FacebookConstants.CONTACTS_URI_TEMPLATE.getValue());
+        .andReturn(FacebookContactConstants.CONTACTS_URI_TEMPLATE.getValue());
     final String jsonData = "{\"data\": [{\"id\": \"114606492762739\",\"name\": \"Ullrich Albfdjafgjfjh Valtchanovstein\"},{\"id\": \"113255442901577\",\"name\": \"Elizabeth Albfeacfecjgh Riceberg\"},{\"id\": \"107932500100943\",\"name\": \"Maria Albfebehjbbed Schrockman\"},{\"id\": \"108947766668167\",\"name\": \"Dave Albfehhcahafb Bushakstein\"}],\"paging\": {\"cursors\": {\"after\": \"dVI1WlhKVFJkQVdB\",\"before\": \"YnFkVXkteXIyQldR\"}},\"summary\": {\"total_count\": 4}}";
     final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
     expect(importer.getContactsRequest(anyObject())).andReturn(jsonResponse);
@@ -203,7 +203,7 @@ public class FacebookContactsImportTest {
     expect(importer.refresh()).andReturn(accessToken);
     // expect buildContactsUrl to be called
     expect(importer.buildContactsUrl(anyObject(), anyObject()))
-        .andReturn(FacebookConstants.CONTACTS_URI_TEMPLATE.getValue());
+        .andReturn(FacebookContactConstants.CONTACTS_URI_TEMPLATE.getValue());
     final String jsonData = "{\"error\": {\"message\": \"Error validating access token: Session has expired on Monday, 11-Jun-18 11:00:00 PDT. The current time is Thursday, 14-Jun-18 22:26:28 PDT.\",\"type\": \"OAuthException\",\"code\": 190,\"error_subcode\": 463,\"fbtrace_id\": \"Ey9c3rSW3cD\"}}";
     final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
     expect(importer.getContactsRequest(anyObject())).andReturn(jsonResponse);

@@ -27,7 +27,7 @@ import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.utilities.Configuration;
-import com.zimbra.oauth.utilities.OAuth2Constants;
+import com.zimbra.oauth.utilities.OAuth2HttpConstants;
 import com.zimbra.soap.admin.type.DataSourceType;
 
 /**
@@ -41,9 +41,9 @@ import com.zimbra.soap.admin.type.DataSourceType;
 public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
 
     /**
-     * Contains constants used in this implementation.
+     * Contains error constants used in this implementation.
      */
-    protected enum YahooConstants {
+    protected enum YahooErrorConstants {
 
         /**
          * Unauthorized response code from Yahoo.
@@ -88,12 +88,32 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         /**
          * Token expired response code from Yahoo.
          */
-        RESPONSE_ERROR_TOKEN_EXPIRED("TOKEN_EXPIRED"),
+        RESPONSE_ERROR_TOKEN_EXPIRED("TOKEN_EXPIRED");
 
         /**
-         * The authorize endpoint for Yahoo.
+         * The value of this enum.
          */
-        AUTHORIZE_URI_TEMPLATE("https://api.login.yahoo.com/oauth2/request_auth?client_id=%s&redirect_uri=%s&response_type=%s"),
+        private String constant;
+
+        /**
+         * @return The enum value
+         */
+        public String getValue() {
+            return constant;
+        }
+
+        /**
+         * @param constant The enum value to set
+         */
+        private YahooErrorConstants(String constant) {
+            this.constant = constant;
+        }
+    }
+
+    /**
+     * Contains contact constants used in this implementation.
+     */
+    protected enum YahooContactConstants {
 
         /**
          * The contacts uri for Yahoo.
@@ -103,7 +123,38 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         /**
          * The contacts image name for Yahoo.
          */
-        CONTACTS_IMAGE_NAME("yahoo-profile-image"),
+        CONTACTS_IMAGE_NAME("yahoo-profile-image");
+
+        /**
+         * The value of this enum.
+         */
+        private String constant;
+
+        /**
+         * @return The enum value
+         */
+        public String getValue() {
+            return constant;
+        }
+
+        /**
+         * @param constant The enum value to set
+         */
+        private YahooContactConstants(String constant) {
+            this.constant = constant;
+        }
+
+    }
+
+    /**
+     * Contains oauth constants used in this implementation.
+     */
+    protected enum YahooOAuthConstants {
+
+        /**
+         * The authorize endpoint for Yahoo.
+         */
+        AUTHORIZE_URI_TEMPLATE("https://api.login.yahoo.com/oauth2/request_auth?client_id=%s&redirect_uri=%s&response_type=%s"),
 
         /**
          * The profile endpoint for Yahoo.
@@ -145,9 +196,10 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         /**
          * @param constant The enum value to set
          */
-        private YahooConstants(String constant) {
+        private YahooOAuthConstants(String constant) {
             this.constant = constant;
         }
+
     }
 
     /**
@@ -156,10 +208,10 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
      * @param config For accessing configured properties
      */
     public YahooOAuth2Handler(Configuration config) {
-        super(config, YahooConstants.CLIENT_NAME.getValue(), ZDataSource.SOURCE_HOST_YAHOO);
-        authenticateUri = YahooConstants.AUTHENTICATE_URI.getValue();
-        authorizeUriTemplate = YahooConstants.AUTHORIZE_URI_TEMPLATE.getValue();
-        relayKey = YahooConstants.RELAY_KEY.getValue();
+        super(config, YahooOAuthConstants.CLIENT_NAME.getValue(), ZDataSource.SOURCE_HOST_YAHOO);
+        authenticateUri = YahooOAuthConstants.AUTHENTICATE_URI.getValue();
+        authorizeUriTemplate = YahooOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue();
+        relayKey = YahooOAuthConstants.RELAY_KEY.getValue();
         // add associated import classes
         dataSource.addImportClass(DataSourceType.oauth2contact.name(),
             YahooContactsImport.class.getCanonicalName());
@@ -186,7 +238,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         if (response.has("error")) {
             final String error = response.get("error").asText();
             final JsonNode errorMsg = response.get("error_description");
-            switch (YahooConstants.valueOf(error)) {
+            switch (YahooErrorConstants.valueOf(error)) {
             case RESPONSE_ERROR_ACCOUNT_NOT_AUTHORIZED:
                 ZimbraLog.extensions
                     .info("User did not provide authorization for this service: " + errorMsg);
@@ -230,7 +282,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 
         // ensure the tokens we requested are present
         if (!response.has("access_token") || !response.has("refresh_token")
-            || !response.has(YahooConstants.GUID_KEY.getValue())) {
+            || !response.has(YahooOAuthConstants.GUID_KEY.getValue())) {
             throw ServiceException.PARSE_ERROR("Unexpected response from social service.", null);
         }
 
@@ -243,14 +295,14 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
      */
     @Override
     protected String getPrimaryEmail(JsonNode credentials, Account acct) throws ServiceException {
-        final String guid = credentials.get(YahooConstants.GUID_KEY.getValue()).asText();
+        final String guid = credentials.get(YahooOAuthConstants.GUID_KEY.getValue()).asText();
         final String authToken = credentials.get("access_token").asText();
-        final String url = String.format(YahooConstants.PROFILE_URI.getValue(), guid);
+        final String url = String.format(YahooOAuthConstants.PROFILE_URI.getValue(), guid);
         final GetMethod request = new GetMethod(url);
-        request.setRequestHeader(OAuth2Constants.HEADER_CONTENT_TYPE.getValue(),
+        request.setRequestHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
             "application/x-www-form-urlencoded");
-        request.setRequestHeader(OAuth2Constants.HEADER_ACCEPT.getValue(), "application/json");
-        request.setRequestHeader(OAuth2Constants.HEADER_AUTHORIZATION.getValue(),
+        request.setRequestHeader(OAuth2HttpConstants.HEADER_ACCEPT.getValue(), "application/json");
+        request.setRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
             "Bearer " + authToken);
 
         JsonNode json = null;

@@ -101,12 +101,14 @@ import com.zimbra.cs.mailbox.Mailbox;
 import com.zimbra.cs.mime.ParsedContact;
 import com.zimbra.cs.service.mail.CreateContact;
 import com.zimbra.cs.service.util.ItemId;
-import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler.GoogleConstants;
+import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler.GoogleContactConstants;
+import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler.GoogleOAuthConstants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.LdapConfiguration;
-import com.zimbra.oauth.utilities.OAuth2Constants;
+import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 import com.zimbra.oauth.utilities.OAuth2DataSource;
+import com.zimbra.oauth.utilities.OAuth2HttpConstants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
 
 /**
@@ -138,7 +140,7 @@ public class GoogleContactsImport implements DataImport {
     public GoogleContactsImport(DataSource datasource) {
         mDataSource = datasource;
         try {
-            config = LdapConfiguration.buildConfiguration(GoogleConstants.CLIENT_NAME.getValue());
+            config = LdapConfiguration.buildConfiguration(GoogleOAuthConstants.CLIENT_NAME.getValue());
         } catch (final ServiceException e) {
             ZimbraLog.extensions.info("Error loading configuration for google: %s", e.getMessage());
             ZimbraLog.extensions.debug(e);
@@ -157,7 +159,7 @@ public class GoogleContactsImport implements DataImport {
         try {
             // fetch contacts
             final JsonNode jsonResponse = getContactsRequest(
-                GoogleConstants.CONTACTS_URI.getValue(), authorizationHeader);
+                GoogleContactConstants.CONTACTS_URI.getValue(), authorizationHeader);
             respContent = jsonResponse.toString();
             if (jsonResponse != null && jsonResponse.isContainerNode()) {
                 // parse contacts if any, and update the createList
@@ -196,17 +198,17 @@ public class GoogleContactsImport implements DataImport {
         final OAuthInfo oauthInfo = new OAuthInfo(new HashMap<String, String>());
         final String refreshToken = OAuth2DataSource.getRefreshToken(mDataSource);
         final String clientId = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(),
-                GoogleConstants.CLIENT_NAME.getValue()),
-            GoogleConstants.CLIENT_NAME.getValue(), acct);
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(),
+                GoogleOAuthConstants.CLIENT_NAME.getValue()),
+            GoogleOAuthConstants.CLIENT_NAME.getValue(), acct);
         final String clientSecret = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(),
-                GoogleConstants.CLIENT_NAME.getValue()),
-            GoogleConstants.CLIENT_NAME.getValue(), acct);
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(),
+                GoogleOAuthConstants.CLIENT_NAME.getValue()),
+            GoogleOAuthConstants.CLIENT_NAME.getValue(), acct);
         final String clientRedirectUri = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(),
-                GoogleConstants.CLIENT_NAME.getValue()),
-            GoogleConstants.CLIENT_NAME.getValue(), acct);
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(),
+                GoogleOAuthConstants.CLIENT_NAME.getValue()),
+            GoogleOAuthConstants.CLIENT_NAME.getValue(), acct);
 
         if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientSecret)
             || StringUtils.isEmpty(clientRedirectUri)) {
@@ -217,7 +219,7 @@ public class GoogleContactsImport implements DataImport {
         oauthInfo.setClientId(clientId);
         oauthInfo.setClientSecret(clientSecret);
         oauthInfo.setClientRedirectUri(clientRedirectUri);
-        oauthInfo.setTokenUrl(GoogleConstants.AUTHENTICATE_URI.getValue());
+        oauthInfo.setTokenUrl(GoogleOAuthConstants.AUTHENTICATE_URI.getValue());
 
         ZimbraLog.extensions.debug("Fetching access credentials for import.");
         final JsonNode credentials = GoogleOAuth2Handler.getTokenRequest(oauthInfo,
@@ -238,7 +240,7 @@ public class GoogleContactsImport implements DataImport {
     protected JsonNode getContactsRequest(String url, String authorizationHeader)
         throws ServiceException, IOException {
         final GetMethod get = new GetMethod(url);
-        get.addRequestHeader(OAuth2Constants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
+        get.addRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
         ZimbraLog.extensions.debug("Fetching contacts for import.");
         return OAuth2Handler.executeRequestForJson(get);
     }
@@ -335,7 +337,7 @@ public class GoogleContactsImport implements DataImport {
             }
 
             // always set page size
-            builder.addParameter("pageSize", GoogleConstants.CONTACTS_PAGE_SIZE.getValue());
+            builder.addParameter("pageSize", GoogleContactConstants.CONTACTS_PAGE_SIZE.getValue());
 
             if (pageToken != null) {
                 // set the page token if it exists
@@ -368,7 +370,7 @@ public class GoogleContactsImport implements DataImport {
             do {
                 // build contacts url, query params with syncToken and current
                 // pageToken
-                final String url = buildContactsUrl(GoogleConstants.CONTACTS_URI.getValue(),
+                final String url = buildContactsUrl(GoogleContactConstants.CONTACTS_URI.getValue(),
                     syncToken, pageToken);
                 // always set an empty page token during pagination
                 pageToken = null;
@@ -786,7 +788,7 @@ public class GoogleContactsImport implements DataImport {
                                 imageNum = String.valueOf(i++);
                             }
                             final String filename = String.format(
-                                GoogleConstants.CONTACTS_IMAGE_NAME_TEMPLATE.getValue(), imageNum);
+                                GoogleContactConstants.CONTACTS_IMAGE_NAME_TEMPLATE.getValue(), imageNum);
                             // add to attachments
                             final Attachment attachment = OAuth2Utilities
                                 .createAttachmentFromResponse(get, key + imageNum, filename);

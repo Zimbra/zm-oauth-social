@@ -30,12 +30,12 @@ import com.zimbra.cs.account.DataSource;
 import com.zimbra.cs.datasource.CalDavDataImport;
 import com.zimbra.cs.dav.DavException;
 import com.zimbra.cs.dav.client.CalDavClient;
-import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler.GoogleConstants;
+import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler.GoogleOAuthConstants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.CalDavOAuth2Client;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.LdapConfiguration;
-import com.zimbra.oauth.utilities.OAuth2Constants;
+import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 import com.zimbra.oauth.utilities.OAuth2DataSource;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
 
@@ -46,7 +46,7 @@ public class CalDavOAuth2DataImport extends CalDavDataImport {
     public CalDavOAuth2DataImport(DataSource ds) throws ServiceException {
         super(ds);
         try {
-            config = LdapConfiguration.buildConfiguration(GoogleConstants.CLIENT_NAME.getValue());
+            config = LdapConfiguration.buildConfiguration(GoogleOAuthConstants.CLIENT_NAME.getValue());
         } catch (final ServiceException e) {
             ZimbraLog.extensions.info("Error loading configuration for google caldav: %s", e.getMessage());
             ZimbraLog.extensions.debug(e);
@@ -56,6 +56,7 @@ public class CalDavOAuth2DataImport extends CalDavDataImport {
     /**
      * Initialize the dav client and refresh the access token
      */
+    @Override
     protected CalDavClient getClient() throws ServiceException, IOException, DavException {
         if (mClient == null) {
             mClient = new CalDavOAuth2Client(getTargetUrl());
@@ -79,17 +80,17 @@ public class CalDavOAuth2DataImport extends CalDavDataImport {
         final OAuthInfo oauthInfo = new OAuthInfo(new HashMap<String, String>());
         final String refreshToken = OAuth2DataSource.getRefreshToken(dataSource);
         final String clientId = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(),
-                GoogleConstants.CLIENT_NAME.getValue()),
-            GoogleConstants.CLIENT_NAME.getValue(), acct);
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(),
+                GoogleOAuthConstants.CLIENT_NAME.getValue()),
+            GoogleOAuthConstants.CLIENT_NAME.getValue(), acct);
         final String clientSecret = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(),
-                GoogleConstants.CLIENT_NAME.getValue()),
-            GoogleConstants.CLIENT_NAME.getValue(), acct);
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(),
+                GoogleOAuthConstants.CLIENT_NAME.getValue()),
+            GoogleOAuthConstants.CLIENT_NAME.getValue(), acct);
         final String clientRedirectUri = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(),
-                GoogleConstants.CLIENT_NAME.getValue()),
-            GoogleConstants.CLIENT_NAME.getValue(), acct);
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(),
+                GoogleOAuthConstants.CLIENT_NAME.getValue()),
+            GoogleOAuthConstants.CLIENT_NAME.getValue(), acct);
 
         if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientSecret)
             || StringUtils.isEmpty(clientRedirectUri)) {
@@ -100,7 +101,7 @@ public class CalDavOAuth2DataImport extends CalDavDataImport {
         oauthInfo.setClientId(clientId);
         oauthInfo.setClientSecret(clientSecret);
         oauthInfo.setClientRedirectUri(clientRedirectUri);
-        oauthInfo.setTokenUrl(GoogleConstants.AUTHENTICATE_URI.getValue());
+        oauthInfo.setTokenUrl(GoogleOAuthConstants.AUTHENTICATE_URI.getValue());
 
         ZimbraLog.extensions.debug("Fetching access credentials for import.");
         final JsonNode credentials = GoogleOAuth2Handler.getTokenRequest(oauthInfo,

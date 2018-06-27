@@ -41,6 +41,8 @@ import com.zimbra.cs.account.ZimbraAuthToken;
 import com.zimbra.cs.extension.ExtensionHttpHandler;
 import com.zimbra.cs.service.AuthProvider;
 import com.zimbra.oauth.utilities.OAuth2Constants;
+import com.zimbra.oauth.utilities.OAuth2ErrorConstants;
+import com.zimbra.oauth.utilities.OAuth2HttpConstants;
 import com.zimbra.oauth.utilities.OAuth2ResourceUtilities;
 
 /**
@@ -96,8 +98,8 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
         } catch (final ServiceException e) {
             ZimbraLog.extensions.errorQuietly("An unhandled oauth application error occurred.", e);
             final Map<String, String> errorParams = new HashMap<String, String>();
-            errorParams.put(OAuth2Constants.QUERY_ERROR.getValue(),
-                OAuth2Constants.ERROR_UNHANDLED_ERROR.getValue());
+            errorParams.put(OAuth2HttpConstants.QUERY_ERROR.getValue(),
+                OAuth2ErrorConstants.ERROR_UNHANDLED_ERROR.getValue());
             resp.sendRedirect(OAuth2ResourceUtilities
                 .addQueryParams(OAuth2Constants.DEFAULT_SUCCESS_REDIRECT.getValue(), errorParams));
             return;
@@ -127,7 +129,7 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
     protected String getAuthToken(Cookie[] cookies) {
         for (final Cookie cookie : cookies) {
             if (StringUtils.equals(cookie.getName(),
-                OAuth2Constants.COOKIE_AUTH_TOKEN.getValue())) {
+                OAuth2HttpConstants.COOKIE_AUTH_TOKEN.getValue())) {
                 return cookie.getValue();
             }
         }

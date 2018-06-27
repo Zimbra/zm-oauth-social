@@ -57,7 +57,7 @@ public class CalDavOAuth2Client extends CalDavClient {
         }
         m.setRequestHeader("Depth", depth);
         final String authorizationHeader = String.format("Bearer %s", accessToken);
-        m.addRequestHeader(OAuth2Constants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
+        m.addRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
         m.setRequestHeader("Depth", depth);
         logRequestInfo(m, bodyForLogging);
         final ArrayList<String> authPrefs = new ArrayList<String>();

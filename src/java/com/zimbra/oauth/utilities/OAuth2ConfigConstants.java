@@ -16,29 +16,32 @@
  */
 package com.zimbra.oauth.utilities;
 
+
 /**
- * The OAuth2Constants class.<br>
- * OAuth2Constants contains application constants used in the project.
+ * The OAuth2ConfigConstants class.<br>
+ * OAuth2HttpConstants contains config-related constants used in the project.
  *
  * @author Zimbra API Team
  * @package com.zimbra.oauth.utilities
  * @copyright Copyright © 2018
  */
-public enum OAuth2Constants {
+public enum OAuth2ConfigConstants {
 
-    API_NAME("zm-oauth-social"),
-    ENCODING("utf-8"),
-    DEFAULT_SERVER_PATH("/oauth2"),
+    LC_ZIMBRA_SERVER_HOSTNAME("zimbra_server_hostname"),
+    LC_HANDLER_CLASS_PREFIX("zm_oauth_classes_handlers_"),
+    LC_SOAP_HOST("soap_host"),
+    LC_HOST_URI_TEMPLATE("host_uri_template"),
 
-    DEFAULT_SUCCESS_REDIRECT("/"),
-    DEFAULT_HOST_URI_TEMPLATE("https://%s:443"),
-    DEFAULT_OAUTH_FOLDER_TEMPLATE("%s-%s"),
+    LC_OAUTH_CLIENT_ID_TEMPLATE("zm_oauth_%s_client_id"),
+    LC_OAUTH_CLIENT_SECRET_TEMPLATE("zm_oauth_%s_client_secret"),
+    LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE("zm_oauth_%s_client_redirect_uri"),
+    LC_OAUTH_SCOPE_TEMPLATE("zm_oauth_%s_scope"),
+    LC_OAUTH_IMPORT_CLASS_TEMPLATE("zm_oauth_%s_import_class"),
 
-    DATASOURCE_POLLING_INTERVAL("1d"),
-
-    CONTACTS_IMAGE_BUFFER_SIZE("2048"),
-
-    PROPERTIES_NAME_APPLICATION("application");
+    OAUTH_CLIENT_ID("client_id"),
+    OAUTH_CLIENT_SECRET("client_secret"),
+    OAUTH_CLIENT_REDIRECT_URI("client_redirect_uri"),
+    OAUTH_SCOPE("scope");
 
     /**
      * The value of this enum.
@@ -55,7 +58,7 @@ public enum OAuth2Constants {
     /**
      * @param constant The enum value to set
      */
-    private OAuth2Constants(String constant) {
+    private OAuth2ConfigConstants(String constant) {
         this.constant = constant;
     }
 }

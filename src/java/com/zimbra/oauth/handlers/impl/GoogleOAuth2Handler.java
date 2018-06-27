@@ -40,10 +40,9 @@ import com.zimbra.soap.admin.type.DataSourceType;
 public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
 
     /**
-     * Contains constants used in this implementation.
+     * Contains error constants used in this implementation.
      */
-    protected enum GoogleConstants {
-
+    protected enum GoogleErrorConstants {
         /**
          * Invalid redirect response code from Google.
          */
@@ -72,7 +71,73 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         /**
          * Invalid request code from Google.
          */
-        RESPONSE_ERROR_INVALID_REQUEST("INVALID_REQUEST"),
+        RESPONSE_ERROR_INVALID_REQUEST("INVALID_REQUEST");
+
+        /**
+         * The value of this enum.
+         */
+        private String constant;
+
+        /**
+         * @return The enum value
+         */
+        public String getValue() {
+            return constant;
+        }
+
+        /**
+         * @param constant The enum value to set
+         */
+        private GoogleErrorConstants(String constant) {
+            this.constant = constant;
+        }
+
+    }
+
+    /**
+     * Contains contact constants used in this implementation.
+     */
+    protected enum GoogleContactConstants {
+
+        /**
+         * The contacts endpoint for Google.
+         */
+        CONTACTS_URI("https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,organizations,phoneNumbers,addresses,events,birthdays,biographies,nicknames,urls,photos,userDefined,skills,interests,braggingRights,relationshipInterests,relationshipStatuses,occupations,taglines"),
+
+        /**
+         * The contacts pagination size for Google.
+         */
+        CONTACTS_PAGE_SIZE("100"),
+
+        /**
+         * The contacts image name template for Google.
+         */
+        CONTACTS_IMAGE_NAME_TEMPLATE("google-profile-image%s");
+
+        /**
+         * The value of this enum.
+         */
+        private String constant;
+
+        /**
+         * @return The enum value
+         */
+        public String getValue() {
+            return constant;
+        }
+
+        /**
+         * @param constant The enum value to set
+         */
+        private GoogleContactConstants(String constant) {
+            this.constant = constant;
+        }
+    }
+
+    /**
+     * Contains oauth constants used in this implementation.
+     */
+    protected enum GoogleOAuthConstants {
 
         /**
          * The authorize endpoint for Google.
@@ -88,21 +153,6 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
          * The authenticate endpoint for Google.
          */
         AUTHENTICATE_URI("https://www.googleapis.com/oauth2/v4/token"),
-
-        /**
-         * The contacts endpoint for Google.
-         */
-        CONTACTS_URI("https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,organizations,phoneNumbers,addresses,events,birthdays,biographies,nicknames,urls,photos,userDefined,skills,interests,braggingRights,relationshipInterests,relationshipStatuses,occupations,taglines"),
-
-        /**
-         * The contacts pagination size for Google.
-         */
-        CONTACTS_PAGE_SIZE("100"),
-
-        /**
-         * The contacts image name template for Google.
-         */
-        CONTACTS_IMAGE_NAME_TEMPLATE("google-profile-image%s"),
 
         /**
          * The scope required for Google.
@@ -144,7 +194,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         /**
          * @param constant The enum value to set
          */
-        private GoogleConstants(String constant) {
+        private GoogleOAuthConstants(String constant) {
             this.constant = constant;
         }
     }
@@ -176,16 +226,16 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
      * @param config For accessing configured properties
      */
     public GoogleOAuth2Handler(Configuration config) {
-        super(config, GoogleConstants.CLIENT_NAME.getValue(), GoogleConstants.HOST_GOOGLE.getValue());
-        authenticateUri = GoogleConstants.AUTHENTICATE_URI.getValue();
-        authorizeUriTemplate = GoogleConstants.AUTHORIZE_URI_TEMPLATE.getValue();
-        requiredScopes = GoogleConstants.REQUIRED_SCOPES.getValue();
-        scopeDelimiter = GoogleConstants.SCOPE_DELIMITER.getValue();
-        relayKey = GoogleConstants.RELAY_KEY.getValue();
+        super(config, GoogleOAuthConstants.CLIENT_NAME.getValue(), GoogleOAuthConstants.HOST_GOOGLE.getValue());
+        authenticateUri = GoogleOAuthConstants.AUTHENTICATE_URI.getValue();
+        authorizeUriTemplate = GoogleOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue();
+        requiredScopes = GoogleOAuthConstants.REQUIRED_SCOPES.getValue();
+        scopeDelimiter = GoogleOAuthConstants.SCOPE_DELIMITER.getValue();
+        relayKey = GoogleOAuthConstants.RELAY_KEY.getValue();
         dataSource.addImportClass(DataSourceType.oauth2contact.name(),
             GoogleContactsImport.class.getCanonicalName());
         dataSource.addImportClass(DataSourceType.oauth2caldav.name(),
-                CalDavOAuth2DataImport.class.getCanonicalName());
+            CalDavOAuth2DataImport.class.getCanonicalName());
 
     }
 
@@ -210,7 +260,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
             final String error = response.get("error").asText();
             final JsonNode errorMsg = response.get("error_description");
             ZimbraLog.extensions.debug("Response from google: %s", response.asText());
-            switch (GoogleConstants.valueOf(error.toUpperCase())) {
+            switch (GoogleErrorConstants.valueOf(error.toUpperCase())) {
             case RESPONSE_ERROR_INVALID_REDIRECT_URI:
                 ZimbraLog.extensions.info(
                     "Redirect does not match the one found in authorization request: " + errorMsg);

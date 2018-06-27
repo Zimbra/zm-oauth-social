@@ -30,7 +30,7 @@ import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
-import com.zimbra.oauth.utilities.OAuth2Constants;
+import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
 import com.zimbra.soap.admin.type.DataSourceType;
 
@@ -45,9 +45,9 @@ import com.zimbra.soap.admin.type.DataSourceType;
 public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
 
     /**
-     * Contains the constants used in this implementation.
+     * Contains error constants used in this implementation.
      */
-    protected enum FacebookConstants {
+    protected enum FacebookErrorConstants {
 
         /**
          * Invalid request error from Facebook.<br>
@@ -125,7 +125,73 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
          * Too many requests.<br>
          * Picture profile URL rate-limit reached. Wait and retry the operation.
          */
-        RESPONSE_ERROR_TOO_MANY_REQUESTS("429"),
+        RESPONSE_ERROR_TOO_MANY_REQUESTS("429");
+
+        /**
+         * The value of this enum.
+         */
+        private String constant;
+
+        /**
+         * @return The enum value
+         */
+        public String getValue() {
+            return constant;
+        }
+
+        /**
+         * @param constant The enum value to set
+         */
+        private FacebookErrorConstants(String constant) {
+            this.constant = constant;
+        }
+
+    }
+
+    /**
+     * Contains contact constants used in this implementation.
+     */
+    protected enum FacebookContactConstants {
+
+        /**
+         * The contacts uri template.
+         *
+         * CSV list of data fields to import or limit the import to.
+         * (Please note that this list may require permission scopes
+         * be added to the localconfig.xml for the related fields)
+         */
+        CONTACTS_URI_TEMPLATE("https://graph.facebook.com/v3.0/me/friends?access_token=%s&fields=email,address,name,location,birthday,about,gender,hometown,locale,first_name,middle_name,last_name&limit=%s"),
+
+        /**
+        * The contacts pagination size for Facebook.
+        */
+        CONTACTS_PAGE_SIZE("100");
+
+        /**
+         * The value of this enum.
+         */
+        private String constant;
+
+        /**
+         * @return The enum value
+         */
+        public String getValue() {
+            return constant;
+        }
+
+        /**
+         * @param constant The enum value to set
+         */
+        private FacebookContactConstants(String constant) {
+            this.constant = constant;
+        }
+
+    }
+
+    /**
+     * Contains oauth constants used in this implementation.
+     */
+    protected enum FacebookOAuthConstants {
 
         /**
          * The authorize uri template for Facebook.
@@ -168,20 +234,6 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         HOST_FACEBOOK("graph.facebook.com"),
 
         /**
-         * The contacts uri template.
-         *
-         * CSV list of data fields to import or limit the import to.
-         * (Please note that this list may require permission scopes
-         * be added to the localconfig.xml for the related fields)
-         */
-        CONTACTS_URI_TEMPLATE("https://graph.facebook.com/v3.0/me/friends?access_token=%s&fields=email,address,name,location,birthday,about,gender,hometown,locale,first_name,middle_name,last_name&limit=%s"),
-
-        /**
-        * The contacts pagination size for Facebook.
-        */
-        CONTACTS_PAGE_SIZE("100"),
-
-        /**
          * The refresh token code request uri template.<br>
          * Uses a code to request a fresh access token.
          */
@@ -209,7 +261,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         /**
          * @param constant The enum value to set
          */
-        private FacebookConstants(String constant) {
+        private FacebookOAuthConstants(String constant) {
             this.constant = constant;
         }
     }
@@ -220,13 +272,13 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
      * @param config For accessing configured properties
      */
     public FacebookOAuth2Handler(Configuration config) {
-        super(config, FacebookConstants.CLIENT_NAME.getValue(),
-            FacebookConstants.HOST_FACEBOOK.getValue());
-        authenticateUri = FacebookConstants.AUTHENTICATE_URI.getValue();
-        authorizeUriTemplate = FacebookConstants.AUTHORIZE_URI_TEMPLATE.getValue();
-        requiredScopes = FacebookConstants.REQUIRED_SCOPES.getValue();
-        scopeDelimiter = FacebookConstants.SCOPE_DELIMITER.getValue();
-        relayKey = FacebookConstants.RELAY_KEY.getValue();
+        super(config, FacebookOAuthConstants.CLIENT_NAME.getValue(),
+            FacebookOAuthConstants.HOST_FACEBOOK.getValue());
+        authenticateUri = FacebookOAuthConstants.AUTHENTICATE_URI.getValue();
+        authorizeUriTemplate = FacebookOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue();
+        requiredScopes = FacebookOAuthConstants.REQUIRED_SCOPES.getValue();
+        scopeDelimiter = FacebookOAuthConstants.SCOPE_DELIMITER.getValue();
+        relayKey = FacebookOAuthConstants.RELAY_KEY.getValue();
         dataSource.addImportClass(DataSourceType.oauth2contact.name(),
             FacebookContactsImport.class.getCanonicalName());
     }
@@ -241,13 +293,13 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
         final Account account = oauthInfo.getAccount();
         final String clientId = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(), client), client,
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(), client), client,
             account);
         final String clientSecret = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(), client),
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(), client),
             client, account);
         final String clientRedirectUri = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(), client),
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(), client),
             client, account);
         if (StringUtils.isEmpty(clientId) ||StringUtils.isEmpty(clientSecret)
             || StringUtils.isEmpty(clientRedirectUri)) {
@@ -302,7 +354,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
 
             errorCode = inErrorCodeRange(errorCode);
 
-            switch (FacebookConstants.valueOf(errorCode)) {
+            switch (FacebookErrorConstants.valueOf(errorCode)) {
                 case RESPONSE_ERROR_INVALID_CODE:
                     ZimbraLog.extensions.debug("Invalid request error from Facebook: "
                         + errorMsg);
@@ -390,7 +442,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     protected String getPrimaryEmail(JsonNode credentials, Account acct) throws ServiceException {
         JsonNode json = null;
         final String authToken = credentials.get("access_token").asText();
-        final String url = String.format(FacebookConstants.USER_DETAILS_URI_TEMPLATE.getValue(),
+        final String url = String.format(FacebookOAuthConstants.USER_DETAILS_URI_TEMPLATE.getValue(),
             authToken);
 
         try {

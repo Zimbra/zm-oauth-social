@@ -66,7 +66,7 @@ public class LdapConfiguration extends Configuration {
         String value = null;
         ZimbraLog.extensions.debug("App name is:%s", appName);
 
-       if (key.endsWith(OAuth2Constants.OAUTH_CLIENT_ID.getValue())) {
+       if (key.endsWith(OAuth2ConfigConstants.OAUTH_CLIENT_ID.getValue())) {
             final String[] registeredOAuth2Clients = loadConfiguration(acct,
                 Provisioning.A_zimbraOAuthConsumerCredentials, appName);
 
@@ -81,7 +81,7 @@ public class LdapConfiguration extends Configuration {
                     }
                 }
             }
-        } else if (key.endsWith(OAuth2Constants.OAUTH_CLIENT_SECRET.getValue())) {
+        } else if (key.endsWith(OAuth2ConfigConstants.OAUTH_CLIENT_SECRET.getValue())) {
             final String[] registeredOAuth2Clients = loadConfiguration(acct,
                 Provisioning.A_zimbraOAuthConsumerCredentials, appName);
             if (registeredOAuth2Clients != null && registeredOAuth2Clients.length != 0) {
@@ -94,7 +94,7 @@ public class LdapConfiguration extends Configuration {
                     }
                 }
             }
-        } else if (key.endsWith(OAuth2Constants.OAUTH_CLIENT_REDIRECT_URI.getValue())) {
+        } else if (key.endsWith(OAuth2ConfigConstants.OAUTH_CLIENT_REDIRECT_URI.getValue())) {
             final String[] registeredOAuth2RedirectUrls = loadConfiguration(acct,
                 Provisioning.A_zimbraOAuthConsumerRedirectUri, appName);
             if (registeredOAuth2RedirectUrls != null
@@ -111,7 +111,7 @@ public class LdapConfiguration extends Configuration {
                     }
                 }
             }
-        } else if (key.endsWith(OAuth2Constants.OAUTH_SCOPE.getValue())) {
+        } else if (key.endsWith(OAuth2ConfigConstants.OAUTH_SCOPE.getValue())) {
             final String[] registeredOAuth2APIScope = loadConfiguration(acct,
                 Provisioning.A_zimbraOAuthConsumerAPIScope, appName);
 
@@ -130,7 +130,7 @@ public class LdapConfiguration extends Configuration {
         } else {
             value = getString(key, null);
         }
-        if (key.endsWith(OAuth2Constants.OAUTH_CLIENT_SECRET.getValue())) {
+        if (key.endsWith(OAuth2ConfigConstants.OAUTH_CLIENT_SECRET.getValue())) {
             ZimbraLog.extensions.trace("Requested : %s  and value is: %s ", key, "****");
         } else {
             ZimbraLog.extensions.trace("Requested : %s  and value is: %s ", key, value);

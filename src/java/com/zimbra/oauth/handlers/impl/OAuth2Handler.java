@@ -49,8 +49,11 @@ import com.zimbra.cs.httpclient.HttpProxyUtil;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2DataSource;
+import com.zimbra.oauth.utilities.OAuth2ErrorConstants;
+import com.zimbra.oauth.utilities.OAuth2HttpConstants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
 
 /**
@@ -129,17 +132,17 @@ public abstract class OAuth2Handler {
     public OAuth2Handler(Configuration config, String client, String clientHost) {
         this.client = client;
         this.config = config;
-        typeKey = OAuth2Constants.TYPE_KEY.getValue();
+        typeKey = OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue();
         dataSource = OAuth2DataSource.createDataSource(client, clientHost);
         final String zimbraHostname = config
-            .getString(OAuth2Constants.LC_ZIMBRA_SERVER_HOSTNAME.getValue());
+            .getString(OAuth2ConfigConstants.LC_ZIMBRA_SERVER_HOSTNAME.getValue());
         // warn if missing hostname
         if (StringUtils.isEmpty(zimbraHostname)) {
             ZimbraLog.extensions.warn("The zimbra server hostname is not configured.");
         }
         // cache the host uri
         zimbraHostUri = String
-            .format(config.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE.getValue(),
+            .format(config.getString(OAuth2ConfigConstants.LC_HOST_URI_TEMPLATE.getValue(),
                 OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE.getValue()), zimbraHostname);
     }
 
@@ -190,9 +193,9 @@ public abstract class OAuth2Handler {
         request.setParameter("redirect_uri", authInfo.getClientRedirectUri());
         request.setParameter("client_secret", authInfo.getClientSecret());
         request.setParameter("client_id", authInfo.getClientId());
-        request.setRequestHeader(OAuth2Constants.HEADER_CONTENT_TYPE.getValue(),
+        request.setRequestHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
             "application/x-www-form-urlencoded");
-        request.setRequestHeader(OAuth2Constants.HEADER_AUTHORIZATION.getValue(),
+        request.setRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
             "Basic " + basicToken);
         JsonNode json = null;
         try {
@@ -223,10 +226,10 @@ public abstract class OAuth2Handler {
         final String responseType = "code";
         String encodedRedirectUri = "";
         final String clientId = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(), client), client,
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(), client), client,
             account);
         final String clientRedirectUri = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(), client),
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(), client),
             client, account);
         if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientRedirectUri)) {
             throw ServiceException
@@ -237,9 +240,8 @@ public abstract class OAuth2Handler {
             ? client
             : client + "_" + datasourceType;
         final String scope = StringUtils.join(new String[] { requiredScopes,
-            config.getString(
-                String.format(OAuth2Constants.LC_OAUTH_SCOPE_TEMPLATE.getValue(), client),
-                scopeIdentifier, account) },
+            config.getString(String.format(OAuth2ConfigConstants.LC_OAUTH_SCOPE_TEMPLATE.getValue(),
+                client, account), scopeIdentifier) },
             scopeDelimiter);
 
         if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientRedirectUri)) {
@@ -305,13 +307,13 @@ public abstract class OAuth2Handler {
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
         final Account account = oauthInfo.getAccount();
         final String clientId = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(), client), client,
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(), client), client,
             account);
         final String clientSecret = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(), client),
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(), client),
             client, account);
         final String clientRedirectUri = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(), client),
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(), client),
             client, account);
         if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientSecret)
             || StringUtils.isEmpty(clientRedirectUri)) {
@@ -406,17 +408,17 @@ public abstract class OAuth2Handler {
         if (params.containsKey(relayKey)) {
             final String[] origVal = params.get(relayKey).split(RELAY_DELIMETER);
             if (origVal.length != 2) {
-                throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_TYPE_MISSING.getValue(), null);
+                throw ServiceException.INVALID_REQUEST(OAuth2ErrorConstants.ERROR_TYPE_MISSING.getValue(), null);
             }
             params.put(relayKey, origVal[0]);
             if (origVal[1].isEmpty()) {
-                throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_TYPE_MISSING.getValue(), null);
+                throw ServiceException.INVALID_REQUEST(OAuth2ErrorConstants.ERROR_TYPE_MISSING.getValue(), null);
             } else {
                 ZimbraLog.extensions.debug("Adding %s = %s", typeKey, origVal[1]);
                 params.put(typeKey, origVal[1]);
             }
         } else {
-            throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_TYPE_MISSING.getValue(), null);
+            throw ServiceException.INVALID_REQUEST(OAuth2ErrorConstants.ERROR_TYPE_MISSING.getValue(), null);
         }
 
         final String error = params.get("error");
@@ -425,7 +427,7 @@ public abstract class OAuth2Handler {
             throw ServiceException.PERM_DENIED(error);
             // ensure code exists
         } else if (!params.containsKey("code")) {
-            throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_INVALID_AUTH_CODE.getValue(), null);
+            throw ServiceException.INVALID_REQUEST(OAuth2ErrorConstants.ERROR_INVALID_AUTH_CODE.getValue(), null);
         }
     }
 
@@ -433,6 +435,7 @@ public abstract class OAuth2Handler {
      * Default param verifier for authorize.
      * This method should be overridden if the implementing client expects
      * different parameters.
+     * @throws ServiceException If there are issues verifying type
      *
      * @see IOAuth2Handler#verifyAuthorizeParams(Map)
      */
