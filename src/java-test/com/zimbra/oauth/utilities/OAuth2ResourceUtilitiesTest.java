@@ -113,7 +113,7 @@ public class OAuth2ResourceUtilitiesTest {
         expect(ClassManager.getHandler(matches(client))).andReturn(mockHandler);
         expect(mockHandler.getAuthenticateParamKeys())
             .andReturn(Arrays.asList("code", "error", "state"));
-        mockHandler.verifyAuthenticateParams(anyObject());
+        mockHandler.verifyAndSplitAuthenticateParams(anyObject());
         EasyMock.expectLastCall();
         expect(mockHandler.authenticate(anyObject(OAuthInfo.class))).andReturn(true);
         expect(mockHandler.getRelay(anyObject())).andReturn(state);
@@ -149,7 +149,7 @@ public class OAuth2ResourceUtilitiesTest {
         expect(ClassManager.getHandler(matches(client))).andReturn(mockHandler);
         expect(mockHandler.getAuthenticateParamKeys())
             .andReturn(Arrays.asList("code", "error", "state"));
-        mockHandler.verifyAuthenticateParams(anyObject());
+        mockHandler.verifyAndSplitAuthenticateParams(anyObject());
         EasyMock.expectLastCall().andThrow(ServiceException.PERM_DENIED(error));
         expect(mockHandler.getRelay(anyObject())).andReturn(state);
 
@@ -184,7 +184,7 @@ public class OAuth2ResourceUtilitiesTest {
         expect(ClassManager.getHandler(matches(client))).andReturn(mockHandler);
         expect(mockHandler.getAuthenticateParamKeys())
             .andReturn(Arrays.asList("code", "error", "state"));
-        mockHandler.verifyAuthenticateParams(anyObject());
+        mockHandler.verifyAndSplitAuthenticateParams(anyObject());
         EasyMock.expectLastCall();
         expect(mockHandler.getRelay(anyObject())).andReturn(state);
         expect(mockHandler.authenticate(anyObject(OAuthInfo.class)))

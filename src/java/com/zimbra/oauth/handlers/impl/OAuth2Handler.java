@@ -64,6 +64,7 @@ import com.zimbra.oauth.utilities.OAuthDataSource;
  */
 public abstract class OAuth2Handler {
 
+    public static final String RELAY_DELIMETER = ";";
     /**
      * Social app name
      */
@@ -253,7 +254,6 @@ public abstract class OAuth2Handler {
      */
     public String authorize(Map<String, String> params, Account account) throws ServiceException {
         String relayState = params.get(relayKey);
-        String typeValue = "";
         String type = StringUtils.defaultString(params.get(typeKey), "");
         String relayValue = "";
         String relay = StringUtils.defaultString(relayState, "");
@@ -278,13 +278,13 @@ public abstract class OAuth2Handler {
                 if (relayValue.isEmpty()) {
                     relayValue = "&" + relayKey + "=";
                 }
-                relayValue += ";" + URLEncoder.encode(type, OAuth2Constants.ENCODING);
+                relayValue += RELAY_DELIMETER + URLEncoder.encode(type, OAuth2Constants.ENCODING);
             } catch (final UnsupportedEncodingException e) {
                 throw ServiceException.INVALID_REQUEST("Unable to decode type parameter.", e);
             }
         }
 
-        return buildAuthorizeUri(authorizeUriTemplate, account) + relayValue + typeValue;
+        return buildAuthorizeUri(authorizeUriTemplate, account) + relayValue;
     }
 
     /**
@@ -388,7 +388,7 @@ public abstract class OAuth2Handler {
      *
      * @see IOAuth2Handler#verifyAuthenticateParams()
      */
-    public void verifyAuthenticateParams(Map<String, String> params) throws ServiceException {
+    public void verifyAndSplitAuthenticateParams(Map<String, String> params) throws ServiceException {
         final String error = params.get("error");
         // check for errors
         if (!StringUtils.isEmpty(error)) {
@@ -398,15 +398,11 @@ public abstract class OAuth2Handler {
             throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_INVALID_AUTH_CODE, null);
         }
         if (params.containsKey(relayKey)) {
-            String[] origVal = params.get(relayKey).split(";");
+            String[] origVal = params.get(relayKey).split(RELAY_DELIMETER);
             if (origVal.length != 2) {
                 throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_TYPE_MISSING, null);
             }
-            if (origVal[0].isEmpty()) {
-                params.remove(relayKey);
-            } else {
-                params.put(relayKey, origVal[0]);
-            }
+            params.put(relayKey, origVal[0]);
             if (origVal[1].isEmpty()) {
                 throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_TYPE_MISSING, null);
             } else {
