@@ -297,10 +297,7 @@ public class FacebookContactsImport implements DataImport {
                 // Facebook nextPageUrl if defined
                 final String url = buildContactsUrl(nextPageUrl, refreshToken);
                 nextPageUrl = null;
-                // log this only at the most verbose level, because this
-                // contains
-                // privileged information
-                ZimbraLog.extensions.debug("Attempting to sync Facebook contacts. URL: %s", url);
+                ZimbraLog.extensions.debug("Attempting to sync Facebook contacts.");
                 final JsonNode jsonResponse = getContactsRequest(url);
                 if (jsonResponse != null && jsonResponse.isContainerNode()) {
                     respContent = jsonResponse.toString();
