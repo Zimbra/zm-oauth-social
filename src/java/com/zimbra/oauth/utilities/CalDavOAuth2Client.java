@@ -28,8 +28,21 @@ import com.zimbra.common.httpclient.HttpClientUtil;
 import com.zimbra.cs.dav.DavContext.Depth;
 import com.zimbra.cs.dav.client.CalDavClient;
 
+/**
+ * The CalDavOAuth2Client class.<br>
+ * Used to refresh OAuth2 access token for CalDav import.
+ *
+ * @author Zimbra API Team
+ * @package com.zimbra.oauth.utilities
+ * @copyright Copyright © 2018
+ */
 public class CalDavOAuth2Client extends CalDavClient {
 
+    /**
+     * Constructor.
+     *
+     * @param baseUrl The url to initialize with
+     */
     public CalDavOAuth2Client(String baseUrl) {
         super(baseUrl);
     }

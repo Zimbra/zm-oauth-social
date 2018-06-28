@@ -39,10 +39,26 @@ import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 import com.zimbra.oauth.utilities.OAuth2DataSource;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
 
+/**
+ * The CalDavOAuth2DataImport class.<br>
+ * Used to refresh OAuth2 access token for CalDav import.<br>
+ *
+ * @author Zimbra API Team
+ * @package com.zimbra.oauth.handlers.impl
+ * @copyright Copyright © 2018
+ */
 public class CalDavOAuth2DataImport extends CalDavDataImport {
 
+    /**
+     * Configuration wrapper.
+     */
     private Configuration config;
 
+    /**
+     * Constructor.
+     *
+     * @param datasource The datasource to set
+     */
     public CalDavOAuth2DataImport(DataSource ds) throws ServiceException {
         super(ds);
         try {
@@ -54,7 +70,7 @@ public class CalDavOAuth2DataImport extends CalDavDataImport {
     }
 
     /**
-     * Initialize the dav client and refresh the access token
+     * Initialize the dav client and refresh the access token.
      */
     @Override
     protected CalDavClient getClient() throws ServiceException, IOException, DavException {

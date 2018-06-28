@@ -435,6 +435,7 @@ public abstract class OAuth2Handler {
      * Default param verifier for authorize.
      * This method should be overridden if the implementing client expects
      * different parameters.
+     *
      * @throws ServiceException If there are issues verifying type
      *
      * @see IOAuth2Handler#verifyAuthorizeParams(Map)
@@ -549,10 +550,12 @@ public abstract class OAuth2Handler {
     }
 
     /**
-     * hook to provide data source specific attributes for data source creation
-     * @param oauthInfo
-     * @return
-     * @throws ServiceException
+     * Hook to provide data source specific attributes for data source creation.<br>
+     * This method should be overridden if the implementing client expects non-null.
+     *
+     * @param oauthInfo Contains information used to determine custom attributes
+     * @return Map of custom datasource attributes to set
+     * @throws ServiceException If there are any issues
      */
     protected Map<String, Object> getDatasourceCustomAttrs(OAuthInfo oauthInfo) throws ServiceException {
         return null;

@@ -43,6 +43,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
      * Contains error constants used in this implementation.
      */
     protected enum GoogleErrorConstants {
+
         /**
          * Invalid redirect response code from Google.
          */
@@ -132,6 +133,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         private GoogleContactConstants(String constant) {
             this.constant = constant;
         }
+
     }
 
     /**
@@ -197,18 +199,20 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         private GoogleOAuth2Constants(String constant) {
             this.constant = constant;
         }
+
     }
 
     /**
-     * enum for constants related to google caldav datasource
-     *
+     * Contains caldav constants used in this implementation.
      */
     public enum GoogleCaldavConstants {
+
         HOST("apidata.googleusercontent.com"),
         DS_POLLING_INTERVAL("1m"),
         DS_PORT("443"),
         DS_CONNECTION_TYPE("ssl"),
         DS_ATTR_VAL("p:/caldav/v2/_USERNAME_/user");
+
         private String constant;
 
         public String getValue() {
@@ -218,6 +222,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         private GoogleCaldavConstants(String constant) {
             this.constant = constant;
         }
+
     }
 
     /**
