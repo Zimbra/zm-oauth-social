@@ -26,6 +26,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.net.URLEncoder;
 import java.util.HashMap;
+import java.util.Map;
 
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -46,6 +47,7 @@ import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2DataSource;
+import com.zimbra.oauth.utilities.OAuth2HttpConstants;
 
 /**
  * Test class for {@link OutlookOAuth2Handler}.
@@ -101,6 +103,8 @@ public class OutlookOAuth2HandlerTest {
             "authorize", "authenticate");
         Whitebox.setInternalState(handler, "config", mockConfig);
         Whitebox.setInternalState(handler, "relayKey", OutlookOAuthConstants.RELAY_KEY.getValue());
+        Whitebox.setInternalState(handler, "typeKey",
+            OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue());
         Whitebox.setInternalState(handler, "authenticateUri",
             OutlookOAuthConstants.AUTHENTICATE_URI.getValue());
         Whitebox.setInternalState(handler, "authorizeUriTemplate",
@@ -152,24 +156,28 @@ public class OutlookOAuth2HandlerTest {
     public void testAuthorize() throws Exception {
         final String encodedUri = URLEncoder.encode(clientRedirectUri,
             OAuth2Constants.ENCODING.getValue());
-        final String expectedAuthorize = String.format(
+        // use contact type
+        final Map<String, String> params = new HashMap<String, String>();
+        params.put(OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue(), "contact");
+        final String authorizeBase = String.format(
             OutlookOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code",
             OutlookOAuthConstants.REQUIRED_SCOPES.getValue());
+        // expect a contact state with no relay
+        final String expectedAuthorize = authorizeBase + "&state=;contact";
 
         // expect buildAuthorize call
         expect(handler.buildAuthorizeUri(OutlookOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue(),
-            null, "contact")).andReturn(expectedAuthorize);
+            null, "contact")).andReturn(authorizeBase);
 
         replay(handler);
 
-        final String authorizeLocation = handler.authorize(new HashMap<String, String>(), null);
+        final String authorizeLocation = handler.authorize(params, null);
 
         // verify build was called
         verify(handler);
 
         assertNotNull(authorizeLocation);
-        assertEquals(String.format(OutlookOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId,
-            encodedUri, "code", OutlookOAuthConstants.REQUIRED_SCOPES.getValue()), authorizeLocation);
+        assertEquals(expectedAuthorize, authorizeLocation);
     }
 
     /**
@@ -205,6 +213,7 @@ public class OutlookOAuth2HandlerTest {
             matches(OutlookOAuthConstants.CLIENT_NAME.getValue()), anyObject()))
                 .andReturn(clientRedirectUri);
         expect(handler.getZimbraMailbox(anyObject(String.class))).andReturn(mockZMailbox);
+        expect(handler.getDatasourceCustomAttrs(anyObject())).andReturn(null);
         expect(OAuth2Handler.getTokenRequest(anyObject(OAuthInfo.class), anyObject(String.class)))
             .andReturn(mockCredentials);
         handler.validateTokenResponse(anyObject());
