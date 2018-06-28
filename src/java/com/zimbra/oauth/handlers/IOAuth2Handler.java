@@ -39,7 +39,6 @@ public interface IOAuth2Handler {
      * @param params request params filtered with param keys
      * @param account The account to acquire configuration by access level
      * @return The authorize endpoint
-     * @acct The user account
      * @throws ServiceException If there are issues determining the
      *             endpoint
      */

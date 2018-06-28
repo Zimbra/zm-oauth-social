@@ -33,7 +33,8 @@ public enum OAuth2ErrorConstants {
     ERROR_INVALID_ZM_AUTH_CODE_MSG("Invalid or missing Zimbra session."),
     ERROR_AUTHENTICATION_ERROR("authentication_error"),
     ERROR_UNHANDLED_ERROR("unhandled_error"),
-    ERROR_TYPE_MISSING("missing_type");
+    ERROR_TYPE_MISSING("missing_type"),
+    ERROR_PARAM_MISSING("missing_param");
 
     /**
      * The value of this enum.

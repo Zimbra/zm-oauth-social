@@ -448,7 +448,7 @@ public abstract class OAuth2Handler {
         final String type = params.get(typeKey);
         if (StringUtils.isEmpty(type)) {
             ZimbraLog.extensions.debug("\"type\" not received in authorize request");
-            throw ServiceException.FAILURE("Missing type in authorize request", null);
+            throw ServiceException.INVALID_REQUEST("Missing type param in authorize request.", null);
         } else {
             //validate if type is valid
             OAuth2DataSource.getDataSourceTypeForOAuth2(type);
