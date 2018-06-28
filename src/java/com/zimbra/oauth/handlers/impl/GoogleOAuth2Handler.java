@@ -19,6 +19,8 @@ package com.zimbra.oauth.handlers.impl;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
@@ -72,7 +74,12 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         /**
          * Invalid request code from Google.
          */
-        RESPONSE_ERROR_INVALID_REQUEST("INVALID_REQUEST");
+        RESPONSE_ERROR_INVALID_REQUEST("INVALID_REQUEST"),
+
+        /**
+         * Default error.
+         */
+        DEFAULT_ERROR("DEFAULT_ERROR");
 
         /**
          * The value of this enum.
@@ -91,6 +98,21 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
          */
         private GoogleErrorConstants(String constant) {
             this.constant = constant;
+        }
+
+        /**
+         * ValueOf wrapper for constants.
+         *
+         * @param code The code to check for
+         * @return Enum instance
+         */
+        protected static GoogleErrorConstants fromString(String code) {
+            for (final GoogleErrorConstants t : GoogleErrorConstants.values()) {
+                if (StringUtils.equals(t.getValue(), code)) {
+                    return t;
+                }
+            }
+            return DEFAULT_ERROR;
         }
 
     }
@@ -265,7 +287,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
             final String error = response.get("error").asText();
             final JsonNode errorMsg = response.get("error_description");
             ZimbraLog.extensions.debug("Response from google: %s", response.asText());
-            switch (GoogleErrorConstants.valueOf(error.toUpperCase())) {
+            switch (GoogleErrorConstants.fromString(error.toUpperCase())) {
             case RESPONSE_ERROR_INVALID_REDIRECT_URI:
                 ZimbraLog.extensions.info(
                     "Redirect does not match the one found in authorization request: " + errorMsg);

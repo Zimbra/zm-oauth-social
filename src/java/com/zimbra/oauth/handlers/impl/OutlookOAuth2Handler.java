@@ -16,6 +16,8 @@
  */
 package com.zimbra.oauth.handlers.impl;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
@@ -80,7 +82,12 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
          * The authorization server does not support the response type in the
          * request.
          */
-        RESPONSE_ERROR_RESPONSE_TYPE("unsupported_response_type");
+        RESPONSE_ERROR_RESPONSE_TYPE("unsupported_response_type"),
+
+        /**
+         * Default error.
+         */
+        DEFAULT_ERROR("DEFAULT_ERROR");
 
         /**
          * The value of this enum.
@@ -99,6 +106,21 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
          */
         private OutlookErrorConstants(String constant) {
             this.constant = constant;
+        }
+
+        /**
+         * ValueOf wrapper for constants.
+         *
+         * @param code The code to check for
+         * @return Enum instance
+         */
+        protected static OutlookErrorConstants fromString(String code) {
+            for (final OutlookErrorConstants t : OutlookErrorConstants.values()) {
+                if (StringUtils.equals(t.getValue(), code)) {
+                    return t;
+                }
+            }
+            return DEFAULT_ERROR;
         }
 
     }
@@ -207,7 +229,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         if (response.has("error")) {
             final String error = response.get("error").asText();
             final JsonNode errorMsg = response.get("error_description");
-            switch (OutlookErrorConstants.valueOf(error)) {
+            switch (OutlookErrorConstants.fromString(error)) {
             case RESPONSE_ERROR_INVALID_REQUEST:
                 ZimbraLog.extensions.warn("Invalid token request parameters: " + errorMsg);
                 throw ServiceException
