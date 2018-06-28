@@ -200,7 +200,7 @@ public abstract class OAuth2Handler {
         JsonNode json = null;
         try {
             json = executeRequestForJson(request);
-            ZimbraLog.extensions.trace("Response for autn token request:%s", json);
+            ZimbraLog.extensions.debug("Request for auth token completed.");
         } catch (final IOException e) {
             ZimbraLog.extensions
                 .errorQuietly("There was an issue acquiring the authorization token.", e);
