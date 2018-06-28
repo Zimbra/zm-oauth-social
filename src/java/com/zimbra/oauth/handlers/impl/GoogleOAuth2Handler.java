@@ -287,7 +287,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
             final String error = response.get("error").asText();
             final JsonNode errorMsg = response.get("error_description");
             ZimbraLog.extensions.debug("Response from google: %s", response.asText());
-            switch (GoogleErrorConstants.fromString(error.toUpperCase())) {
+            switch (GoogleErrorConstants.fromString(StringUtils.upperCase(error))) {
             case RESPONSE_ERROR_INVALID_REDIRECT_URI:
                 ZimbraLog.extensions.info(
                     "Redirect does not match the one found in authorization request: " + errorMsg);

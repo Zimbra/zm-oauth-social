@@ -51,18 +51,29 @@ public class OAuth2ResourceUtilities {
      * @param params Request params
      * @param account The user requesting
      * @return Location to redirect to
-     * @acct the user account for which datasource is being setup
      * @throws ServiceException If there are issues
      */
     public static final String authorize(String client, Map<String, String[]> params, Account account)
             throws ServiceException {
         final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
-        ZimbraLog.extensions.debug("Client : %s, handler:%s, relay:%s, type:%s ", client,
-            oauth2Handler, params.get("relay"), params.get(OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue()));
+        ZimbraLog.extensions.debug("Client : %s, handler:%s, state:%s, type:%s ", client,
+            oauth2Handler, params.get("state"), params.get(OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue()));
         final Map<String, String> paramsForAuthorize = getParams(
             oauth2Handler.getAuthorizeParamKeys(), params);
-        oauth2Handler.verifyAuthorizeParams(paramsForAuthorize);
-        return oauth2Handler.authorize(paramsForAuthorize, account);
+        try {
+            // verify params
+            oauth2Handler.verifyAuthorizeParams(paramsForAuthorize);
+            return oauth2Handler.authorize(paramsForAuthorize, account);
+        } catch (final ServiceException e) {
+            // return redirect error if invalid request
+            if (ServiceException.INVALID_REQUEST.equals(e.getCode())) {
+                return OAuth2ResourceUtilities.addQueryParams(
+                    getValidatedRelay(oauth2Handler.getRelay(paramsForAuthorize)),
+                    mapError(OAuth2ErrorConstants.ERROR_PARAM_MISSING.getValue(), e.getMessage()));
+            }
+            // otherwise bubble error
+            throw e;
+        }
     }
 
     /**
@@ -89,12 +100,11 @@ public class OAuth2ResourceUtilities {
         } catch (final ServiceException e) {
             if (StringUtils.equals(ServiceException.PERM_DENIED, e.getCode())) {
                 // if unauthorized, pass along the error message
-                errorParams.put(OAuth2HttpConstants.QUERY_ERROR.getValue(),
-                    OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue());
-                errorParams.put(OAuth2HttpConstants.QUERY_ERROR_MSG.getValue(), e.getMessage());
+                mapError(errorParams, OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue(),
+                    e.getMessage());
             } else {
                 // if invalid op, pass along the error message
-                errorParams.put(OAuth2HttpConstants.QUERY_ERROR.getValue(), e.getCode());
+                mapError(errorParams, e.getCode(), null);
             }
         }
 
@@ -104,9 +114,7 @@ public class OAuth2ResourceUtilities {
             // this happens if the request has no zimbra cookie identifying a
             // session
             if (StringUtils.isEmpty(zmAuthToken)) {
-                errorParams.put(OAuth2HttpConstants.QUERY_ERROR.getValue(),
-                    OAuth2ErrorConstants.ERROR_INVALID_ZM_AUTH_CODE.getValue());
-                errorParams.put(OAuth2HttpConstants.QUERY_ERROR_MSG.getValue(),
+                mapError(errorParams, OAuth2ErrorConstants.ERROR_INVALID_ZM_AUTH_CODE.getValue(),
                     OAuth2ErrorConstants.ERROR_INVALID_ZM_AUTH_CODE_MSG.getValue());
             } else {
                 try {
@@ -120,12 +128,12 @@ public class OAuth2ResourceUtilities {
                     // unauthorized does not have an error message associated
                     // with it
                     if (StringUtils.equals(ServiceException.PERM_DENIED, e.getCode())) {
-                        errorParams.put(OAuth2HttpConstants.QUERY_ERROR.getValue(),
-                            OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue());
+                        mapError(errorParams, OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue(),
+                            null);
                     } else {
-                        errorParams.put(OAuth2HttpConstants.QUERY_ERROR.getValue(),
-                            OAuth2ErrorConstants.ERROR_AUTHENTICATION_ERROR.getValue());
-                        errorParams.put(OAuth2HttpConstants.QUERY_ERROR_MSG.getValue(), e.getMessage());
+                        mapError(errorParams,
+                            OAuth2ErrorConstants.ERROR_AUTHENTICATION_ERROR.getValue(),
+                            e.getMessage());
                     }
                 }
             }
@@ -221,6 +229,33 @@ public class OAuth2ResourceUtilities {
         }
         // return the original path without the added params if we failed
         return path;
+    }
+
+    /**
+     * Creates a query error map for a given code and message.
+     *
+     * @param code The error code
+     * @param message The error message (optional)
+     * @return Error map
+     */
+    public static Map<String, String> mapError(String code, String message) {
+        return mapError(new HashMap<String, String>(), code, message);
+    }
+
+    /**
+     * Creates a query error map for a given code and message.
+     *
+     * @param errorParams The map to add to
+     * @param code The error code
+     * @param message The error message (optional)
+     * @return Error map
+     */
+    public static Map<String, String> mapError(Map<String, String> errorParams, String code, String message) {
+        errorParams.put(OAuth2HttpConstants.QUERY_ERROR.getValue(), code);
+        if (message != null) {
+            errorParams.put(OAuth2HttpConstants.QUERY_ERROR_MSG.getValue(), message);
+        }
+        return errorParams;
     }
 
 }
