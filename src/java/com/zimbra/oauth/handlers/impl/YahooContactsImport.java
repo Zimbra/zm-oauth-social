@@ -84,13 +84,15 @@ import com.zimbra.cs.mailbox.Contact.Attachment;
 import com.zimbra.cs.mime.ParsedContact;
 import com.zimbra.cs.service.mail.CreateContact;
 import com.zimbra.cs.service.util.ItemId;
-import com.zimbra.oauth.handlers.impl.YahooOAuth2Handler.YahooConstants;
+import com.zimbra.oauth.handlers.impl.YahooOAuth2Handler.YahooContactConstants;
+import com.zimbra.oauth.handlers.impl.YahooOAuth2Handler.YahooOAuth2Constants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.LdapConfiguration;
-import com.zimbra.oauth.utilities.OAuth2Constants;
-import com.zimbra.oauth.utilities.OAuth2Utilities;
+import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 import com.zimbra.oauth.utilities.OAuth2DataSource;
+import com.zimbra.oauth.utilities.OAuth2HttpConstants;
+import com.zimbra.oauth.utilities.OAuth2Utilities;
 
 /**
  * The YahooContactsImport class.<br>
@@ -121,7 +123,7 @@ public class YahooContactsImport implements DataImport {
     public YahooContactsImport(DataSource datasource) {
         mDataSource = datasource;
         try {
-            config = LdapConfiguration.buildConfiguration(YahooConstants.CLIENT_NAME);
+            config = LdapConfiguration.buildConfiguration(YahooOAuth2Constants.CLIENT_NAME.getValue());
         } catch (final ServiceException e) {
             ZimbraLog.extensions.info("Error loading configuration for yahoo: %s", e.getMessage());
             ZimbraLog.extensions.debug(e);
@@ -134,7 +136,7 @@ public class YahooContactsImport implements DataImport {
         String respContent = "";
         ParsedContact testContact = null;
         try {
-            final String url = String.format(YahooConstants.CONTACTS_URI_TEMPLATE,
+            final String url = String.format(YahooContactConstants.CONTACTS_URI_TEMPLATE.getValue(),
                 tokenAndGuid.getSecond(), "json", 10);
             final String authorizationHeader = String.format("Bearer %s", tokenAndGuid.getFirst());
             final JsonNode jsonResponse = getContactsRequest(url, authorizationHeader);
@@ -182,15 +184,19 @@ public class YahooContactsImport implements DataImport {
      * @throws ServiceException If there are issues
      */
     protected Pair<String, String> refresh() throws ServiceException {
-        Account acct = this.mDataSource.getAccount();
+        final Account acct = this.mDataSource.getAccount();
         final OAuthInfo oauthInfo = new OAuthInfo(new HashMap<String, String>());
         final String refreshToken = OAuth2DataSource.getRefreshToken(mDataSource);
-        final String clientId = config.getString(
-            String.format(OAuth2Constants.LC_OAUTH_CLIENT_ID_TEMPLATE, YahooConstants.CLIENT_NAME), YahooConstants.CLIENT_NAME, acct);
-        final String clientSecret = config.getString(String
-            .format(OAuth2Constants.LC_OAUTH_CLIENT_SECRET_TEMPLATE, YahooConstants.CLIENT_NAME), YahooConstants.CLIENT_NAME, acct);
-        final String clientRedirectUri = config.getString(String.format(
-            OAuth2Constants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE, YahooConstants.CLIENT_NAME), YahooConstants.CLIENT_NAME, acct);
+        final String clientId = config
+            .getString(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(),
+                YahooOAuth2Constants.CLIENT_NAME.getValue()), YahooOAuth2Constants.CLIENT_NAME.getValue(), acct);
+        final String clientSecret = config
+            .getString(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(),
+                YahooOAuth2Constants.CLIENT_NAME.getValue()), YahooOAuth2Constants.CLIENT_NAME.getValue(), acct);
+        final String clientRedirectUri = config.getString(
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(),
+                YahooOAuth2Constants.CLIENT_NAME.getValue()),
+            YahooOAuth2Constants.CLIENT_NAME.getValue(), acct);
 
         if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientSecret)
             || StringUtils.isEmpty(clientRedirectUri)) {
@@ -201,14 +207,14 @@ public class YahooContactsImport implements DataImport {
         oauthInfo.setClientId(clientId);
         oauthInfo.setClientSecret(clientSecret);
         oauthInfo.setClientRedirectUri(clientRedirectUri);
-        oauthInfo.setTokenUrl(YahooConstants.AUTHENTICATE_URI);
+        oauthInfo.setTokenUrl(YahooOAuth2Constants.AUTHENTICATE_URI.getValue());
 
         ZimbraLog.extensions.debug("Fetching access credentials for import.");
         final JsonNode credentials = YahooOAuth2Handler.getTokenRequest(oauthInfo,
             OAuth2Utilities.encodeBasicHeader(clientId, clientSecret));
 
         return new Pair<String, String>(credentials.get("access_token").asText(),
-            credentials.get(YahooConstants.GUID_KEY).asText());
+            credentials.get(YahooOAuth2Constants.GUID_KEY.getValue()).asText());
     }
 
     /**
@@ -223,7 +229,7 @@ public class YahooContactsImport implements DataImport {
     protected JsonNode getContactsRequest(String url, String authorizationHeader)
         throws ServiceException, IOException {
         final GetMethod get = new GetMethod(url);
-        get.addRequestHeader(OAuth2Constants.HEADER_AUTHORIZATION, authorizationHeader);
+        get.addRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
         ZimbraLog.extensions.debug("Fetching contacts for import.");
         return OAuth2Handler.executeRequestForJson(get);
     }
@@ -247,7 +253,7 @@ public class YahooContactsImport implements DataImport {
         }
         String respContent = "";
         try {
-            final String url = String.format(YahooConstants.CONTACTS_URI_TEMPLATE,
+            final String url = String.format(YahooContactConstants.CONTACTS_URI_TEMPLATE.getValue(),
                 tokenAndGuid.getSecond(), "json", rev);
             final String authorizationHeader = String.format("Bearer %s", tokenAndGuid.getFirst());
             // log this only at the most verbose level, because this contains
@@ -578,7 +584,7 @@ public class YahooContactsImport implements DataImport {
                             // add to attachments
                             final Attachment attachment = OAuth2Utilities
                                 .createAttachmentFromResponse(get, key,
-                                    YahooConstants.CONTACTS_IMAGE_NAME);
+                                    YahooContactConstants.CONTACTS_IMAGE_NAME.getValue());
                             if (attachment != null) {
                                 attachments.add(attachment);
                             }

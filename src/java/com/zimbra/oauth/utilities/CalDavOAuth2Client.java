@@ -28,14 +28,28 @@ import com.zimbra.common.httpclient.HttpClientUtil;
 import com.zimbra.cs.dav.DavContext.Depth;
 import com.zimbra.cs.dav.client.CalDavClient;
 
+/**
+ * The CalDavOAuth2Client class.<br>
+ * Used to refresh OAuth2 access token for CalDav import.
+ *
+ * @author Zimbra API Team
+ * @package com.zimbra.oauth.utilities
+ * @copyright Copyright © 2018
+ */
 public class CalDavOAuth2Client extends CalDavClient {
 
+    /**
+     * Constructor.
+     *
+     * @param baseUrl The url to initialize with
+     */
     public CalDavOAuth2Client(String baseUrl) {
         super(baseUrl);
     }
 
+    @Override
     protected HttpMethod executeMethod(HttpMethod m, Depth d, String bodyForLogging) throws IOException {
-        HttpMethodParams p = m.getParams();
+        final HttpMethodParams p = m.getParams();
         if ( p != null )
             p.setCredentialCharset("UTF-8");
 
@@ -56,10 +70,10 @@ public class CalDavOAuth2Client extends CalDavClient {
         }
         m.setRequestHeader("Depth", depth);
         final String authorizationHeader = String.format("Bearer %s", accessToken);
-        m.addRequestHeader(OAuth2Constants.HEADER_AUTHORIZATION, authorizationHeader);
+        m.addRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
         m.setRequestHeader("Depth", depth);
         logRequestInfo(m, bodyForLogging);
-        ArrayList<String> authPrefs = new ArrayList<String>();
+        final ArrayList<String> authPrefs = new ArrayList<String>();
         authPrefs.add(AuthPolicy.BASIC);
         mClient.getParams().setParameter(AuthPolicy.AUTH_SCHEME_PRIORITY, authPrefs);
         mClient.getParams().setAuthenticationPreemptive(true);

@@ -26,14 +26,6 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.zimbra.common.service.ServiceException;
-import com.zimbra.cs.account.DataSource;
-import com.zimbra.cs.mime.ParsedContact;
-import com.zimbra.oauth.handlers.impl.FacebookContactsImport.FacebookContactsUtil;
-import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookConstants;
-import com.zimbra.oauth.utilities.Configuration;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -47,6 +39,14 @@ import org.powermock.api.easymock.PowerMock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.powermock.reflect.Whitebox;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.zimbra.common.service.ServiceException;
+import com.zimbra.cs.account.DataSource;
+import com.zimbra.cs.mime.ParsedContact;
+import com.zimbra.oauth.handlers.impl.FacebookContactsImport.FacebookContactsUtil;
+import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookContactConstants;
+import com.zimbra.oauth.utilities.Configuration;
 
 /**
  * Test class for {@link FacebookContactsImport}.
@@ -89,7 +89,7 @@ public class FacebookContactsImportTest {
   public void setUp() throws Exception {
     mockSource = EasyMock.createMock(DataSource.class);
     importer = PowerMock.createPartialMock(FacebookContactsImport.class,
-      new String[] {"refresh", "getExistingContacts", "buildContactsUrl", 
+      new String[] {"refresh", "getExistingContacts", "buildContactsUrl",
         "getContactsRequest", "parseNewContacts"},
       mockSource);
 
@@ -117,7 +117,7 @@ public class FacebookContactsImportTest {
     expect(importer.refresh()).andReturn(accessToken);
     // expect buildContactsUrl to be called
     expect(importer.buildContactsUrl(anyObject(), anyObject()))
-        .andReturn(FacebookConstants.CONTACTS_URI_TEMPLATE);
+        .andReturn(FacebookContactConstants.CONTACTS_URI_TEMPLATE.getValue());
     final String jsonData = "{\"data\": [{\"id\": \"114606492762739\",\"name\": \"Ullrich Albfdjafgjfjh Valtchanovstein\"},{\"id\": \"113255442901577\",\"name\": \"Elizabeth Albfeacfecjgh Riceberg\"},{\"id\": \"107932500100943\",\"name\": \"Maria Albfebehjbbed Schrockman\"},{\"id\": \"108947766668167\",\"name\": \"Dave Albfehhcahafb Bushakstein\"}],\"paging\": {\"cursors\": {\"after\": \"dVI1WlhKVFJkQVdB\",\"before\": \"YnFkVXkteXIyQldR\"}},\"summary\": {\"total_count\": 4}}";
     final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
     expect(importer.getContactsRequest(anyObject())).andReturn(jsonResponse);
@@ -187,7 +187,7 @@ public class FacebookContactsImportTest {
 
   /**
    * Test method for {@link FacebookContactsImport#importData}<br>
-   * Validates that the method throws a ServiceException when the Facebook 
+   * Validates that the method throws a ServiceException when the Facebook
    * friends api returns an error response.
    *
    * @throws Exception If there are issues testing
@@ -203,7 +203,7 @@ public class FacebookContactsImportTest {
     expect(importer.refresh()).andReturn(accessToken);
     // expect buildContactsUrl to be called
     expect(importer.buildContactsUrl(anyObject(), anyObject()))
-        .andReturn(FacebookConstants.CONTACTS_URI_TEMPLATE);
+        .andReturn(FacebookContactConstants.CONTACTS_URI_TEMPLATE.getValue());
     final String jsonData = "{\"error\": {\"message\": \"Error validating access token: Session has expired on Monday, 11-Jun-18 11:00:00 PDT. The current time is Thursday, 14-Jun-18 22:26:28 PDT.\",\"type\": \"OAuthException\",\"code\": 190,\"error_subcode\": 463,\"fbtrace_id\": \"Ey9c3rSW3cD\"}}";
     final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
     expect(importer.getContactsRequest(anyObject())).andReturn(jsonResponse);

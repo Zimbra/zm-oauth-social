@@ -152,8 +152,10 @@ public class OAuth2Utilities {
             ZimbraLog.extensions.debug("The Content-Type: %s", ctype);
             if (!StringUtils.isEmpty(ctype)) {
                 ZimbraLog.extensions.debug("Creating attachment: %s as key: %s", filename, key);
-                return new Attachment(decodeStream(method.getResponseBodyAsStream(),
-                    OAuth2Constants.CONTACTS_IMAGE_BUFFER_SIZE), ctype, key, filename);
+                return new Attachment(
+                    decodeStream(method.getResponseBodyAsStream(),
+                        Integer.valueOf(OAuth2Constants.CONTACTS_IMAGE_BUFFER_SIZE.getValue())),
+                    ctype, key, filename);
             }
         }
         return null;

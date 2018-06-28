@@ -26,7 +26,7 @@ import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.LdapConfiguration;
-import com.zimbra.oauth.utilities.OAuth2Constants;
+import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 
 /**
  * The ClassManager class.<br>
@@ -69,7 +69,7 @@ public class ClassManager {
 
                         // load the handler class
                         final Class<?> daoClass = Class.forName(
-                            config.getString(OAuth2Constants.LC_HANDLER_CLASS_PREFIX + client));
+                            config.getString(OAuth2ConfigConstants.LC_HANDLER_CLASS_PREFIX.getValue() + client));
                         handler = (IOAuth2Handler) daoClass.getConstructor(Configuration.class)
                             .newInstance(config);
 

@@ -40,106 +40,179 @@ import com.zimbra.soap.admin.type.DataSourceType;
 public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
 
     /**
-     * Contains constants used in this implementation.
+     * Contains error constants used in this implementation.
      */
-    protected class GoogleConstants {
+    protected enum GoogleErrorConstants {
 
         /**
          * Invalid redirect response code from Google.
          */
-        protected static final String RESPONSE_ERROR_INVALID_REDIRECT_URI = "REDIRECT_URI_MISMATCH";
+        RESPONSE_ERROR_INVALID_REDIRECT_URI("REDIRECT_URI_MISMATCH"),
 
         /**
          * Invalid authorization code response code from Google.
          */
-        protected static final String RESPONSE_ERROR_INVALID_AUTHORIZATION_CODE = "INVALID_AUTHORIZATION_CODE";
+        RESPONSE_ERROR_INVALID_AUTHORIZATION_CODE("INVALID_AUTHORIZATION_CODE"),
 
         /**
          * Invalid grant response code from Google.
          */
-        protected static final String RESPONSE_ERROR_INVALID_GRANT = "INVALID_GRANT";
+        RESPONSE_ERROR_INVALID_GRANT("INVALID_GRANT"),
 
         /**
          * Unsupported grant type response code from Google.
          */
-        protected static final String RESPONSE_ERROR_UNSUPPORTED_GRANT_TYPE = "UNSUPPORTED_GRANT_TYPE";
+        RESPONSE_ERROR_UNSUPPORTED_GRANT_TYPE("UNSUPPORTED_GRANT_TYPE"),
 
         /**
          * Invalid client response code from Google.
          */
-        protected static final String RESPONSE_ERROR_INVALID_CLIENT = "INVALID_CLIENT";
+        RESPONSE_ERROR_INVALID_CLIENT("INVALID_CLIENT"),
 
         /**
          * Invalid request code from Google.
          */
-        protected static final String RESPONSE_ERROR_INVALID_REQUEST = "INVALID_REQUEST";
+        RESPONSE_ERROR_INVALID_REQUEST("INVALID_REQUEST");
 
         /**
-         * The authorize endpoint for Google.
+         * The value of this enum.
          */
-        protected static final String AUTHORIZE_URI_TEMPLATE = "https://accounts.google.com/o/oauth2/v2/auth?prompt=consent&access_type=offline&client_id=%s&redirect_uri=%s&response_type=%s&scope=%s";
+        private String constant;
 
         /**
-         * The profile endpoint for Google.
+         * @return The enum value
          */
-        protected static final String PROFILE_URI = "https://www.googleapis.com/plus/v1/people/me";
+        public String getValue() {
+            return constant;
+        }
 
         /**
-         * The authenticate endpoint for Google.
+         * @param constant The enum value to set
          */
-        protected static final String AUTHENTICATE_URI = "https://www.googleapis.com/oauth2/v4/token";
+        private GoogleErrorConstants(String constant) {
+            this.constant = constant;
+        }
+
+    }
+
+    /**
+     * Contains contact constants used in this implementation.
+     */
+    protected enum GoogleContactConstants {
 
         /**
          * The contacts endpoint for Google.
          */
-        protected static final String CONTACTS_URI = "https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,organizations,phoneNumbers,addresses,events,birthdays,biographies,nicknames,urls,photos,userDefined,skills,interests,braggingRights,relationshipInterests,relationshipStatuses,occupations,taglines";
+        CONTACTS_URI("https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,organizations,phoneNumbers,addresses,events,birthdays,biographies,nicknames,urls,photos,userDefined,skills,interests,braggingRights,relationshipInterests,relationshipStatuses,occupations,taglines"),
 
         /**
          * The contacts pagination size for Google.
          */
-        protected static final String CONTACTS_PAGE_SIZE = "100";
+        CONTACTS_PAGE_SIZE("100"),
 
         /**
          * The contacts image name template for Google.
          */
-        protected static final String CONTACTS_IMAGE_NAME_TEMPLATE = "google-profile-image%s";
+        CONTACTS_IMAGE_NAME_TEMPLATE("google-profile-image%s");
+
+        /**
+         * The value of this enum.
+         */
+        private String constant;
+
+        /**
+         * @return The enum value
+         */
+        public String getValue() {
+            return constant;
+        }
+
+        /**
+         * @param constant The enum value to set
+         */
+        private GoogleContactConstants(String constant) {
+            this.constant = constant;
+        }
+
+    }
+
+    /**
+     * Contains oauth2 constants used in this implementation.
+     */
+    protected enum GoogleOAuth2Constants {
+
+        /**
+         * The authorize endpoint for Google.
+         */
+        AUTHORIZE_URI_TEMPLATE("https://accounts.google.com/o/oauth2/v2/auth?prompt=consent&access_type=offline&client_id=%s&redirect_uri=%s&response_type=%s&scope=%s"),
+
+        /**
+         * The profile endpoint for Google.
+         */
+        PROFILE_URI("https://www.googleapis.com/plus/v1/people/me"),
+
+        /**
+         * The authenticate endpoint for Google.
+         */
+        AUTHENTICATE_URI("https://www.googleapis.com/oauth2/v4/token"),
 
         /**
          * The scope required for Google.
          */
-        protected static final String REQUIRED_SCOPES = "email";
+        REQUIRED_SCOPES("email"),
 
         /**
          * The scope delimiter for Google.
          */
-        protected static final String SCOPE_DELIMITER = "+";
+        SCOPE_DELIMITER("+"),
 
         /**
          * The relay key for Google.
          */
-        protected static final String RELAY_KEY = "state";
+        RELAY_KEY("state"),
 
         /**
          * The implementation name.
          */
-        public static final String CLIENT_NAME = "google";
+        CLIENT_NAME("google"),
 
         /**
          * The implementation host.
          */
-        public static final String HOST_GOOGLE = "googleapis.com";
+        HOST_GOOGLE("googleapis.com");
+
+        /**
+         * The value of this enum.
+         */
+        private String constant;
+
+        /**
+         * @return The enum value
+         */
+        public String getValue() {
+            return constant;
+        }
+
+        /**
+         * @param constant The enum value to set
+         */
+        private GoogleOAuth2Constants(String constant) {
+            this.constant = constant;
+        }
+
     }
 
     /**
-     * enum for constants related to google caldav datasource
-     *
+     * Contains caldav constants used in this implementation.
      */
     public enum GoogleCaldavConstants {
+
         HOST("apidata.googleusercontent.com"),
         DS_POLLING_INTERVAL("1m"),
         DS_PORT("443"),
         DS_CONNECTION_TYPE("ssl"),
         DS_ATTR_VAL("p:/caldav/v2/_USERNAME_/user");
+
         private String constant;
 
         public String getValue() {
@@ -149,6 +222,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         private GoogleCaldavConstants(String constant) {
             this.constant = constant;
         }
+
     }
 
     /**
@@ -157,16 +231,16 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
      * @param config For accessing configured properties
      */
     public GoogleOAuth2Handler(Configuration config) {
-        super(config, GoogleConstants.CLIENT_NAME, GoogleConstants.HOST_GOOGLE);
-        authenticateUri = GoogleConstants.AUTHENTICATE_URI;
-        authorizeUriTemplate = GoogleConstants.AUTHORIZE_URI_TEMPLATE;
-        requiredScopes = GoogleConstants.REQUIRED_SCOPES;
-        scopeDelimiter = GoogleConstants.SCOPE_DELIMITER;
-        relayKey = GoogleConstants.RELAY_KEY;
+        super(config, GoogleOAuth2Constants.CLIENT_NAME.getValue(), GoogleOAuth2Constants.HOST_GOOGLE.getValue());
+        authenticateUri = GoogleOAuth2Constants.AUTHENTICATE_URI.getValue();
+        authorizeUriTemplate = GoogleOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue();
+        requiredScopes = GoogleOAuth2Constants.REQUIRED_SCOPES.getValue();
+        scopeDelimiter = GoogleOAuth2Constants.SCOPE_DELIMITER.getValue();
+        relayKey = GoogleOAuth2Constants.RELAY_KEY.getValue();
         dataSource.addImportClass(DataSourceType.oauth2contact.name(),
             GoogleContactsImport.class.getCanonicalName());
         dataSource.addImportClass(DataSourceType.oauth2caldav.name(),
-                CalDavOAuth2DataImport.class.getCanonicalName());
+            CalDavOAuth2DataImport.class.getCanonicalName());
 
     }
 
@@ -191,28 +265,28 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
             final String error = response.get("error").asText();
             final JsonNode errorMsg = response.get("error_description");
             ZimbraLog.extensions.debug("Response from google: %s", response.asText());
-            switch (error.toUpperCase()) {
-            case GoogleConstants.RESPONSE_ERROR_INVALID_REDIRECT_URI:
+            switch (GoogleErrorConstants.valueOf(error.toUpperCase())) {
+            case RESPONSE_ERROR_INVALID_REDIRECT_URI:
                 ZimbraLog.extensions.info(
                     "Redirect does not match the one found in authorization request: " + errorMsg);
                 throw ServiceException.OPERATION_DENIED(
                     "Redirect does not match the one found in authorization request.");
-            case GoogleConstants.RESPONSE_ERROR_INVALID_AUTHORIZATION_CODE:
-            case GoogleConstants.RESPONSE_ERROR_INVALID_GRANT:
+            case RESPONSE_ERROR_INVALID_AUTHORIZATION_CODE:
+            case RESPONSE_ERROR_INVALID_GRANT:
                 ZimbraLog.extensions
                     .debug("Invalid authorization / refresh token used: " + errorMsg);
                 throw ServiceException.PERM_DENIED(
                     "Authorization or refresh token is expired or invalid. Unable to authenticate the user.");
-            case GoogleConstants.RESPONSE_ERROR_UNSUPPORTED_GRANT_TYPE:
+            case RESPONSE_ERROR_UNSUPPORTED_GRANT_TYPE:
                 ZimbraLog.extensions.debug("Unsupported grant type used: " + errorMsg);
                 throw ServiceException.OPERATION_DENIED(
                     "Unsupported grant type used. Unable to authenticate the user.");
-            case GoogleConstants.RESPONSE_ERROR_INVALID_CLIENT:
+            case RESPONSE_ERROR_INVALID_CLIENT:
                 ZimbraLog.extensions.warn(
                     "Invalid client or client secret provided to the social service: " + errorMsg);
                 throw ServiceException
                     .OPERATION_DENIED("Invalid client details provided to the social service.");
-            case GoogleConstants.RESPONSE_ERROR_INVALID_REQUEST:
+            case RESPONSE_ERROR_INVALID_REQUEST:
                 ZimbraLog.extensions.warn("Invalid request parameter was provided: " + errorMsg);
                 throw ServiceException
                     .OPERATION_DENIED("An invalid request parameter was provided.");
@@ -230,11 +304,12 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
 
     }
 
+    @Override
     protected Map<String, Object> getDatasourceCustomAttrs(OAuthInfo oauthInfo) throws ServiceException {
         final String type = oauthInfo.getParam("type");
         final Map<String, Object> dsAttrs = new HashMap<String, Object>();
         if (DataSourceType.oauth2caldav == OAuth2DataSource.getDataSourceTypeForOAuth2(type)) {
-            String[] dsAttrArr = new String[] {GoogleCaldavConstants.DS_ATTR_VAL.getValue()};
+            final String[] dsAttrArr = new String[] {GoogleCaldavConstants.DS_ATTR_VAL.getValue()};
             dsAttrs.put(Provisioning.A_zimbraDataSourcePort, GoogleCaldavConstants.DS_PORT.getValue());
             dsAttrs.put(Provisioning.A_zimbraDataSourceConnectionType, GoogleCaldavConstants.DS_CONNECTION_TYPE.getValue());
             dsAttrs.put(Provisioning.A_zimbraDataSourceAttribute, dsAttrArr);
