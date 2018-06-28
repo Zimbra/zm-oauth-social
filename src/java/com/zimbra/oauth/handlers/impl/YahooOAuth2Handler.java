@@ -147,9 +147,9 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
     }
 
     /**
-     * Contains oauth constants used in this implementation.
+     * Contains oauth2 constants used in this implementation.
      */
-    protected enum YahooOAuthConstants {
+    protected enum YahooOAuth2Constants {
 
         /**
          * The authorize endpoint for Yahoo.
@@ -196,7 +196,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         /**
          * @param constant The enum value to set
          */
-        private YahooOAuthConstants(String constant) {
+        private YahooOAuth2Constants(String constant) {
             this.constant = constant;
         }
 
@@ -208,10 +208,10 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
      * @param config For accessing configured properties
      */
     public YahooOAuth2Handler(Configuration config) {
-        super(config, YahooOAuthConstants.CLIENT_NAME.getValue(), ZDataSource.SOURCE_HOST_YAHOO);
-        authenticateUri = YahooOAuthConstants.AUTHENTICATE_URI.getValue();
-        authorizeUriTemplate = YahooOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue();
-        relayKey = YahooOAuthConstants.RELAY_KEY.getValue();
+        super(config, YahooOAuth2Constants.CLIENT_NAME.getValue(), ZDataSource.SOURCE_HOST_YAHOO);
+        authenticateUri = YahooOAuth2Constants.AUTHENTICATE_URI.getValue();
+        authorizeUriTemplate = YahooOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue();
+        relayKey = YahooOAuth2Constants.RELAY_KEY.getValue();
         // add associated import classes
         dataSource.addImportClass(DataSourceType.oauth2contact.name(),
             YahooContactsImport.class.getCanonicalName());
@@ -282,7 +282,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
 
         // ensure the tokens we requested are present
         if (!response.has("access_token") || !response.has("refresh_token")
-            || !response.has(YahooOAuthConstants.GUID_KEY.getValue())) {
+            || !response.has(YahooOAuth2Constants.GUID_KEY.getValue())) {
             throw ServiceException.PARSE_ERROR("Unexpected response from social service.", null);
         }
 
@@ -295,9 +295,9 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
      */
     @Override
     protected String getPrimaryEmail(JsonNode credentials, Account acct) throws ServiceException {
-        final String guid = credentials.get(YahooOAuthConstants.GUID_KEY.getValue()).asText();
+        final String guid = credentials.get(YahooOAuth2Constants.GUID_KEY.getValue()).asText();
         final String authToken = credentials.get("access_token").asText();
-        final String url = String.format(YahooOAuthConstants.PROFILE_URI.getValue(), guid);
+        final String url = String.format(YahooOAuth2Constants.PROFILE_URI.getValue(), guid);
         final GetMethod request = new GetMethod(url);
         request.setRequestHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
             "application/x-www-form-urlencoded");

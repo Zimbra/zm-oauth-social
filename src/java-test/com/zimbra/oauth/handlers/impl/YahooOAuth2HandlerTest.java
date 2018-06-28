@@ -42,7 +42,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZDataSource;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.cs.account.Account;
-import com.zimbra.oauth.handlers.impl.YahooOAuth2Handler.YahooOAuthConstants;
+import com.zimbra.oauth.handlers.impl.YahooOAuth2Handler.YahooOAuth2Constants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
@@ -103,14 +103,14 @@ public class YahooOAuth2HandlerTest {
         handler = PowerMock.createPartialMockForAllMethodsExcept(YahooOAuth2Handler.class,
             "authorize", "authenticate");
         Whitebox.setInternalState(handler, "config", mockConfig);
-        Whitebox.setInternalState(handler, "relayKey", YahooOAuthConstants.RELAY_KEY.getValue());
+        Whitebox.setInternalState(handler, "relayKey", YahooOAuth2Constants.RELAY_KEY.getValue());
         Whitebox.setInternalState(handler, "typeKey",
             OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue());
         Whitebox.setInternalState(handler, "authenticateUri",
-            YahooOAuthConstants.AUTHENTICATE_URI.getValue());
+            YahooOAuth2Constants.AUTHENTICATE_URI.getValue());
         Whitebox.setInternalState(handler, "authorizeUriTemplate",
-            YahooOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue());
-        Whitebox.setInternalState(handler, "client", YahooOAuthConstants.CLIENT_NAME.getValue());
+            YahooOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue());
+        Whitebox.setInternalState(handler, "client", YahooOAuth2Constants.CLIENT_NAME.getValue());
         Whitebox.setInternalState(handler, "dataSource", mockDataSource);
     }
 
@@ -130,7 +130,7 @@ public class YahooOAuth2HandlerTest {
         expect(mockConfig.getString(OAuth2ConfigConstants.LC_ZIMBRA_SERVER_HOSTNAME.getValue()))
             .andReturn(hostname);
         PowerMock.mockStatic(OAuth2DataSource.class);
-        expect(OAuth2DataSource.createDataSource(YahooOAuthConstants.CLIENT_NAME.getValue(),
+        expect(OAuth2DataSource.createDataSource(YahooOAuth2Constants.CLIENT_NAME.getValue(),
             ZDataSource.SOURCE_HOST_YAHOO)).andReturn(mockDataSource);
 
         replay(mockConfig);
@@ -157,12 +157,12 @@ public class YahooOAuth2HandlerTest {
         final Map<String, String> params = new HashMap<String, String>();
         params.put(OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue(), "contact");
         final String authorizeBase = String.format(
-            YahooOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code");
+            YahooOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code");
         // expect a contact state with no relay
         final String expectedAuthorize = authorizeBase + "&state=;contact";
 
         // expect buildAuthorize call
-        expect(handler.buildAuthorizeUri(YahooOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue(),
+        expect(handler.buildAuthorizeUri(YahooOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(),
             null, "contact")).andReturn(authorizeBase);
 
         replay(handler);
@@ -197,16 +197,16 @@ public class YahooOAuth2HandlerTest {
         expect(mockOAuthInfo.getAccount()).andReturn(null);
         expect(mockConfig.getString(
             matches(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(),
-                YahooOAuthConstants.CLIENT_NAME.getValue())),
-            matches(YahooOAuthConstants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientId);
+                YahooOAuth2Constants.CLIENT_NAME.getValue())),
+            matches(YahooOAuth2Constants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientId);
         expect(mockConfig.getString(
             matches(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(),
-                YahooOAuthConstants.CLIENT_NAME.getValue())),
-            matches(YahooOAuthConstants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientSecret);
+                YahooOAuth2Constants.CLIENT_NAME.getValue())),
+            matches(YahooOAuth2Constants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientSecret);
         expect(mockConfig.getString(
             matches(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(),
-                YahooOAuthConstants.CLIENT_NAME.getValue())),
-            matches(YahooOAuthConstants.CLIENT_NAME.getValue()), anyObject()))
+                YahooOAuth2Constants.CLIENT_NAME.getValue())),
+            matches(YahooOAuth2Constants.CLIENT_NAME.getValue()), anyObject()))
                 .andReturn(clientRedirectUri);
         expect(handler.getZimbraMailbox(anyObject(String.class))).andReturn(mockZMailbox);
         expect(handler.getDatasourceCustomAttrs(anyObject())).andReturn(null);
@@ -225,7 +225,7 @@ public class YahooOAuth2HandlerTest {
         EasyMock.expectLastCall().once();
         mockOAuthInfo.setClientRedirectUri(matches(clientRedirectUri));
         EasyMock.expectLastCall().once();
-        mockOAuthInfo.setTokenUrl(matches(YahooOAuthConstants.AUTHENTICATE_URI.getValue()));
+        mockOAuthInfo.setTokenUrl(matches(YahooOAuth2Constants.AUTHENTICATE_URI.getValue()));
         EasyMock.expectLastCall().once();
         expect(mockOAuthInfo.getZmAuthToken()).andReturn(zmAuthToken);
         mockOAuthInfo.setUsername(username);

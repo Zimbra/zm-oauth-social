@@ -30,7 +30,7 @@ import com.zimbra.cs.account.DataSource;
 import com.zimbra.cs.datasource.CalDavDataImport;
 import com.zimbra.cs.dav.DavException;
 import com.zimbra.cs.dav.client.CalDavClient;
-import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler.GoogleOAuthConstants;
+import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler.GoogleOAuth2Constants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.CalDavOAuth2Client;
 import com.zimbra.oauth.utilities.Configuration;
@@ -46,7 +46,7 @@ public class CalDavOAuth2DataImport extends CalDavDataImport {
     public CalDavOAuth2DataImport(DataSource ds) throws ServiceException {
         super(ds);
         try {
-            config = LdapConfiguration.buildConfiguration(GoogleOAuthConstants.CLIENT_NAME.getValue());
+            config = LdapConfiguration.buildConfiguration(GoogleOAuth2Constants.CLIENT_NAME.getValue());
         } catch (final ServiceException e) {
             ZimbraLog.extensions.info("Error loading configuration for google caldav: %s", e.getMessage());
             ZimbraLog.extensions.debug(e);
@@ -81,16 +81,16 @@ public class CalDavOAuth2DataImport extends CalDavDataImport {
         final String refreshToken = OAuth2DataSource.getRefreshToken(dataSource);
         final String clientId = config.getString(
             String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(),
-                GoogleOAuthConstants.CLIENT_NAME.getValue()),
-            GoogleOAuthConstants.CLIENT_NAME.getValue(), acct);
+                GoogleOAuth2Constants.CLIENT_NAME.getValue()),
+            GoogleOAuth2Constants.CLIENT_NAME.getValue(), acct);
         final String clientSecret = config.getString(
             String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(),
-                GoogleOAuthConstants.CLIENT_NAME.getValue()),
-            GoogleOAuthConstants.CLIENT_NAME.getValue(), acct);
+                GoogleOAuth2Constants.CLIENT_NAME.getValue()),
+            GoogleOAuth2Constants.CLIENT_NAME.getValue(), acct);
         final String clientRedirectUri = config.getString(
             String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(),
-                GoogleOAuthConstants.CLIENT_NAME.getValue()),
-            GoogleOAuthConstants.CLIENT_NAME.getValue(), acct);
+                GoogleOAuth2Constants.CLIENT_NAME.getValue()),
+            GoogleOAuth2Constants.CLIENT_NAME.getValue(), acct);
 
         if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientSecret)
             || StringUtils.isEmpty(clientRedirectUri)) {
@@ -101,7 +101,7 @@ public class CalDavOAuth2DataImport extends CalDavDataImport {
         oauthInfo.setClientId(clientId);
         oauthInfo.setClientSecret(clientSecret);
         oauthInfo.setClientRedirectUri(clientRedirectUri);
-        oauthInfo.setTokenUrl(GoogleOAuthConstants.AUTHENTICATE_URI.getValue());
+        oauthInfo.setTokenUrl(GoogleOAuth2Constants.AUTHENTICATE_URI.getValue());
 
         ZimbraLog.extensions.debug("Fetching access credentials for import.");
         final JsonNode credentials = GoogleOAuth2Handler.getTokenRequest(oauthInfo,

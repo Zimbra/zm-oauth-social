@@ -104,9 +104,9 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
     }
 
     /**
-     * Contains constants used in this implementation.
+     * Contains oauth2 constants used in this implementation.
      */
-    protected enum OutlookOAuthConstants {
+    protected enum OutlookOAuth2Constants {
 
         /**
          * The authorize endpoint for Outlook.
@@ -163,7 +163,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         /**
          * @param constant The enum value to set
          */
-        private OutlookOAuthConstants(String constant) {
+        private OutlookOAuth2Constants(String constant) {
             this.constant = constant;
         }
     }
@@ -174,13 +174,13 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
      * @param config For accessing configured properties
      */
     public OutlookOAuth2Handler(Configuration config) {
-        super(config, OutlookOAuthConstants.CLIENT_NAME.getValue(),
-            OutlookOAuthConstants.HOST_OUTLOOK.getValue());
-        authenticateUri = OutlookOAuthConstants.AUTHENTICATE_URI.getValue();
-        authorizeUriTemplate = OutlookOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue();
-        requiredScopes = OutlookOAuthConstants.REQUIRED_SCOPES.getValue();
-        scopeDelimiter = OutlookOAuthConstants.SCOPE_DELIMITER.getValue();
-        relayKey = OutlookOAuthConstants.RELAY_KEY.getValue();
+        super(config, OutlookOAuth2Constants.CLIENT_NAME.getValue(),
+            OutlookOAuth2Constants.HOST_OUTLOOK.getValue());
+        authenticateUri = OutlookOAuth2Constants.AUTHENTICATE_URI.getValue();
+        authorizeUriTemplate = OutlookOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue();
+        requiredScopes = OutlookOAuth2Constants.REQUIRED_SCOPES.getValue();
+        scopeDelimiter = OutlookOAuth2Constants.SCOPE_DELIMITER.getValue();
+        relayKey = OutlookOAuth2Constants.RELAY_KEY.getValue();
     }
 
     /**

@@ -42,7 +42,7 @@ import org.powermock.reflect.Whitebox;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.cs.account.Account;
-import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookOAuthConstants;
+import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookOAuth2Constants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
@@ -103,18 +103,18 @@ public class FacebookOAuth2HandlerTest {
         handler = PowerMock.createPartialMockForAllMethodsExcept(FacebookOAuth2Handler.class,
             "authorize", "authenticate");
         Whitebox.setInternalState(handler, "config", mockConfig);
-        Whitebox.setInternalState(handler, "relayKey", FacebookOAuthConstants.RELAY_KEY.getValue());
+        Whitebox.setInternalState(handler, "relayKey", FacebookOAuth2Constants.RELAY_KEY.getValue());
         Whitebox.setInternalState(handler, "typeKey",
             OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue());
         Whitebox.setInternalState(handler, "authenticateUri",
-            FacebookOAuthConstants.AUTHENTICATE_URI.getValue());
+            FacebookOAuth2Constants.AUTHENTICATE_URI.getValue());
         Whitebox.setInternalState(handler, "authorizeUriTemplate",
-            FacebookOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue());
+            FacebookOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue());
         Whitebox.setInternalState(handler, "requiredScopes",
-            FacebookOAuthConstants.REQUIRED_SCOPES.getValue());
+            FacebookOAuth2Constants.REQUIRED_SCOPES.getValue());
         Whitebox.setInternalState(handler, "scopeDelimiter",
-            FacebookOAuthConstants.SCOPE_DELIMITER.getValue());
-        Whitebox.setInternalState(handler, "client", FacebookOAuthConstants.CLIENT_NAME.getValue());
+            FacebookOAuth2Constants.SCOPE_DELIMITER.getValue());
+        Whitebox.setInternalState(handler, "client", FacebookOAuth2Constants.CLIENT_NAME.getValue());
         Whitebox.setInternalState(handler, "dataSource", mockDataSource);
     }
 
@@ -134,8 +134,8 @@ public class FacebookOAuth2HandlerTest {
         expect(mockConfig.getString(OAuth2ConfigConstants.LC_ZIMBRA_SERVER_HOSTNAME.getValue()))
             .andReturn(hostname);
         PowerMock.mockStatic(OAuth2DataSource.class);
-        expect(OAuth2DataSource.createDataSource(FacebookOAuthConstants.CLIENT_NAME.getValue(),
-            FacebookOAuthConstants.HOST_FACEBOOK.getValue())).andReturn(mockDataSource);
+        expect(OAuth2DataSource.createDataSource(FacebookOAuth2Constants.CLIENT_NAME.getValue(),
+            FacebookOAuth2Constants.HOST_FACEBOOK.getValue())).andReturn(mockDataSource);
 
         replay(mockConfig);
         PowerMock.replay(OAuth2DataSource.class);
@@ -161,13 +161,13 @@ public class FacebookOAuth2HandlerTest {
         final Map<String, String> params = new HashMap<String, String>();
         params.put(OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue(), "contact");
         final String authorizeBase = String.format(
-            FacebookOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code",
-            FacebookOAuthConstants.REQUIRED_SCOPES.getValue());
+            FacebookOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code",
+            FacebookOAuth2Constants.REQUIRED_SCOPES.getValue());
         // expect a contact state with no relay
         final String expectedAuthorize = authorizeBase + "&state=;contact";
 
         // expect buildAuthorize call
-        expect(handler.buildAuthorizeUri(FacebookOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue(),
+        expect(handler.buildAuthorizeUri(FacebookOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(),
             null, "contact")).andReturn(authorizeBase);
 
         replay(handler);
@@ -202,17 +202,17 @@ public class FacebookOAuth2HandlerTest {
         expect(mockOAuthInfo.getAccount()).andReturn(null);
         expect(mockConfig.getString(
             matches(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(),
-                FacebookOAuthConstants.CLIENT_NAME.getValue())),
-            matches(FacebookOAuthConstants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientId);
+                FacebookOAuth2Constants.CLIENT_NAME.getValue())),
+            matches(FacebookOAuth2Constants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientId);
         expect(mockConfig.getString(
             matches(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(),
-                FacebookOAuthConstants.CLIENT_NAME.getValue())),
-            matches(FacebookOAuthConstants.CLIENT_NAME.getValue()), anyObject()))
+                FacebookOAuth2Constants.CLIENT_NAME.getValue())),
+            matches(FacebookOAuth2Constants.CLIENT_NAME.getValue()), anyObject()))
                 .andReturn(clientSecret);
         expect(mockConfig.getString(
             matches(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(),
-                FacebookOAuthConstants.CLIENT_NAME.getValue())),
-            matches(FacebookOAuthConstants.CLIENT_NAME.getValue()), anyObject()))
+                FacebookOAuth2Constants.CLIENT_NAME.getValue())),
+            matches(FacebookOAuth2Constants.CLIENT_NAME.getValue()), anyObject()))
                 .andReturn(clientRedirectUri);
         expect(handler.getZimbraMailbox(anyObject(String.class))).andReturn(mockZMailbox);
         expect(OAuth2Handler.getTokenRequest(anyObject(OAuthInfo.class), anyObject(String.class)))
@@ -230,7 +230,7 @@ public class FacebookOAuth2HandlerTest {
         EasyMock.expectLastCall().once();
         mockOAuthInfo.setClientRedirectUri(matches(clientRedirectUri));
         EasyMock.expectLastCall().once();
-        mockOAuthInfo.setTokenUrl(matches(FacebookOAuthConstants.AUTHENTICATE_URI.getValue()));
+        mockOAuthInfo.setTokenUrl(matches(FacebookOAuth2Constants.AUTHENTICATE_URI.getValue()));
         EasyMock.expectLastCall().once();
         expect(mockOAuthInfo.getZmAuthToken()).andReturn(zmAuthToken);
         mockOAuthInfo.setUsername(user_id);

@@ -135,9 +135,9 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
     }
 
     /**
-     * Contains oauth constants used in this implementation.
+     * Contains oauth2 constants used in this implementation.
      */
-    protected enum GoogleOAuthConstants {
+    protected enum GoogleOAuth2Constants {
 
         /**
          * The authorize endpoint for Google.
@@ -194,7 +194,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         /**
          * @param constant The enum value to set
          */
-        private GoogleOAuthConstants(String constant) {
+        private GoogleOAuth2Constants(String constant) {
             this.constant = constant;
         }
     }
@@ -226,12 +226,12 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
      * @param config For accessing configured properties
      */
     public GoogleOAuth2Handler(Configuration config) {
-        super(config, GoogleOAuthConstants.CLIENT_NAME.getValue(), GoogleOAuthConstants.HOST_GOOGLE.getValue());
-        authenticateUri = GoogleOAuthConstants.AUTHENTICATE_URI.getValue();
-        authorizeUriTemplate = GoogleOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue();
-        requiredScopes = GoogleOAuthConstants.REQUIRED_SCOPES.getValue();
-        scopeDelimiter = GoogleOAuthConstants.SCOPE_DELIMITER.getValue();
-        relayKey = GoogleOAuthConstants.RELAY_KEY.getValue();
+        super(config, GoogleOAuth2Constants.CLIENT_NAME.getValue(), GoogleOAuth2Constants.HOST_GOOGLE.getValue());
+        authenticateUri = GoogleOAuth2Constants.AUTHENTICATE_URI.getValue();
+        authorizeUriTemplate = GoogleOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue();
+        requiredScopes = GoogleOAuth2Constants.REQUIRED_SCOPES.getValue();
+        scopeDelimiter = GoogleOAuth2Constants.SCOPE_DELIMITER.getValue();
+        relayKey = GoogleOAuth2Constants.RELAY_KEY.getValue();
         dataSource.addImportClass(DataSourceType.oauth2contact.name(),
             GoogleContactsImport.class.getCanonicalName());
         dataSource.addImportClass(DataSourceType.oauth2caldav.name(),

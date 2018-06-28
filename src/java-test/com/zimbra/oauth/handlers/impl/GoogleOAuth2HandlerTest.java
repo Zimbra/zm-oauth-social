@@ -41,7 +41,7 @@ import org.powermock.reflect.Whitebox;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.cs.account.Account;
-import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler.GoogleOAuthConstants;
+import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler.GoogleOAuth2Constants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
@@ -102,18 +102,18 @@ public class GoogleOAuth2HandlerTest {
         handler = PowerMock.createPartialMockForAllMethodsExcept(GoogleOAuth2Handler.class,
             "authorize", "authenticate");
         Whitebox.setInternalState(handler, "config", mockConfig);
-        Whitebox.setInternalState(handler, "relayKey", GoogleOAuthConstants.RELAY_KEY.getValue());
+        Whitebox.setInternalState(handler, "relayKey", GoogleOAuth2Constants.RELAY_KEY.getValue());
         Whitebox.setInternalState(handler, "typeKey",
             OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue());
         Whitebox.setInternalState(handler, "authenticateUri",
-            GoogleOAuthConstants.AUTHENTICATE_URI.getValue());
+            GoogleOAuth2Constants.AUTHENTICATE_URI.getValue());
         Whitebox.setInternalState(handler, "authorizeUriTemplate",
-            GoogleOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue());
+            GoogleOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue());
         Whitebox.setInternalState(handler, "requiredScopes",
-            GoogleOAuthConstants.REQUIRED_SCOPES.getValue());
+            GoogleOAuth2Constants.REQUIRED_SCOPES.getValue());
         Whitebox.setInternalState(handler, "scopeDelimiter",
-            GoogleOAuthConstants.SCOPE_DELIMITER.getValue());
-        Whitebox.setInternalState(handler, "client", GoogleOAuthConstants.CLIENT_NAME.getValue());
+            GoogleOAuth2Constants.SCOPE_DELIMITER.getValue());
+        Whitebox.setInternalState(handler, "client", GoogleOAuth2Constants.CLIENT_NAME.getValue());
         Whitebox.setInternalState(handler, "dataSource", mockDataSource);
     }
 
@@ -133,8 +133,8 @@ public class GoogleOAuth2HandlerTest {
         expect(mockConfig.getString(OAuth2ConfigConstants.LC_ZIMBRA_SERVER_HOSTNAME.getValue()))
             .andReturn(hostname);
         PowerMock.mockStatic(OAuth2DataSource.class);
-        expect(OAuth2DataSource.createDataSource(GoogleOAuthConstants.CLIENT_NAME.getValue(),
-            GoogleOAuthConstants.HOST_GOOGLE.getValue())).andReturn(mockDataSource);
+        expect(OAuth2DataSource.createDataSource(GoogleOAuth2Constants.CLIENT_NAME.getValue(),
+            GoogleOAuth2Constants.HOST_GOOGLE.getValue())).andReturn(mockDataSource);
 
         replay(mockConfig);
         PowerMock.replay(OAuth2DataSource.class);
@@ -160,13 +160,13 @@ public class GoogleOAuth2HandlerTest {
         final Map<String, String> params = new HashMap<String, String>();
         params.put(OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue(), "contact");
         final String authorizeBase = String.format(
-            GoogleOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code",
-            GoogleOAuthConstants.REQUIRED_SCOPES.getValue());
+            GoogleOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code",
+            GoogleOAuth2Constants.REQUIRED_SCOPES.getValue());
         // expect a contact state with no relay
         final String expectedAuthorize = authorizeBase + "&state=;contact";
 
         // expect buildAuthorize call
-        expect(handler.buildAuthorizeUri(GoogleOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue(),
+        expect(handler.buildAuthorizeUri(GoogleOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(),
             null, "contact")).andReturn(authorizeBase);
 
         replay(handler);
@@ -202,16 +202,16 @@ public class GoogleOAuth2HandlerTest {
         expect(mockOAuthInfo.getAccount()).andReturn(null);
         expect(mockConfig.getString(
             matches(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(),
-                GoogleOAuthConstants.CLIENT_NAME.getValue())),
-            matches(GoogleOAuthConstants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientId);
+                GoogleOAuth2Constants.CLIENT_NAME.getValue())),
+            matches(GoogleOAuth2Constants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientId);
         expect(mockConfig.getString(
             matches(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(),
-                GoogleOAuthConstants.CLIENT_NAME.getValue())),
-            matches(GoogleOAuthConstants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientSecret);
+                GoogleOAuth2Constants.CLIENT_NAME.getValue())),
+            matches(GoogleOAuth2Constants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientSecret);
         expect(mockConfig.getString(
             matches(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(),
-                GoogleOAuthConstants.CLIENT_NAME.getValue())),
-            matches(GoogleOAuthConstants.CLIENT_NAME.getValue()), anyObject()))
+                GoogleOAuth2Constants.CLIENT_NAME.getValue())),
+            matches(GoogleOAuth2Constants.CLIENT_NAME.getValue()), anyObject()))
                 .andReturn(clientRedirectUri);
         expect(handler.getDatasourceCustomAttrs(anyObject())).andReturn(customAttrs);
         expect(handler.getZimbraMailbox(anyObject(String.class))).andReturn(mockZMailbox);
@@ -230,7 +230,7 @@ public class GoogleOAuth2HandlerTest {
         EasyMock.expectLastCall().once();
         mockOAuthInfo.setClientRedirectUri(matches(clientRedirectUri));
         EasyMock.expectLastCall().once();
-        mockOAuthInfo.setTokenUrl(matches(GoogleOAuthConstants.AUTHENTICATE_URI.getValue()));
+        mockOAuthInfo.setTokenUrl(matches(GoogleOAuth2Constants.AUTHENTICATE_URI.getValue()));
         EasyMock.expectLastCall().once();
         expect(mockOAuthInfo.getZmAuthToken()).andReturn(zmAuthToken);
         mockOAuthInfo.setUsername(username);

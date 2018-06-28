@@ -189,9 +189,9 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     }
 
     /**
-     * Contains oauth constants used in this implementation.
+     * Contains oauth2 constants used in this implementation.
      */
-    protected enum FacebookOAuthConstants {
+    protected enum FacebookOAuth2Constants {
 
         /**
          * The authorize uri template for Facebook.
@@ -261,7 +261,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         /**
          * @param constant The enum value to set
          */
-        private FacebookOAuthConstants(String constant) {
+        private FacebookOAuth2Constants(String constant) {
             this.constant = constant;
         }
     }
@@ -272,13 +272,13 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
      * @param config For accessing configured properties
      */
     public FacebookOAuth2Handler(Configuration config) {
-        super(config, FacebookOAuthConstants.CLIENT_NAME.getValue(),
-            FacebookOAuthConstants.HOST_FACEBOOK.getValue());
-        authenticateUri = FacebookOAuthConstants.AUTHENTICATE_URI.getValue();
-        authorizeUriTemplate = FacebookOAuthConstants.AUTHORIZE_URI_TEMPLATE.getValue();
-        requiredScopes = FacebookOAuthConstants.REQUIRED_SCOPES.getValue();
-        scopeDelimiter = FacebookOAuthConstants.SCOPE_DELIMITER.getValue();
-        relayKey = FacebookOAuthConstants.RELAY_KEY.getValue();
+        super(config, FacebookOAuth2Constants.CLIENT_NAME.getValue(),
+            FacebookOAuth2Constants.HOST_FACEBOOK.getValue());
+        authenticateUri = FacebookOAuth2Constants.AUTHENTICATE_URI.getValue();
+        authorizeUriTemplate = FacebookOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue();
+        requiredScopes = FacebookOAuth2Constants.REQUIRED_SCOPES.getValue();
+        scopeDelimiter = FacebookOAuth2Constants.SCOPE_DELIMITER.getValue();
+        relayKey = FacebookOAuth2Constants.RELAY_KEY.getValue();
         dataSource.addImportClass(DataSourceType.oauth2contact.name(),
             FacebookContactsImport.class.getCanonicalName());
     }
@@ -442,7 +442,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     protected String getPrimaryEmail(JsonNode credentials, Account acct) throws ServiceException {
         JsonNode json = null;
         final String authToken = credentials.get("access_token").asText();
-        final String url = String.format(FacebookOAuthConstants.USER_DETAILS_URI_TEMPLATE.getValue(),
+        final String url = String.format(FacebookOAuth2Constants.USER_DETAILS_URI_TEMPLATE.getValue(),
             authToken);
 
         try {
