@@ -19,6 +19,7 @@ package com.zimbra.oauth.handlers.impl;
 import java.io.IOException;
 
 import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.lang.StringUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZDataSource;
@@ -88,7 +89,12 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         /**
          * Token expired response code from Yahoo.
          */
-        RESPONSE_ERROR_TOKEN_EXPIRED("TOKEN_EXPIRED");
+        RESPONSE_ERROR_TOKEN_EXPIRED("TOKEN_EXPIRED"),
+
+        /**
+         * Default error.
+         */
+        DEFAULT_ERROR("DEFAULT_ERROR");
 
         /**
          * The value of this enum.
@@ -107,6 +113,21 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
          */
         private YahooErrorConstants(String constant) {
             this.constant = constant;
+        }
+
+        /**
+         * ValueOf wrapper for constants.
+         *
+         * @param code The code to check for
+         * @return Enum instance
+         */
+        protected static YahooErrorConstants fromString(String code) {
+            for (final YahooErrorConstants t : YahooErrorConstants.values()) {
+                if (StringUtils.equals(t.getValue(), code)) {
+                    return t;
+                }
+            }
+            return DEFAULT_ERROR;
         }
     }
 
@@ -238,7 +259,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         if (response.has("error")) {
             final String error = response.get("error").asText();
             final JsonNode errorMsg = response.get("error_description");
-            switch (YahooErrorConstants.valueOf(error)) {
+            switch (YahooErrorConstants.fromString(error)) {
             case RESPONSE_ERROR_ACCOUNT_NOT_AUTHORIZED:
                 ZimbraLog.extensions
                     .info("User did not provide authorization for this service: " + errorMsg);

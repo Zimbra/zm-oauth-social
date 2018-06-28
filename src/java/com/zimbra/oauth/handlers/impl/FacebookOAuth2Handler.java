@@ -125,7 +125,12 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
          * Too many requests.<br>
          * Picture profile URL rate-limit reached. Wait and retry the operation.
          */
-        RESPONSE_ERROR_TOO_MANY_REQUESTS("429");
+        RESPONSE_ERROR_TOO_MANY_REQUESTS("429"),
+
+        /**
+         * Default error.
+         */
+        DEFAULT_ERROR("DEFAULT_ERROR");
 
         /**
          * The value of this enum.
@@ -144,6 +149,21 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
          */
         private FacebookErrorConstants(String constant) {
             this.constant = constant;
+        }
+
+        /**
+         * ValueOf wrapper for constants.
+         *
+         * @param code The code to check for
+         * @return Enum instance
+         */
+        protected static FacebookErrorConstants fromString(String code) {
+            for (final FacebookErrorConstants t : FacebookErrorConstants.values()) {
+                if (StringUtils.equals(t.getValue(), code)) {
+                    return t;
+                }
+            }
+            return DEFAULT_ERROR;
         }
 
     }
@@ -354,7 +374,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
 
             errorCode = inErrorCodeRange(errorCode);
 
-            switch (FacebookErrorConstants.valueOf(errorCode)) {
+            switch (FacebookErrorConstants.fromString(errorCode)) {
                 case RESPONSE_ERROR_INVALID_CODE:
                     ZimbraLog.extensions.debug("Invalid request error from Facebook: "
                         + errorMsg);
