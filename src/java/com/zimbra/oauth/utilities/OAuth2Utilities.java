@@ -19,6 +19,8 @@ package com.zimbra.oauth.utilities;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -28,15 +30,22 @@ import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.conn.ConnectionPoolTimeoutException;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.zimbra.common.httpclient.HttpClientUtil;
+import com.zimbra.common.service.ServiceException;
+import com.zimbra.common.util.ZimbraHttpConnectionManager;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.httpclient.HttpProxyUtil;
 import com.zimbra.cs.mailbox.Contact.Attachment;
 import com.zimbra.oauth.models.ResponseObject;
 
@@ -134,12 +143,12 @@ public class OAuth2Utilities {
     }
 
     /**
-     * Creates an Attachment object from a get response given a field key and filename.
+     * Creates an image Attachment object from a get response given a field key and filename.
      *
      * @param method The http response
      * @param key The field key
      * @param filename The name for the file
-     * @return An attachment object
+     * @return An image Attachment object
      * @throws IOException If there are issues creating the attachment with the given parameters
      */
     public static Attachment createAttachmentFromResponse(GetMethod method, String key,
@@ -150,8 +159,8 @@ public class OAuth2Utilities {
             // grab content type header as string
             final String ctype = StringUtils.lowerCase(ctypeHeader.getValue());
             ZimbraLog.extensions.debug("The Content-Type: %s", ctype);
-            if (!StringUtils.isEmpty(ctype)) {
-                ZimbraLog.extensions.debug("Creating attachment: %s as key: %s", filename, key);
+            if (StringUtils.startsWith(ctype, "image/")) {
+                ZimbraLog.extensions.debug("Creating image attachment: %s as key: %s", filename, key);
                 return new Attachment(
                     decodeStream(method.getResponseBodyAsStream(),
                         Integer.valueOf(OAuth2Constants.CONTACTS_IMAGE_BUFFER_SIZE.getValue())),
@@ -159,5 +168,68 @@ public class OAuth2Utilities {
             }
         }
         return null;
+    }
+
+    /**
+     * Executes an Http Request and returns the response body.
+     *
+     * @param request Request to execute
+     * @return Response body as a string
+     * @throws ServiceException If there are issues with the connection
+     * @throws IOException If there are non connection related issues
+     */
+    public static String executeRequest(HttpMethod request)
+        throws ServiceException, IOException {
+        final HttpClient client = OAuth2Utilities.getHttpClient();
+        return executeRequest(client, request);
+    }
+
+    /**
+     * Executes an Http Request with a given client and returns the response body.
+     *
+     * @param client The client to execute with
+     * @param request Request to execute
+     * @return Response body as a string
+     * @throws ServiceException If there are issues with the connection
+     * @throws IOException If there are non connection related issues
+     */
+    public static String executeRequest(HttpClient client, HttpMethod request)
+        throws ServiceException, IOException {
+        String responseBody = null;
+        try {
+            HttpClientUtil.executeMethod(client, request);
+            responseBody = request.getResponseBodyAsString();
+        } catch (final UnknownHostException e) {
+            ZimbraLog.extensions.errorQuietly(
+                "The configured destination address is unknown: " + request.getURI(), e);
+            throw ServiceException
+                .RESOURCE_UNREACHABLE("The configured destination address is unknown.", e);
+        } catch (final SocketTimeoutException e) {
+            ZimbraLog.extensions
+                .warn("The destination server took too long to respond to our request.");
+            throw ServiceException.RESOURCE_UNREACHABLE(
+                "The destination server took too long to respond to our request.", e);
+        } catch (final ConnectionPoolTimeoutException e) {
+            ZimbraLog.extensions
+                .warn("Too many active HTTP client connections, not enough resources available.");
+            throw ServiceException.TEMPORARILY_UNAVAILABLE();
+        } finally {
+            if (request != null) {
+                request.releaseConnection();
+            }
+        }
+        return responseBody;
+    }
+
+    /**
+     * Get an instance of HttpClient which is configured to use Zimbra proxy.
+     *
+     * @return HttpClient A HttpClient instance
+     */
+    public static HttpClient getHttpClient() {
+        final HttpClient httpClient = ZimbraHttpConnectionManager.getExternalHttpConnMgr()
+            .newHttpClient();
+        HttpProxyUtil.configureProxy(httpClient);
+        return httpClient;
     }
 }

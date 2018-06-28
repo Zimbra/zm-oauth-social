@@ -23,6 +23,7 @@ import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.soap.admin.type.DataSourceType;
 
 /**
  * The OutlookOAuth2Handler class.<br>
@@ -126,6 +127,38 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
     }
 
     /**
+     * Contains contact constants used in this implementation.
+     */
+    protected enum OutlookContactConstants {
+        CONTACTS_URI("https://outlook.office.com/api/v2.0/me/contacts?$select=EmailAddresses,GivenName,MiddleName,Surname,Nickname,JobTitle,CompanyName,Department,OfficeLocation,HomePhones,BusinessPhones,MobilePhone1,PersonalNotes,HomeAddress,BusinessAddress,OtherAddress,ImAddresses,Birthday"),
+        CONTACTS_FOLDER_URI("https://outlook.office.com/api/v2.0/me/ContactFolders"),
+        CONTACTS_PHOTO_URI_TEMPLATE("https://outlook.office.com/api/v2.0/me/contacts('%s')/photo/$value"),
+        CONTACTS_PAGE_SIZE("100"),
+        CONTACTS_IMAGE_NAME("outlook-profile-image"),
+        CONTACT_ID("OutlookId"),
+        CONTACT_BIRTHDAY_FORMAT("yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+        /**
+         * The value of this enum.
+         */
+        private String constant;
+
+        /**
+         * @return The enum value
+         */
+        public String getValue() {
+            return constant;
+        }
+
+        /**
+         * @param constant The enum value to set
+         */
+        private OutlookContactConstants(String constant) {
+            this.constant = constant;
+        }
+    }
+
+    /**
      * Contains oauth2 constants used in this implementation.
      */
     protected enum OutlookOAuth2Constants {
@@ -153,7 +186,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         /**
          * The scope required for Outlook.
          */
-        REQUIRED_SCOPES("email"),
+        REQUIRED_SCOPES("openid+email+offline_access+https://outlook.office.com/contacts.read"),
 
         /**
          * The scope delimiter for Outlook.
@@ -203,6 +236,8 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         requiredScopes = OutlookOAuth2Constants.REQUIRED_SCOPES.getValue();
         scopeDelimiter = OutlookOAuth2Constants.SCOPE_DELIMITER.getValue();
         relayKey = OutlookOAuth2Constants.RELAY_KEY.getValue();
+        dataSource.addImportClass(DataSourceType.oauth2contact.name(),
+            OutlookContactsImport.class.getCanonicalName());
     }
 
     /**

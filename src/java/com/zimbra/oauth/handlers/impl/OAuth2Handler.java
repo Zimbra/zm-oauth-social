@@ -18,19 +18,15 @@ package com.zimbra.oauth.handlers.impl;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.SocketTimeoutException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.lang.StringUtils;
-import org.apache.http.conn.ConnectionPoolTimeoutException;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.Claim;
@@ -40,12 +36,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.common.auth.ZAuthToken;
-import com.zimbra.common.httpclient.HttpClientUtil;
 import com.zimbra.common.service.ServiceException;
-import com.zimbra.common.util.ZimbraHttpConnectionManager;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
-import com.zimbra.cs.httpclient.HttpProxyUtil;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
@@ -154,18 +147,6 @@ public abstract class OAuth2Handler {
      * @throws ServiceException If there are issues with the response
      */
     protected abstract void validateTokenResponse(JsonNode response) throws ServiceException;
-
-    /**
-     * Get an instance of HttpClient which is configured to use Zimbra proxy.
-     *
-     * @return HttpClient A HttpClient instance
-     */
-    protected static HttpClient getHttpClient() {
-        final HttpClient httpClient = ZimbraHttpConnectionManager.getExternalHttpConnMgr()
-            .newHttpClient();
-        HttpProxyUtil.configureProxy(httpClient);
-        return httpClient;
-    }
 
     /**
      * Default get_token implementation, usable by standard oauth2 services.<br>
@@ -477,7 +458,7 @@ public abstract class OAuth2Handler {
     public static JsonNode executeRequestForJson(HttpMethod request)
         throws ServiceException, IOException {
         JsonNode json = null;
-        final String responseBody = executeRequest(request);
+        final String responseBody = OAuth2Utilities.executeRequest(request);
 
         // try to parse json
         // throw if the upstream response
@@ -491,43 +472,6 @@ public abstract class OAuth2Handler {
         }
 
         return json;
-    }
-
-    /**
-     * Executes an Http Request and returns the response body.
-     *
-     * @param request Request to execute
-     * @return Response body as a string
-     * @throws ServiceException If there are issues with the connection
-     * @throws IOException If there are non connection related issues
-     */
-    protected static String executeRequest(HttpMethod request)
-        throws ServiceException, IOException {
-        String responseBody = null;
-        try {
-            final HttpClient client = getHttpClient();
-            HttpClientUtil.executeMethod(client, request);
-            responseBody = request.getResponseBodyAsString();
-        } catch (final UnknownHostException e) {
-            ZimbraLog.extensions.errorQuietly(
-                "The configured destination address is unknown: " + request.getURI(), e);
-            throw ServiceException
-                .RESOURCE_UNREACHABLE("The configured destination address is unknown.", e);
-        } catch (final SocketTimeoutException e) {
-            ZimbraLog.extensions
-                .warn("The destination server took too long to respond to our request.");
-            throw ServiceException.RESOURCE_UNREACHABLE(
-                "The destination server took too long to respond to our request.", e);
-        } catch (final ConnectionPoolTimeoutException e) {
-            ZimbraLog.extensions
-                .warn("Too many active HTTP client connections, not enough resources available.");
-            throw ServiceException.TEMPORARILY_UNAVAILABLE();
-        } finally {
-            if (request != null) {
-                request.releaseConnection();
-            }
-        }
-        return responseBody;
     }
 
     /**

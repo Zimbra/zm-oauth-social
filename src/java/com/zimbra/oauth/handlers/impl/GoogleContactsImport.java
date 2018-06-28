@@ -779,7 +779,7 @@ public class GoogleContactsImport implements DataImport {
                         try {
                             // fetch the image
                             final GetMethod get = new GetMethod(imageUrl);
-                            OAuth2Handler.executeRequest(get);
+                            OAuth2Utilities.executeRequest(get);
                             String imageNum = "";
                             if (i > 1) {
                                 imageNum = String.valueOf(i++);
