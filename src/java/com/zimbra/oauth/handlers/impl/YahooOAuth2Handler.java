@@ -259,7 +259,7 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         if (response.has("error")) {
             final String error = response.get("error").asText();
             final JsonNode errorMsg = response.get("error_description");
-            switch (YahooErrorConstants.fromString(error)) {
+            switch (YahooErrorConstants.fromString(StringUtils.upperCase(error))) {
             case RESPONSE_ERROR_ACCOUNT_NOT_AUTHORIZED:
                 ZimbraLog.extensions
                     .info("User did not provide authorization for this service: " + errorMsg);
