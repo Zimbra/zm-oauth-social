@@ -393,14 +393,6 @@ public abstract class OAuth2Handler {
      * @see IOAuth2Handler#verifyAuthenticateParams()
      */
     public void verifyAndSplitAuthenticateParams(Map<String, String> params) throws ServiceException {
-        final String error = params.get("error");
-        // check for errors
-        if (!StringUtils.isEmpty(error)) {
-            throw ServiceException.PERM_DENIED(error);
-            // ensure code exists
-        } else if (!params.containsKey("code")) {
-            throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_INVALID_AUTH_CODE, null);
-        }
         if (params.containsKey(relayKey)) {
             String[] origVal = params.get(relayKey).split(RELAY_DELIMETER);
             if (origVal.length != 2) {
@@ -415,6 +407,14 @@ public abstract class OAuth2Handler {
             }
         } else {
             throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_TYPE_MISSING, null);
+        }
+        final String error = params.get("error");
+        // check for errors
+        if (!StringUtils.isEmpty(error)) {
+            throw ServiceException.PERM_DENIED(error);
+            // ensure code exists
+        } else if (!params.containsKey("code")) {
+            throw ServiceException.INVALID_REQUEST(OAuth2Constants.ERROR_INVALID_AUTH_CODE, null);
         }
     }
 

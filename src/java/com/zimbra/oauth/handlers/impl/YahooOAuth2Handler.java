@@ -22,7 +22,6 @@ import org.apache.commons.httpclient.methods.GetMethod;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZDataSource;
-import com.zimbra.client.ZFolder.View;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
