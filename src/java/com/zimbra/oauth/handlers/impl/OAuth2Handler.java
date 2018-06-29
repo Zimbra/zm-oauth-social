@@ -241,7 +241,7 @@ public abstract class OAuth2Handler {
             : client + "_" + datasourceType;
         final String scope = StringUtils.join(new String[] { requiredScopes,
             config.getString(String.format(OAuth2ConfigConstants.LC_OAUTH_SCOPE_TEMPLATE.getValue(),
-                client, account), scopeIdentifier) },
+                client), scopeIdentifier, account) },
             scopeDelimiter);
 
         if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientRedirectUri)) {
