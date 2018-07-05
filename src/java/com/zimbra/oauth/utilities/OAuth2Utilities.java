@@ -206,12 +206,12 @@ public class OAuth2Utilities {
                 .RESOURCE_UNREACHABLE("The configured destination address is unknown.", e);
         } catch (final SocketTimeoutException e) {
             ZimbraLog.extensions
-                .warn("The destination server took too long to respond to our request.");
+                .error("The destination server took too long to respond to our request.");
             throw ServiceException.RESOURCE_UNREACHABLE(
                 "The destination server took too long to respond to our request.", e);
         } catch (final ConnectionPoolTimeoutException e) {
             ZimbraLog.extensions
-                .warn("Too many active HTTP client connections, not enough resources available.");
+                .error("Too many active HTTP client connections, not enough resources available.");
             throw ServiceException.TEMPORARILY_UNAVAILABLE();
         } finally {
             if (request != null) {
