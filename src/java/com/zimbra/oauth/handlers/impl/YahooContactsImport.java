@@ -576,7 +576,7 @@ public class YahooContactsImport implements DataImport {
                         try {
                             // fetch the image
                             final GetMethod get = new GetMethod(imageUrl);
-                            OAuth2Handler.executeRequest(get);
+                            OAuth2Utilities.executeRequest(get);
                             // add to attachments
                             final Attachment attachment = OAuth2Utilities
                                 .createAttachmentFromResponse(get, key,
