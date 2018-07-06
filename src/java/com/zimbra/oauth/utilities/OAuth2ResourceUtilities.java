@@ -84,7 +84,7 @@ public class OAuth2ResourceUtilities {
         try {
             // verify params
             oauth2Handler.verifyAuthorizeParams(paramsForAuthorize);
-            if (JWTUtil.isJWT(authToken)) {
+            if (isJWT(authToken)) {
                 // if our credential is a jwt, pass it along too
                 paramsForAuthorize.put(OAuth2HttpConstants.JWT_PARAM_KEY.getValue(),
                     authToken.getEncoded());
@@ -186,7 +186,7 @@ public class OAuth2ResourceUtilities {
      * @param queryParams Map of request query parameters
      * @return Map of params found
      */
-    private static Map<String, String> getParams(List<String> expectedParams,
+    protected static Map<String, String> getParams(List<String> expectedParams,
         Map<String, String[]> queryParams) {
         final Map<String, String> foundParams = new HashMap<String, String>(expectedParams.size());
 
@@ -294,6 +294,16 @@ public class OAuth2ResourceUtilities {
     }
 
     /**
+     * Wraps JWTUtil.isJWT to simplify test mock.
+     *
+     * @param token The token in question
+     * @return True if the token is a jwt
+     */
+    protected static boolean isJWT(AuthToken token) {
+        return JWTUtil.isJWT(token);
+    }
+
+    /**
      * Retrieves authToken with jwt from state param as priority.<br>
      * If no jwt from state param exists, forwards to default cookie/header check.
      *
@@ -303,7 +313,7 @@ public class OAuth2ResourceUtilities {
      * @return An auth token
      * @throws ServiceException If there are issues creating the auth token
      */
-    private static AuthToken getAuthToken(Cookie[] cookies, Map<String, String> headers, String jwt)
+    protected static AuthToken getAuthToken(Cookie[] cookies, Map<String, String> headers, String jwt)
         throws ServiceException {
         AuthToken authToken = null;
         if (!StringUtils.isEmpty(jwt)) {
@@ -332,7 +342,7 @@ public class OAuth2ResourceUtilities {
      * @return An auth token
      * @throws ServiceException If there are issues creating the auth token
      */
-    private static AuthToken getAuthToken(Cookie[] cookies, Map<String, String> headers)
+    protected static AuthToken getAuthToken(Cookie[] cookies, Map<String, String> headers)
         throws ServiceException {
         AuthToken authToken = null;
         // search for JWT auth first (priority)
@@ -366,7 +376,7 @@ public class OAuth2ResourceUtilities {
      * @return The requesting user's account
      * @throws ServiceException If there are issues retrieving the account
      */
-    private static Account getAccount(AuthToken authToken) throws ServiceException {
+    protected static Account getAccount(AuthToken authToken) throws ServiceException {
         Account account = null;
         if (authToken != null) {
             if (authToken.isZimbraUser()) {
