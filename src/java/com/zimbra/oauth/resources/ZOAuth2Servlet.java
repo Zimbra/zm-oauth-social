@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.ServletException;
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Response.Status;
@@ -29,17 +28,8 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.commons.lang.StringUtils;
 
 import com.zimbra.common.service.ServiceException;
-import com.zimbra.common.util.L10nUtil;
-import com.zimbra.common.util.L10nUtil.MsgKey;
-import com.zimbra.common.util.ZimbraCookie;
 import com.zimbra.common.util.ZimbraLog;
-import com.zimbra.cs.account.Account;
-import com.zimbra.cs.account.AuthToken;
-import com.zimbra.cs.account.AuthTokenException;
-import com.zimbra.cs.account.Provisioning;
-import com.zimbra.cs.account.ZimbraAuthToken;
 import com.zimbra.cs.extension.ExtensionHttpHandler;
-import com.zimbra.cs.service.AuthProvider;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2ErrorConstants;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
@@ -73,22 +63,16 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
         final String client = pathParams.get("client");
         String location = OAuth2Constants.DEFAULT_SUCCESS_REDIRECT.getValue();
 
-        final String encodeAuthToken = getEncodedAuthTokenFromCookie(req);
-        final Account account = getAccount(req, encodeAuthToken);
-        ZimbraLog.extensions.debug("Account is:%s", account);
-
-        if (account == null) {
-            throw new ServletException(HttpServletResponse.SC_UNAUTHORIZED
-                + ": " + L10nUtil.getMessage(MsgKey.errMustAuthenticate, req));
-        }
         try {
+            // handle request action
             switch (pathParams.get("action")) {
             case "authorize":
-                location = OAuth2ResourceUtilities.authorize(client, req.getParameterMap(), account);
+                location = OAuth2ResourceUtilities.authorize(client, req.getCookies(),
+                    getHeaders(req), req.getParameterMap());
                 break;
             case "authenticate":
-                location = OAuth2ResourceUtilities.authenticate(client, req.getParameterMap(),
-                    account, encodeAuthToken);
+                location = OAuth2ResourceUtilities.authenticate(client, req.getCookies(),
+                    getHeaders(req), req.getParameterMap());
                 break;
             default:
                 // missing valid action - bad request
@@ -96,16 +80,33 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
                 return;
             }
         } catch (final ServiceException e) {
-            ZimbraLog.extensions.errorQuietly("An unhandled oauth application error occurred.", e);
+            ZimbraLog.extensions.errorQuietly("An oauth application error occurred.", e);
+            // default to unhandled
+            OAuth2ErrorConstants error = OAuth2ErrorConstants.ERROR_UNHANDLED_ERROR;
+            if (StringUtils.equals(ServiceException.PERM_DENIED, e.getCode())) {
+                error = OAuth2ErrorConstants.ERROR_ACCESS_DENIED;
+            } else if (StringUtils.equals(ServiceException.UNSUPPORTED, e.getCode())) {
+                error = OAuth2ErrorConstants.ERROR_INVALID_CLIENT;
+            }
             resp.sendRedirect(OAuth2ResourceUtilities.addQueryParams(
                 OAuth2Constants.DEFAULT_SUCCESS_REDIRECT.getValue(),
-                OAuth2ResourceUtilities
-                    .mapError(OAuth2ErrorConstants.ERROR_UNHANDLED_ERROR.getValue(), null)));
+                OAuth2ResourceUtilities.mapError(error.getValue(), null)));
             return;
         }
         ZimbraLog.extensions.debug("Authorization URI:%s", location);
         // set response redirect location
         resp.sendRedirect(location);
+    }
+
+    /**
+     * @param req The current request
+     * @return A map of headers we need for authorize and authenticate
+     */
+    private Map<String, String> getHeaders(HttpServletRequest req) {
+        final Map<String, String> headers = new HashMap<String, String>();
+        headers.put(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
+            req.getHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue()));
+        return headers;
     }
 
     /**
@@ -117,22 +118,6 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
     protected boolean isValidPath(String path) {
         return StringUtils.containsIgnoreCase(path, "authenticate/")
             || StringUtils.containsIgnoreCase(path, "authorize/");
-    }
-
-    /**
-     * Retrieves the zm auth token from the request.
-     *
-     * @param cookies The request cookies
-     * @return The zm auth token
-     */
-    protected String getAuthToken(Cookie[] cookies) {
-        for (final Cookie cookie : cookies) {
-            if (StringUtils.equals(cookie.getName(),
-                OAuth2HttpConstants.COOKIE_AUTH_TOKEN.getValue())) {
-                return cookie.getValue();
-            }
-        }
-        return null;
     }
 
     /**
@@ -155,57 +140,5 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
         }
         return pathParams;
     }
-    private Account getAccount(HttpServletRequest req, String encodeAuthToken) throws ServletException {
-
-       Account account = null;
-        try {
-            final AuthToken authToken = ZimbraAuthToken.getAuthToken(encodeAuthToken);
-
-            if (authToken != null) {
-
-                if (authToken.isZimbraUser()) {
-                    if(!authToken.isRegistered()) {
-                        throw new ServletException(HttpServletResponse.SC_UNAUTHORIZED
-                              + ": " + L10nUtil.getMessage(MsgKey.errMustAuthenticate, req));
-                    }
-                    try {
-                        account = AuthProvider.validateAuthToken(Provisioning.getInstance(), authToken, false);
-                    } catch (final ServiceException e) {
-                        throw new ServletException(HttpServletResponse.SC_UNAUTHORIZED
-                              + ": " + L10nUtil.getMessage(MsgKey.errMustAuthenticate, req));
-                    }
-                } else {
-                    throw new ServletException(HttpServletResponse.SC_UNAUTHORIZED
-                        + ": " + L10nUtil.getMessage(MsgKey.errMustAuthenticate, req));
-                }
-            } else {
-                throw new ServletException(HttpServletResponse.SC_UNAUTHORIZED
-                    + ": " + L10nUtil.getMessage(MsgKey.errMustAuthenticate, req));
-            }
-
-        } catch (final AuthTokenException e) {
-            ZimbraLog.extensions.info("Error authenticating user.");
-            throw new ServletException(HttpServletResponse.SC_UNAUTHORIZED
-               + ": " + L10nUtil.getMessage(MsgKey.errMustAuthenticate, req));
-        }
-
-        return account;
-
-    }
-    private String getEncodedAuthTokenFromCookie(HttpServletRequest req) {
-        final String cookieName = ZimbraCookie.authTokenCookieName(false);
-        String encodedAuthToken = null;
-        final javax.servlet.http.Cookie cookies[] =  req.getCookies();
-        if (cookies != null) {
-            for (int i = 0; i < cookies.length; i++) {
-                if (cookies[i].getName().equals(cookieName)) {
-                    encodedAuthToken = cookies[i].getValue();
-                    break;
-                }
-            }
-        }
-        return encodedAuthToken;
-    }
-
 
 }

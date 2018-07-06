@@ -35,10 +35,11 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zimbra.client.ZMailbox;
-import com.zimbra.common.auth.ZAuthToken;
+import com.zimbra.client.ZMailbox.Options;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
+import com.zimbra.cs.account.AuthToken;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
@@ -245,11 +246,15 @@ public abstract class OAuth2Handler {
      * @see IOAuth2Handler#authorize(String, Account)
      */
     public String authorize(Map<String, String> params, Account account) throws ServiceException {
-        final String relayState = params.get(relayKey);
-        final String type = StringUtils.defaultString(params.get(typeKey), "");
         String relayValue = "";
-        String relay = StringUtils.defaultString(relayState, "");
+        String relay = StringUtils.defaultString(params.get(relayKey), "");
+        final String type = StringUtils.defaultString(params.get(typeKey), "");
+        final String jwt = StringUtils
+            .defaultString(params.get(OAuth2HttpConstants.JWT_PARAM_KEY.getValue()), "");
 
+        // TODO: move these into a separate method that handles optional, required, etc
+
+        // relay is first and optional
         if (!relay.isEmpty()) {
             try {
                 relay = URLDecoder.decode(relay, OAuth2Constants.ENCODING.getValue());
@@ -265,18 +270,30 @@ public abstract class OAuth2Handler {
             }
         }
 
+        // type is second and required before we arrive in this method
         if (!type.isEmpty()) {
             try {
                 if (relayValue.isEmpty()) {
                     relayValue = "&" + relayKey + "=";
                 }
-                relayValue += RELAY_DELIMETER + URLEncoder.encode(type, OAuth2Constants.ENCODING.getValue());
+                relayValue += RELAY_DELIMETER
+                    + URLEncoder.encode(type, OAuth2Constants.ENCODING.getValue());
             } catch (final UnsupportedEncodingException e) {
-                throw ServiceException.INVALID_REQUEST("Unable to decode type parameter.", e);
+                throw ServiceException.INVALID_REQUEST("Unable to encode type parameter.", e);
             }
         } else {
             ZimbraLog.extensions.error("Missing data source type");
             throw ServiceException.FAILURE("Missing data source type", null);
+        }
+
+        // jwt is third and optional
+        if (!jwt.isEmpty()) {
+            try {
+                relayValue += RELAY_DELIMETER
+                    + URLEncoder.encode(jwt, OAuth2Constants.ENCODING.getValue());
+            } catch (final UnsupportedEncodingException e) {
+                throw ServiceException.INVALID_REQUEST("Unable to encode jwt parameter.", e);
+            }
         }
 
         return buildAuthorizeUri(authorizeUriTemplate, account, type) + relayValue;
@@ -388,15 +405,21 @@ public abstract class OAuth2Handler {
         // split available params before checking for errors
         if (params.containsKey(relayKey)) {
             final String[] origVal = params.get(relayKey).split(RELAY_DELIMETER);
-            if (origVal.length != 2) {
+            if (origVal.length < 2) {
                 throw ServiceException.INVALID_REQUEST(OAuth2ErrorConstants.ERROR_TYPE_MISSING.getValue(), null);
             }
+            // store the redirect location even if empty
             params.put(relayKey, origVal[0]);
+            // ensure type exists
             if (origVal[1].isEmpty()) {
                 throw ServiceException.INVALID_REQUEST(OAuth2ErrorConstants.ERROR_TYPE_MISSING.getValue(), null);
             } else {
                 ZimbraLog.extensions.debug("Adding %s = %s", typeKey, origVal[1]);
                 params.put(typeKey, origVal[1]);
+            }
+            // store the jwt if exists and not empty
+            if (origVal.length > 2 && !StringUtils.isEmpty(origVal[2])) {
+                params.put(OAuth2HttpConstants.JWT_PARAM_KEY.getValue(), origVal[2]);
             }
         } else {
             throw ServiceException.INVALID_REQUEST(OAuth2ErrorConstants.ERROR_TYPE_MISSING.getValue(), null);
@@ -482,10 +505,14 @@ public abstract class OAuth2Handler {
      * @throws ServiceException If there is an issue retrieving the account
      *             mailbox
      */
-    protected ZMailbox getZimbraMailbox(String zmAuthToken) throws ServiceException {
+    protected ZMailbox getZimbraMailbox(AuthToken zmAuthToken) throws ServiceException {
         // create a mailbox by auth token
         try {
-            return ZMailbox.getByAuthToken(new ZAuthToken(zmAuthToken), zimbraHostUri, true, true);
+            final Options options = new Options();
+            options.setUri(zimbraHostUri);
+            final ZMailbox mbox = new ZMailbox(options);
+            mbox.initAuthToken(zmAuthToken.toZAuthToken());
+            return mbox;
         } catch (final ServiceException e) {
             ZimbraLog.extensions.errorQuietly(
                 "There was an issue acquiring the mailbox using the specified auth token.", e);
