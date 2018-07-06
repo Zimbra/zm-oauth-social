@@ -319,7 +319,7 @@ public class OAuth2ResourceUtilities {
         if (!StringUtils.isEmpty(jwt)) {
             try {
                 jwt = URLDecoder.decode(jwt, OAuth2Constants.ENCODING.getValue());
-                final String salt = JWTUtil.getJWTSalt(jwt);
+                final String salt = getFromCookie(cookies, ZimbraCookie.COOKIE_ZM_JWT);
                 authToken = ZimbraJWToken.getJWToken(jwt, salt);
                 ZimbraLog.extensions.debug("Using jwt from state param for auth token.");
             } catch (final AuthTokenException | UnsupportedEncodingException e) {

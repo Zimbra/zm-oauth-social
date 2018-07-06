@@ -40,6 +40,7 @@ import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.AuthToken;
+import com.zimbra.cs.account.ZimbraAuthToken;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
@@ -511,7 +512,10 @@ public abstract class OAuth2Handler {
             final Options options = new Options();
             options.setUri(zimbraHostUri);
             final ZMailbox mbox = new ZMailbox(options);
-            mbox.initAuthToken(zmAuthToken.toZAuthToken());
+            // get a csrf unsecured token since we are internal
+            final AuthToken csrfUnsafeToken = ZimbraAuthToken
+                .getCsrfUnsecuredAuthToken(zmAuthToken);
+            mbox.initAuthToken(csrfUnsafeToken.toZAuthToken());
             return mbox;
         } catch (final ServiceException e) {
             ZimbraLog.extensions.errorQuietly(
