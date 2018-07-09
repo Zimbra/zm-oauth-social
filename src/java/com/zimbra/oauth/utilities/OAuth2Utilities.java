@@ -232,4 +232,5 @@ public class OAuth2Utilities {
         HttpProxyUtil.configureProxy(httpClient);
         return httpClient;
     }
+
 }

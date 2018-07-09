@@ -36,7 +36,9 @@ public enum OAuth2HttpConstants {
     COOKIE_AUTH_TOKEN("ZM_AUTH_TOKEN"),
 
     OAUTH2_RELAY_KEY("state"),
-    OAUTH2_TYPE_KEY("type");
+    OAUTH2_TYPE_KEY("type"),
+
+    JWT_PARAM_KEY("jwt");
 
     /**
      * The value of this enum.
