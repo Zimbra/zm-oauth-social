@@ -42,6 +42,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZDataSource;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.cs.account.Account;
+import com.zimbra.cs.account.AuthToken;
 import com.zimbra.oauth.handlers.impl.YahooOAuth2Handler.YahooOAuth2Constants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
@@ -186,7 +187,7 @@ public class YahooOAuth2HandlerTest {
     public void testAuthenticate() throws Exception {
         final String username = "test-user@localhost";
         final String refreshToken = "refresh-token";
-        final String zmAuthToken = "zm-auth-token";
+        final AuthToken mockAuthToken = EasyMock.createMock(AuthToken.class);
         final OAuthInfo mockOAuthInfo = EasyMock.createMock(OAuthInfo.class);
         final ZMailbox mockZMailbox = EasyMock.createMock(ZMailbox.class);
         final JsonNode mockCredentials = EasyMock.createMock(JsonNode.class);
@@ -208,7 +209,7 @@ public class YahooOAuth2HandlerTest {
                 YahooOAuth2Constants.CLIENT_NAME.getValue())),
             matches(YahooOAuth2Constants.CLIENT_NAME.getValue()), anyObject()))
                 .andReturn(clientRedirectUri);
-        expect(handler.getZimbraMailbox(anyObject(String.class))).andReturn(mockZMailbox);
+        expect(handler.getZimbraMailbox(anyObject(AuthToken.class))).andReturn(mockZMailbox);
         expect(handler.getDatasourceCustomAttrs(anyObject())).andReturn(null);
         expect(OAuth2Handler.getTokenRequest(anyObject(OAuthInfo.class), anyObject(String.class)))
             .andReturn(mockCredentials);
@@ -227,7 +228,7 @@ public class YahooOAuth2HandlerTest {
         EasyMock.expectLastCall().once();
         mockOAuthInfo.setTokenUrl(matches(YahooOAuth2Constants.AUTHENTICATE_URI.getValue()));
         EasyMock.expectLastCall().once();
-        expect(mockOAuthInfo.getZmAuthToken()).andReturn(zmAuthToken);
+        expect(mockOAuthInfo.getZmAuthToken()).andReturn(mockAuthToken);
         mockOAuthInfo.setUsername(username);
         EasyMock.expectLastCall().once();
         mockOAuthInfo.setRefreshToken(refreshToken);
