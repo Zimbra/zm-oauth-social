@@ -42,6 +42,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import org.powermock.reflect.Whitebox;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.zimbra.common.util.Pair;
 import com.zimbra.cs.account.DataSource;
 import com.zimbra.cs.mime.ParsedContact;
 import com.zimbra.oauth.handlers.impl.OutlookContactsImport.OutlookContactsUtil;
@@ -89,8 +90,9 @@ public class OutlookContactsImportTest {
     @Before
     public void setUp() throws Exception {
         mockSource = EasyMock.createMock(DataSource.class);
-        importer = PowerMock.createPartialMock(OutlookContactsImport.class, new String[] { "refresh",
-            "getContactFolders", "getContactsRequest", "getExistingContacts", "parseNewContacts" },
+        importer = PowerMock.createPartialMock(OutlookContactsImport.class,
+            new String[] { "refresh", "ensureFolder", "getContactFolders", "getContactsRequest",
+                "getExistingContacts", "parseNewContacts" },
             mockSource);
 
         Whitebox.setInternalState(importer, "config", mockConfig);
@@ -108,17 +110,29 @@ public class OutlookContactsImportTest {
     @SuppressWarnings("unchecked")
     @Test
     public void testImportData() throws Exception {
-        final List<String> contactFolders = Arrays.asList(null, "testId");
+        final int childFolderId = folderId + 1;
+        final List<Pair<String, String>> contactFolders = Arrays.asList(
+            new Pair<String, String>(null, null),
+            new Pair<String, String>("testId", "Test Folder"));
         expect(mockSource.getMailbox()).andReturn(null);
         expect(mockSource.getFolderId()).andReturn(folderId);
-        // expect a fetch for existing contacts
-        expect(importer.getExistingContacts(anyObject(), eq(folderId)))
-            .andReturn(new HashSet<String>());
         // expect a fetch for refresh token
         expect(importer.refresh()).andReturn(accessToken);
         // expect getContactFolders to be called
         expect(importer.getContactFolders(matches("Bearer " + accessToken)))
             .andReturn(contactFolders);
+        // expect ensureFolder to be called for the root folder
+        expect(importer.ensureFolder(anyObject(), eq(folderId), EasyMock.isNull()))
+            .andReturn(folderId);
+        // expect ensureFolder to be called for the child folder
+        expect(importer.ensureFolder(anyObject(), eq(folderId), matches("Test Folder")))
+            .andReturn(childFolderId);
+        // expect a fetch for existing contacts for the root folder
+        expect(importer.getExistingContacts(anyObject(), eq(folderId)))
+            .andReturn(new HashSet<String>());
+        // expect a fetch for existing contacts for the child folder
+        expect(importer.getExistingContacts(anyObject(), eq(childFolderId)))
+            .andReturn(new HashSet<String>());
         final String jsonData = "{\"@odata.context\":\"https://outlook.office.com/api/v2.0/$metadata#Me/Contacts(EmailAddresses,GivenName,Surname)\",\"@odata.deltaLink\":\"https://outlook.office.com/api/v2.0/me/contacts/?%24select=EmailAddresses%2cGivenName%2cSurname&%24deltatoken=b_o5fakeToken\",\"value\":[{\"@odata.etag\":\"W/\\\"fake-tag\\\"\",\"@odata.id\":\"https://outlook.office.com/api/v2.0/Users('fake-id')/Contacts('fake-id')\",\"EmailAddresses\":[{\"Address\":\"test2@synacor.net\",\"Name\":\"test2@synacor.net\"},{\"Address\":\"test3@synacor.net\",\"Name\":\"test3@synacor.net\"}],\"GivenName\":\"Test\",\"Id\":\"fake-user-id=\",\"Surname\":\"User\"}]}";
         final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
         // expect getContactsRequest to be called 4 times (twice for each folder)
