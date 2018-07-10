@@ -16,29 +16,27 @@
  */
 package com.zimbra.oauth.utilities;
 
+
 /**
- * The OAuth2Constants class.<br>
- * OAuth2Constants contains application constants used in the project.
+ * The OAuth2HttpConstants class.<br>
+ * OAuth2HttpConstants contains http-related constants used in the project.
  *
  * @author Zimbra API Team
  * @package com.zimbra.oauth.utilities
  * @copyright Copyright © 2018
  */
-public enum OAuth2Constants {
+public enum OAuth2HttpConstants {
 
-    API_NAME("zm-oauth-social"),
-    ENCODING("utf-8"),
-    DEFAULT_SERVER_PATH("/oauth2"),
+    HEADER_AUTHORIZATION("Authorization"),
+    HEADER_CONTENT_TYPE("Content-Type"),
+    HEADER_ACCEPT("Accept"),
+    HEADER_LOCATION("Location"),
+    QUERY_ERROR("error"),
+    QUERY_ERROR_MSG("error_msg"),
+    COOKIE_AUTH_TOKEN("ZM_AUTH_TOKEN"),
 
-    DEFAULT_SUCCESS_REDIRECT("/"),
-    DEFAULT_HOST_URI_TEMPLATE("https://%s:443"),
-    DEFAULT_OAUTH_FOLDER_TEMPLATE("%s-%s"),
-
-    DATASOURCE_POLLING_INTERVAL("1d"),
-
-    CONTACTS_IMAGE_BUFFER_SIZE("2048"),
-
-    PROPERTIES_NAME_APPLICATION("application");
+    OAUTH2_RELAY_KEY("state"),
+    OAUTH2_TYPE_KEY("type");
 
     /**
      * The value of this enum.
@@ -55,7 +53,8 @@ public enum OAuth2Constants {
     /**
      * @param constant The enum value to set
      */
-    private OAuth2Constants(String constant) {
+    private OAuth2HttpConstants(String constant) {
         this.constant = constant;
     }
+
 }

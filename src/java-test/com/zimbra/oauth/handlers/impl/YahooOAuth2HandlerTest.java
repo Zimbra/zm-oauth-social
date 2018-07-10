@@ -1,3 +1,19 @@
+/*
+ * ***** BEGIN LICENSE BLOCK *****
+ * Zimbra OAuth Social Extension
+ * Copyright (C) 2018 Synacor, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software Foundation,
+ * version 2 of the License.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <https://www.gnu.org/licenses/>.
+ * ***** END LICENSE BLOCK *****
+ */
 package com.zimbra.oauth.handlers.impl;
 
 import static org.easymock.EasyMock.anyObject;
@@ -12,8 +28,6 @@ import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,196 +41,217 @@ import org.powermock.reflect.Whitebox;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZDataSource;
 import com.zimbra.client.ZMailbox;
-import com.zimbra.oauth.handlers.impl.YahooOAuth2Handler.YahooConstants;
-import com.zimbra.oauth.models.OAuthDataSource;
+import com.zimbra.cs.account.Account;
+import com.zimbra.oauth.handlers.impl.YahooOAuth2Handler.YahooOAuth2Constants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 import com.zimbra.oauth.utilities.OAuth2Constants;
+import com.zimbra.oauth.utilities.OAuth2DataSource;
+import com.zimbra.oauth.utilities.OAuth2HttpConstants;
 
 /**
  * Test class for {@link YahooOAuth2Handler}.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({HttpClientContext.class, OAuthDataSource.class, OAuth2Handler.class, YahooOAuth2Handler.class, ZMailbox.class})
+@PrepareForTest({ OAuth2DataSource.class, OAuth2Handler.class, YahooOAuth2Handler.class, ZMailbox.class })
 @SuppressStaticInitializationFor("com.zimbra.client.ZMailbox")
 public class YahooOAuth2HandlerTest {
 
-	/**
-	 * Class under test.
-	 */
-	protected YahooOAuth2Handler handler;
+    /**
+     * Class under test.
+     */
+    protected YahooOAuth2Handler handler;
 
-	/**
-	 * Mock client handler property.
-	 */
-	protected CloseableHttpClient mockClient = EasyMock.createMock(CloseableHttpClient.class);
+    /**
+     * Mock configuration handler property.
+     */
+    protected Configuration mockConfig = EasyMock.createMock(Configuration.class);
 
-	/**
-	 * Mock configuration handler property.
-	 */
-	protected Configuration mockConfig = EasyMock.createMock(Configuration.class);
+    /**
+     * Mock data source handler property.
+     */
+    protected OAuth2DataSource mockDataSource = EasyMock.createMock(OAuth2DataSource.class);
 
-	/**
-	 * Mock data source handler property.
-	 */
-	protected OAuthDataSource mockDataSource = EasyMock.createMock(OAuthDataSource.class);
+    /**
+     * ClientId for testing.
+     */
+    protected final String clientId = "test-client";
 
-	/**
-	 * ClientId for testing.
-	 */
-	protected final String clientId = "test-client";
+    /**
+     * ClientSecret for testing.
+     */
+    protected final String clientSecret = "test-secret";
 
-	/**
-	 * ClientSecret for testing.
-	 */
-	protected final String clientSecret = "test-secret";
+    /**
+     * Hostname for testing.
+     */
+    protected final String hostname = "localhost";
 
-	/**
-	 * Redirect URI for testing.
-	 */
-	protected final String clientRedirectUri = "http://localhost/oauth2/authenticate";
+    /**
+     * Redirect URI for testing.
+     */
+    protected final String clientRedirectUri = "http://localhost/oauth2/authenticate";
 
-	/**
-	 * FolderId for testing.
-	 */
-	protected final String storageFolderId = "259";
+    /**
+     * Setup for tests.
+     *
+     * @throws Exception If there are issues mocking
+     */
+    @Before
+    public void setUp() throws Exception {
+        handler = PowerMock.createPartialMockForAllMethodsExcept(YahooOAuth2Handler.class,
+            "authorize", "authenticate");
+        Whitebox.setInternalState(handler, "config", mockConfig);
+        Whitebox.setInternalState(handler, "relayKey", YahooOAuth2Constants.RELAY_KEY.getValue());
+        Whitebox.setInternalState(handler, "typeKey",
+            OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue());
+        Whitebox.setInternalState(handler, "authenticateUri",
+            YahooOAuth2Constants.AUTHENTICATE_URI.getValue());
+        Whitebox.setInternalState(handler, "authorizeUriTemplate",
+            YahooOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue());
+        Whitebox.setInternalState(handler, "client", YahooOAuth2Constants.CLIENT_NAME.getValue());
+        Whitebox.setInternalState(handler, "dataSource", mockDataSource);
+    }
 
-	/**
-	 * Setup for tests.
-	 *
-	 * @throws Exception If there are issues mocking
-	 */
-	@Before
-	public void setUp() throws Exception {
-		handler = PowerMock
-			.createPartialMockForAllMethodsExcept(YahooOAuth2Handler.class, "authorize", "authenticate");
-		Whitebox.setInternalState(handler, "clientRedirectUri", clientRedirectUri);
-		Whitebox.setInternalState(handler, "authorizeUriTemplate", "%s %s %s");
-		Whitebox.setInternalState(handler, "clientId", clientId);
-		Whitebox.setInternalState(handler, "clientSecret", clientSecret);
-		Whitebox.setInternalState(handler, "dataSource", mockDataSource);
-		Whitebox.setInternalState(handler, "storageFolderId", storageFolderId);
+    /**
+     * Test method for {@link YahooOAuth2Handler#YahooOAuth2Handler}<br>
+     * Validates that the constructor configured some necessary properties.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testYahooOAuth2Handler() throws Exception {
+        final OAuth2DataSource mockDataSource = EasyMock.createMock(OAuth2DataSource.class);
 
-		expect(mockConfig.getClientId()).andReturn(clientId);
+        expect(mockConfig.getString(OAuth2ConfigConstants.LC_HOST_URI_TEMPLATE.getValue(),
+            OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE.getValue()))
+                .andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE.getValue());
+        expect(mockConfig.getString(OAuth2ConfigConstants.LC_ZIMBRA_SERVER_HOSTNAME.getValue()))
+            .andReturn(hostname);
+        PowerMock.mockStatic(OAuth2DataSource.class);
+        expect(OAuth2DataSource.createDataSource(YahooOAuth2Constants.CLIENT_NAME.getValue(),
+            ZDataSource.SOURCE_HOST_YAHOO)).andReturn(mockDataSource);
 
-		// use mock http client for test client
-		final Map<String, CloseableHttpClient> clients = new HashMap<String, CloseableHttpClient>(1);
-		clients.put(clientId, mockClient);
-		Whitebox.setInternalState(YahooOAuth2Handler.class, "clients", clients);
-	}
+        replay(mockConfig);
+        PowerMock.replay(OAuth2DataSource.class);
 
-	/**
-	 * Test method for {@link YahooOAuth2Handler#YahooOAuth2Handler}<br>
-	 * Validates that the constructor configured some necessary properties.
-	 *
-	 * @throws Exception If there are issues testing
-	 */
-	@Test
-	public void testYahooOAuth2Handler() throws Exception {
-		final OAuthDataSource mockDataSource = EasyMock.createMock(OAuthDataSource.class);
+        new YahooOAuth2Handler(mockConfig);
 
-		expect(mockConfig.getString(OAuth2Constants.LC_HOST_URI_TEMPLATE, OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE))
-			.andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE);
-		expect(mockConfig.getString(OAuth2Constants.LC_OAUTH_FOLDER_ID)).andReturn(storageFolderId);
-		expect(mockConfig.getString(YahooConstants.LC_OAUTH_AUTHORIZE_URI_TEMPLATE)).andReturn(null);
-		expect(mockConfig.getString(YahooConstants.LC_OAUTH_AUTHENTICATE_URI)).andReturn(null);
-		expect(mockConfig.getString(YahooConstants.LC_OAUTH_PROFILE_URI_TEMPLATE)).andReturn(null);
-		expect(mockConfig.getString(YahooConstants.LC_OAUTH_CLIENT_ID)).andReturn(null);
-		expect(mockConfig.getString(YahooConstants.LC_OAUTH_CLIENT_SECRET)).andReturn(null);
-		expect(mockConfig.getString(YahooConstants.LC_OAUTH_CLIENT_REDIRECT_URI)).andReturn(null);
-		expect(mockConfig.getString(YahooConstants.LC_OAUTH_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY)).andReturn(null);
-		PowerMock.mockStatic(OAuthDataSource.class);
-		expect(OAuthDataSource.createDataSource(ZDataSource.SOURCE_HOST_YAHOO)).andReturn(mockDataSource);
+        verify(mockConfig);
+        PowerMock.verify(OAuth2DataSource.class);
+    }
 
-		replay(mockConfig);
-		PowerMock.replay(OAuthDataSource.class);
+    /**
+     * Test method for {@link YahooOAuth2Handler#authorize}<br>
+     * Validates that the authorize method returns a location with an encoded
+     * redirect uri.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testAuthorize() throws Exception {
+        final String encodedUri = URLEncoder.encode(clientRedirectUri,
+            OAuth2Constants.ENCODING.getValue());
+        // use contact type
+        final Map<String, String> params = new HashMap<String, String>();
+        params.put(OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue(), "contact");
+        final String authorizeBase = String.format(
+            YahooOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code");
+        // expect a contact state with no relay
+        final String expectedAuthorize = authorizeBase + "&state=;contact";
 
-		new YahooOAuth2Handler(mockConfig);
+        // expect buildAuthorize call
+        expect(handler.buildAuthorizeUri(YahooOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(),
+            null, "contact")).andReturn(authorizeBase);
 
-		verify(mockConfig);
-		PowerMock.verify(OAuthDataSource.class);
-	}
+        replay(handler);
 
-	/**
-	 * Test method for {@link YahooOAuth2Handler#authorize}<br>
-	 * Validates that the authorize method returns a location with an encoded redirect uri.
-	 *
-	 * @throws Exception If there are issues testing
-	 */
-	@Test
-	public void testAuthorize() throws Exception {
-		final String encodedUri = URLEncoder.encode(clientRedirectUri, OAuth2Constants.ENCODING);
+        final String authorizeLocation = handler.authorize(params, null);
 
-		final String authorizeLocation = handler.authorize(null);
+        // verify build was called
+        verify(handler);
 
-		assertNotNull(authorizeLocation);
-		assertEquals(clientId + " " + encodedUri + " code", authorizeLocation);
-	}
+        assertNotNull(authorizeLocation);
+        assertEquals(expectedAuthorize, authorizeLocation);
+    }
 
-	/**
-	 * Test method for {@link YahooOAuth2Handler#authenticate}<br>
-	 * Validates that the authenticate method calls update datasource.
-	 *
-	 * @throws Exception If there are issues testing
-	 */
-	@Test
-	public void testAuthenticate() throws Exception {
-		final String username = "test-user@localhost";
-		final String accessToken = "access-token";
-		final String refreshToken = "refresh-token";
-		final String zmAuthToken = "zm-auth-token";
-		final String guid = "guid";
-		final OAuthInfo mockOAuthInfo = EasyMock.createMock(OAuthInfo.class);
-		final ZMailbox mockZMailbox = EasyMock.createMock(ZMailbox.class);
-		final JsonNode mockCredentials = EasyMock.createMock(JsonNode.class);
-		final JsonNode mockCredentialsAToken = EasyMock.createMock(JsonNode.class);
-		final JsonNode mockCredentialsGuid = EasyMock.createMock(JsonNode.class);
-		final JsonNode mockCredentialsRToken = EasyMock.createMock(JsonNode.class);
+    /**
+     * Test method for {@link YahooOAuth2Handler#authenticate}<br>
+     * Validates that the authenticate method calls sync datasource.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testAuthenticate() throws Exception {
+        final String username = "test-user@localhost";
+        final String refreshToken = "refresh-token";
+        final String zmAuthToken = "zm-auth-token";
+        final OAuthInfo mockOAuthInfo = EasyMock.createMock(OAuthInfo.class);
+        final ZMailbox mockZMailbox = EasyMock.createMock(ZMailbox.class);
+        final JsonNode mockCredentials = EasyMock.createMock(JsonNode.class);
+        final JsonNode mockCredentialsRToken = EasyMock.createMock(JsonNode.class);
 
-		expect(handler.getZimbraMailbox(anyObject(String.class))).andReturn(mockZMailbox);
-		expect(handler.authenticateRequest(anyObject(OAuthInfo.class), matches(clientRedirectUri), anyObject(HttpClientContext.class))).andReturn(mockCredentials);
-		expect(mockCredentials.get("access_token")).andReturn(mockCredentialsAToken);
-		expect(mockCredentialsAToken.asText()).andReturn(accessToken);
-		expect(mockCredentials.get("xoauth_yahoo_guid")).andReturn(mockCredentialsGuid);
-		expect(mockCredentialsGuid.asText()).andReturn(guid);
-		expect(mockCredentials.get("refresh_token")).andReturn(mockCredentialsRToken);
-		expect(mockCredentialsRToken.asText()).andReturn(refreshToken);
+        PowerMock.mockStatic(OAuth2Handler.class);
 
-		expect(handler.getPrimaryEmail(matches(guid), matches(accessToken), anyObject(HttpClientContext.class))).andReturn(username);
-		PowerMock.mockStatic(HttpClientContext.class);
-		expect(HttpClientContext.create()).andReturn(PowerMock.createMock(HttpClientContext.class));
+        expect(mockOAuthInfo.getAccount()).andReturn(null);
+        expect(mockConfig.getString(
+            matches(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(),
+                YahooOAuth2Constants.CLIENT_NAME.getValue())),
+            matches(YahooOAuth2Constants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientId);
+        expect(mockConfig.getString(
+            matches(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(),
+                YahooOAuth2Constants.CLIENT_NAME.getValue())),
+            matches(YahooOAuth2Constants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientSecret);
+        expect(mockConfig.getString(
+            matches(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(),
+                YahooOAuth2Constants.CLIENT_NAME.getValue())),
+            matches(YahooOAuth2Constants.CLIENT_NAME.getValue()), anyObject()))
+                .andReturn(clientRedirectUri);
+        expect(handler.getZimbraMailbox(anyObject(String.class))).andReturn(mockZMailbox);
+        expect(handler.getDatasourceCustomAttrs(anyObject())).andReturn(null);
+        expect(OAuth2Handler.getTokenRequest(anyObject(OAuthInfo.class), anyObject(String.class)))
+            .andReturn(mockCredentials);
+        handler.validateTokenResponse(anyObject());
+        EasyMock.expectLastCall().once();
+        expect(mockCredentials.get("refresh_token")).andReturn(mockCredentialsRToken);
+        expect(mockCredentialsRToken.asText()).andReturn(refreshToken);
+        expect(handler.getPrimaryEmail(anyObject(JsonNode.class), anyObject(Account.class)))
+            .andReturn(username);
 
-		expect(mockOAuthInfo.getZmAuthToken()).andReturn(zmAuthToken);
-		mockOAuthInfo.setClientId(matches(clientId));
-		EasyMock.expectLastCall().once();
-		mockOAuthInfo.setClientSecret(matches(clientSecret));
-		EasyMock.expectLastCall().once();
-		mockOAuthInfo.setUsername(username);
-		EasyMock.expectLastCall().once();
-		mockOAuthInfo.setRefreshToken(refreshToken);
-		EasyMock.expectLastCall().once();
-		mockDataSource.updateCredentials(mockZMailbox, mockOAuthInfo, storageFolderId);
-		EasyMock.expectLastCall().once();
+        mockOAuthInfo.setClientId(matches(clientId));
+        EasyMock.expectLastCall().once();
+        mockOAuthInfo.setClientSecret(matches(clientSecret));
+        EasyMock.expectLastCall().once();
+        mockOAuthInfo.setClientRedirectUri(matches(clientRedirectUri));
+        EasyMock.expectLastCall().once();
+        mockOAuthInfo.setTokenUrl(matches(YahooOAuth2Constants.AUTHENTICATE_URI.getValue()));
+        EasyMock.expectLastCall().once();
+        expect(mockOAuthInfo.getZmAuthToken()).andReturn(zmAuthToken);
+        mockOAuthInfo.setUsername(username);
+        EasyMock.expectLastCall().once();
+        mockOAuthInfo.setRefreshToken(refreshToken);
+        EasyMock.expectLastCall().once();
+        mockDataSource.syncDatasource(mockZMailbox, mockOAuthInfo, null);
+        EasyMock.expectLastCall().once();
 
-		replay(handler);
-		replay(mockOAuthInfo);
-		PowerMock.replay(HttpClientContext.class);
-		replay(mockCredentials);
-		replay(mockCredentialsAToken);
-		replay(mockCredentialsGuid);
-		replay(mockCredentialsRToken);
-		replay(mockDataSource);
+        replay(handler);
+        PowerMock.replay(OAuth2Handler.class);
+        replay(mockOAuthInfo);
+        replay(mockConfig);
+        replay(mockCredentials);
+        replay(mockCredentialsRToken);
+        replay(mockDataSource);
 
-		handler.authenticate(mockOAuthInfo);
+        handler.authenticate(mockOAuthInfo);
 
-		verify(handler);
-		verify(mockOAuthInfo);
-		PowerMock.verify(HttpClientContext.class);
-		verify(mockCredentials);
-		verify(mockCredentialsAToken);
-		verify(mockCredentialsGuid);
-		verify(mockCredentialsRToken);
-		verify(mockDataSource);
-	}
+        verify(handler);
+        PowerMock.verify(OAuth2Handler.class);
+        verify(mockOAuthInfo);
+        verify(mockConfig);
+        verify(mockCredentials);
+        verify(mockCredentialsRToken);
+        verify(mockDataSource);
+    }
 
 }

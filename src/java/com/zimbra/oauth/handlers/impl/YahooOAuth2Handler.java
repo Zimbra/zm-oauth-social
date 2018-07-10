@@ -1,379 +1,358 @@
+/*
+ * ***** BEGIN LICENSE BLOCK *****
+ * Zimbra OAuth2 Extension
+ * Copyright (C) 2018 Synacor, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software Foundation,
+ * version 2 of the License.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <https://www.gnu.org/licenses/>.
+ * ***** END LICENSE BLOCK *****
+ */
 package com.zimbra.oauth.handlers.impl;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
 
+import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.lang.StringUtils;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.message.BasicNameValuePair;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZDataSource;
-import com.zimbra.client.ZMailbox;
+import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
-import com.zimbra.oauth.exceptions.ConfigurationException;
-import com.zimbra.oauth.exceptions.GenericOAuthException;
-import com.zimbra.oauth.exceptions.InvalidOperationException;
-import com.zimbra.oauth.exceptions.InvalidResponseException;
-import com.zimbra.oauth.exceptions.UserForbiddenException;
-import com.zimbra.oauth.exceptions.UserUnauthorizedException;
+import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
-import com.zimbra.oauth.models.OAuthDataSource;
-import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
-import com.zimbra.oauth.utilities.OAuth2Constants;
+import com.zimbra.oauth.utilities.OAuth2HttpConstants;
+import com.zimbra.soap.admin.type.DataSourceType;
 
+/**
+ * The YahooOAuth2Handler class.<br>
+ * Yahoo OAuth operations handler.
+ *
+ * @author Zimbra API Team
+ * @package com.zimbra.oauth.handlers.impl
+ * @copyright Copyright © 2018
+ */
 public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
 
-	/**
-	 * The authorize endpoint for Yahoo.
-	 */
-	protected final String authorizeUriTemplate;
+    /**
+     * Contains error constants used in this implementation.
+     */
+    protected enum YahooErrorConstants {
 
-	/**
-	 * The authenticate endpoint for Yahoo.
-	 */
-	protected final String authenticateUri;
+        /**
+         * Unauthorized response code from Yahoo.
+         */
+        RESPONSE_ERROR_ACCOUNT_NOT_AUTHORIZED("ACCOUNT_NOT_AUTHORIZED"),
 
-	/**
-	 * The profile endpoint for Yahoo.
-	 */
-	protected final String profileUriTemplate;
+        /**
+         * Invalid client response code from Yahoo.
+         */
+        RESPONSE_ERROR_INVALID_CLIENT("INVALID_CLIENT"),
 
-	/**
-	 * Yahoo client id.
-	 */
-	protected final String clientId;
+        /**
+         * Invalid client secret response code from Yahoo.
+         */
+        RESPONSE_ERROR_INVALID_CLIENT_SECRET("INVALID_CLIENT_SECRET"),
 
-	/**
-	 * Yahoo client secret.
-	 */
-	protected final String clientSecret;
+        /**
+         * Invalid redirect response code from Yahoo.
+         */
+        RESPONSE_ERROR_INVALID_REDIRECT_URI("INVALID_REDIRECT_URI"),
 
-	/**
-	 * Yahoo redirect uri.
-	 */
-	protected final String clientRedirectUri;
+        /**
+         * Invalid callback response code from Yahoo.
+         */
+        RESPONSE_ERROR_INVALID_CALLBACK("INVALID_CALLBACK"),
 
-	/**
-	 * Default yahoo relay key.
-	 */
-	protected final String relayKey;
+        /**
+         * Invalid refresh token response code from Yahoo.
+         */
+        RESPONSE_ERROR_INVALID_REFRESH_TOKEN("INVALID_REFRESH_TOKEN"),
 
-	/**
-	 * DataSource handler for Yahoo.
-	 */
-	protected final OAuthDataSource dataSource;
+        /**
+         * Invalid authorization code response code from Yahoo.
+         */
+        RESPONSE_ERROR_INVALID_AUTHORIZATION_CODE("INVALID_AUTHORIZATION_CODE"),
 
-	/**
-	 * Contains constants used in this implementation.
-	 */
-	protected class YahooConstants {
+        /**
+         * Invalid grant response code from Yahoo.
+         */
+        RESPONSE_ERROR_INVALID_GRANT("INVALID_GRANT"),
 
-		/**
-		 * Unauthorized response code from Yahoo.
-		 */
-		protected static final String RESPONSE_ERROR_ACCOUNT_NOT_AUTHORIZED = "ACCOUNT_NOT_AUTHORIZED";
+        /**
+         * Token expired response code from Yahoo.
+         */
+        RESPONSE_ERROR_TOKEN_EXPIRED("TOKEN_EXPIRED"),
 
-		/**
-		 * Invalid client response code from Yahoo.
-		 */
-		protected static final String RESPONSE_ERROR_INVALID_CLIENT = "INVALID_CLIENT";
+        /**
+         * Default error.
+         */
+        DEFAULT_ERROR("DEFAULT_ERROR");
 
-		/**
-		 * Invalid client secret response code from Yahoo.
-		 */
-		protected static final String RESPONSE_ERROR_INVALID_CLIENT_SECRET = "INVALID_CLIENT_SECRET";
+        /**
+         * The value of this enum.
+         */
+        private String constant;
 
-		/**
-		 * Invalid redirect response code from Yahoo.
-		 */
-		protected static final String RESPONSE_ERROR_INVALID_REDIRECT_URI = "INVALID_REDIRECT_URI";
+        /**
+         * @return The enum value
+         */
+        public String getValue() {
+            return constant;
+        }
 
-		/**
-		 * Invalid callback response code from Yahoo.
-		 */
-		protected static final String RESPONSE_ERROR_INVALID_CALLBACK = "INVALID_CALLBACK";
+        /**
+         * @param constant The enum value to set
+         */
+        private YahooErrorConstants(String constant) {
+            this.constant = constant;
+        }
 
-		/**
-		 * Invalid refresh token response code from Yahoo.
-		 */
-		protected static final String RESPONSE_ERROR_INVALID_REFRESH_TOKEN = "INVALID_REFRESH_TOKEN";
+        /**
+         * ValueOf wrapper for constants.
+         *
+         * @param code The code to check for
+         * @return Enum instance
+         */
+        protected static YahooErrorConstants fromString(String code) {
+            for (final YahooErrorConstants t : YahooErrorConstants.values()) {
+                if (StringUtils.equals(t.getValue(), code)) {
+                    return t;
+                }
+            }
+            return DEFAULT_ERROR;
+        }
+    }
 
-		/**
-		 * Invalid authorization code response code from Yahoo.
-		 */
-		protected static final String RESPONSE_ERROR_INVALID_AUTHORIZATION_CODE = "INVALID_AUTHORIZATION_CODE";
+    /**
+     * Contains contact constants used in this implementation.
+     */
+    protected enum YahooContactConstants {
 
-		/**
-		 * Invalid grant response code from Yahoo.
-		 */
-		protected static final String RESPONSE_ERROR_INVALID_GRANT = "INVALID_GRANT";
+        /**
+         * The contacts uri for Yahoo.
+         */
+        CONTACTS_URI_TEMPLATE("https://social.yahooapis.com/v1/user/%s/contacts?format=%s&view=sync&rev=%d"),
 
-		/**
-		 * Token expired response code from Yahoo.
-		 */
-		protected static final String RESPONSE_ERROR_TOKEN_EXPIRED = "TOKEN_EXPIRED";
+        /**
+         * The contacts image name for Yahoo.
+         */
+        CONTACTS_IMAGE_NAME("yahoo-profile-image");
 
-		// LC Yahoo
-		public static final String LC_OAUTH_AUTHORIZE_URI_TEMPLATE = "zm_oauth_yahoo_authorize_uri_template";
-		public static final String LC_OAUTH_PROFILE_URI_TEMPLATE = "zm_oauth_yahoo_profile_uri_template";
-		public static final String LC_OAUTH_AUTHENTICATE_URI = "zm_oauth_yahoo_authenticate_uri";
-		public static final String LC_OAUTH_CLIENT_ID = "zm_oauth_yahoo_client_id";
-		public static final String LC_OAUTH_CLIENT_SECRET = "zm_oauth_yahoo_client_secret";
-		public static final String LC_OAUTH_CLIENT_REDIRECT_URI = "zm_oauth_yahoo_client_redirect_uri";
-		public static final String LC_OAUTH_IMPORT_CLASS = "zm_oauth_yahoo_import_class";
-		public static final String LC_OAUTH_RELAY_KEY = "zm_oauth_yahoo_relay_key";
-	}
+        /**
+         * The value of this enum.
+         */
+        private String constant;
 
-	/**
-	 * Constructs a YahooOAuth2Handler object.
-	 *
-	 * @param config For accessing configured properties
-	 */
-	public YahooOAuth2Handler(Configuration config) {
-		super(config);
-		authorizeUriTemplate = config.getString(YahooConstants.LC_OAUTH_AUTHORIZE_URI_TEMPLATE);
-		authenticateUri = config.getString(YahooConstants.LC_OAUTH_AUTHENTICATE_URI);
-		profileUriTemplate = config.getString(YahooConstants.LC_OAUTH_PROFILE_URI_TEMPLATE);
-		clientId = config.getString(YahooConstants.LC_OAUTH_CLIENT_ID);
-		clientSecret = config.getString(YahooConstants.LC_OAUTH_CLIENT_SECRET);
-		clientRedirectUri = config.getString(YahooConstants.LC_OAUTH_CLIENT_REDIRECT_URI);
-		relayKey = config.getString(YahooConstants.LC_OAUTH_RELAY_KEY, OAuth2Constants.OAUTH2_RELAY_KEY);
-		dataSource = OAuthDataSource.createDataSource(ZDataSource.SOURCE_HOST_YAHOO);
-	}
+        /**
+         * @return The enum value
+         */
+        public String getValue() {
+            return constant;
+        }
 
-	@Override
-	public String authorize(String relayState) throws GenericOAuthException {
-		final String responseType = "code";
-		String encodedRedirectUri = "";
-		try {
-			encodedRedirectUri = URLEncoder.encode(clientRedirectUri, OAuth2Constants.ENCODING);
-		} catch (final UnsupportedEncodingException e) {
-			ZimbraLog.extensions.error("Invalid redirect URI found in client config.", e);
-			throw new ConfigurationException("Invalid redirect URI found in client config.");
-		}
+        /**
+         * @param constant The enum value to set
+         */
+        private YahooContactConstants(String constant) {
+            this.constant = constant;
+        }
 
-		String relayParam = "%s";
-		String relayValue = "";
-		String relay = StringUtils.defaultString(relayState, "");
+    }
 
-		if (!relay.isEmpty()) {
-			try {
-				relay = URLDecoder.decode(relay, OAuth2Constants.ENCODING);
-			} catch (final UnsupportedEncodingException e) {
-				throw new InvalidOperationException("Unable to decode relay parameter.");
-			}
+    /**
+     * Contains oauth2 constants used in this implementation.
+     */
+    protected enum YahooOAuth2Constants {
 
-			try {
-				relayParam = "&" + relayKey + "=%s";
-				relayValue = URLEncoder.encode(relay, OAuth2Constants.ENCODING);
-			} catch (final UnsupportedEncodingException e) {
-				throw new InvalidOperationException("Unable to encode relay parameter.");
-			}
-		}
-		return String.format(authorizeUriTemplate + relayParam, clientId, encodedRedirectUri, responseType, relayValue);
-	}
+        /**
+         * The authorize endpoint for Yahoo.
+         */
+        AUTHORIZE_URI_TEMPLATE("https://api.login.yahoo.com/oauth2/request_auth?client_id=%s&redirect_uri=%s&response_type=%s"),
 
-	@Override
-	public Boolean authenticate(OAuthInfo oauthInfo) throws GenericOAuthException {
-		oauthInfo.setClientId(clientId);
-		oauthInfo.setClientSecret(clientSecret);
-		final HttpClientContext context = HttpClientContext.create();
-		final JsonNode credentials = authenticateRequest(oauthInfo, clientRedirectUri, context);
+        /**
+         * The profile endpoint for Yahoo.
+         */
+        PROFILE_URI("https://social.yahooapis.com/v1/user/%s/profile"),
 
-		final String accessToken = credentials.get("access_token").asText();
-		final String username = getPrimaryEmail(credentials.get("xoauth_yahoo_guid").asText(), accessToken, context);
-		;
+        /**
+         * The authenticate endpoint for Yahoo.
+         */
+        AUTHENTICATE_URI("https://api.login.yahoo.com/oauth2/get_token"),
 
-		// get zimbra mailbox
-		final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken());
+        /**
+         * The relay key for Yahoo.
+         */
+        RELAY_KEY("state"),
 
-		// store username, zimbraAccountId, refreshToken
-		oauthInfo.setUsername(username);
-		oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
-		dataSource.updateCredentials(mailbox, oauthInfo, storageFolderId);
-		return true;
-	}
+        /**
+         * The guid key for Yahoo.
+         */
+        GUID_KEY("xoauth_yahoo_guid"),
 
-	@Override
-	public Boolean refresh(OAuthInfo oauthInfo) throws GenericOAuthException {
-		oauthInfo.setClientId(clientId);
-		oauthInfo.setClientSecret(clientSecret);
-		final HttpClientContext context = HttpClientContext.create();
+        /**
+         * The implementation name.
+         */
+        CLIENT_NAME("yahoo");
 
-		// get zimbra mailbox
-		final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken());
+        /**
+         * The value of this enum.
+         */
+        private String constant;
 
-		// get refreshToken from DataSource with end service username (user@yahoo.com)
-		final String refreshToken = dataSource.getRefreshToken(mailbox, oauthInfo.getUsername());
+        /**
+         * @return The enum value
+         */
+        public String getValue() {
+            return constant;
+        }
 
-		// invalid operation if no refresh token stored for the user
-		if (StringUtils.isEmpty(refreshToken)) {
-			throw new InvalidOperationException("The specified user has no stored refresh token.");
-		}
+        /**
+         * @param constant The enum value to set
+         */
+        private YahooOAuth2Constants(String constant) {
+            this.constant = constant;
+        }
 
-		// add refreshToken to oauthInfo, call authenticateRequest
-		oauthInfo.setRefreshToken(refreshToken);
-		final JsonNode credentials = authenticateRequest(oauthInfo, clientRedirectUri, context);
+    }
 
-		// update credentials
-		oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
-		dataSource.updateCredentials(mailbox, oauthInfo, storageFolderId);
-		return true;
-	}
+    /**
+     * Constructs a YahooOAuth2Handler object.
+     *
+     * @param config For accessing configured properties
+     */
+    public YahooOAuth2Handler(Configuration config) {
+        super(config, YahooOAuth2Constants.CLIENT_NAME.getValue(), ZDataSource.SOURCE_HOST_YAHOO);
+        authenticateUri = YahooOAuth2Constants.AUTHENTICATE_URI.getValue();
+        authorizeUriTemplate = YahooOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue();
+        relayKey = YahooOAuth2Constants.RELAY_KEY.getValue();
+        // add associated import classes
+        dataSource.addImportClass(DataSourceType.oauth2contact.name(),
+            YahooContactsImport.class.getCanonicalName());
+    }
 
-	/**
-	 * Builds the HTTP request for authentication.
-	 *
-	 * @param authInfo Contains the auth info to use in the request
-	 * @param redirectUri The user's redirect uri
-	 * @param context The HTTP context
-	 * @return Json response from the endpoint
-	 * @throws GenericOAuthException If there are issues performing the request or parsing for json
-	 */
-	protected JsonNode authenticateRequest(OAuthInfo authInfo, String redirectUri, HttpClientContext context) throws GenericOAuthException {
-		final String clientId = authInfo.getClientId();
-		final String clientSecret = authInfo.getClientSecret();
-		final String basicToken = Base64.getEncoder().encodeToString(new String(clientId + ":" + clientSecret).getBytes());
-		final String code = authInfo.getParam("code");
-		final String refreshToken = authInfo.getRefreshToken();
-		final HttpPost request = new HttpPost(authenticateUri);
-		final List<NameValuePair> params = new ArrayList<NameValuePair>();
-		if (!StringUtils.isEmpty(refreshToken)) {
-			// set refresh token if we have one
-			params.add(new BasicNameValuePair("grant_type", "refresh_token"));
-			params.add(new BasicNameValuePair("refresh_token", refreshToken));
-		} else {
-			// otherwise use the code
-			params.add(new BasicNameValuePair("grant_type", "authorization_code"));
-			params.add(new BasicNameValuePair("code", code));
-		}
-		params.add(new BasicNameValuePair("redirect_uri", redirectUri));
-		params.add(new BasicNameValuePair("client_secret", clientSecret));
-		params.add(new BasicNameValuePair("client_id", clientId));
-		request.setHeader("Content-Type", "application/x-www-form-urlencoded");
-		request.setHeader("Authorization", "Basic " + basicToken);
-		JsonNode json = null;
-		try {
-			request.setEntity(new UrlEncodedFormEntity(params));
-			json = executeRequestForJson(request, context);
-		} catch (final IOException e) {
-			ZimbraLog.extensions.error("There was an issue acquiring the authorization token.", e);
-			throw new UserUnauthorizedException("There was an issue acquiring an authorization token for this user.");
-		}
+    /**
+     * Validates that the token response has no errors, and contains the
+     * requested access information.
+     *
+     * @param response The json token response
+     * @throws ServiceException<br>
+     *             FORBIDDEN If the user has no authorization credentials.<br>
+     *             OPERATION_DENIED If the refresh token was deemed invalid, or
+     *             incorrect redirect uri.<br>
+     *             If the client id or client secret are incorrect.<br>
+     *             PARSE_ERROR If the response from Yahoo has no errors, but the
+     *             access info is missing.<br>
+     *             PERM_DENIED If the refresh token or code is expired, or for
+     *             general rejection.
+     */
+    @Override
+    protected void validateTokenResponse(JsonNode response) throws ServiceException {
+        // check for errors
+        if (response.has("error")) {
+            final String error = response.get("error").asText();
+            final JsonNode errorMsg = response.get("error_description");
+            switch (YahooErrorConstants.fromString(StringUtils.upperCase(error))) {
+            case RESPONSE_ERROR_ACCOUNT_NOT_AUTHORIZED:
+                ZimbraLog.extensions
+                    .info("User did not provide authorization for this service: " + errorMsg);
+                throw ServiceException
+                    .FORBIDDEN("User did not provide authorization for this service.");
+            case RESPONSE_ERROR_INVALID_REDIRECT_URI:
+                ZimbraLog.extensions.info(
+                    "Redirect does not match the one found in authorization request: " + errorMsg);
+                throw ServiceException.OPERATION_DENIED(
+                    "Redirect does not match the one found in authorization request.");
+            case RESPONSE_ERROR_INVALID_CALLBACK:
+                ZimbraLog.extensions
+                    .warn("Redirect does not match the configured one expected by the server: "
+                        + errorMsg);
+                throw ServiceException.OPERATION_DENIED(
+                    "Redirect does not match the configured one expected by the server.");
+            case RESPONSE_ERROR_INVALID_REFRESH_TOKEN:
+                ZimbraLog.extensions.debug("Invalid refresh token used: " + errorMsg);
+                throw ServiceException.PERM_DENIED("Refresh token is invalid.");
+            case RESPONSE_ERROR_INVALID_AUTHORIZATION_CODE:
+            case RESPONSE_ERROR_INVALID_GRANT:
+                ZimbraLog.extensions.debug("Invalid authorization token used: " + errorMsg);
+                throw ServiceException.PERM_DENIED(
+                    "Authorization token is expired or invalid. Unable to authenticate the user.");
+            case RESPONSE_ERROR_TOKEN_EXPIRED:
+                ZimbraLog.extensions.debug("Refresh token is expired: " + errorMsg);
+                throw ServiceException
+                    .PERM_DENIED("Refresh token is expired. Unable to authenticate the user.");
+            case RESPONSE_ERROR_INVALID_CLIENT:
+            case RESPONSE_ERROR_INVALID_CLIENT_SECRET:
+                ZimbraLog.extensions.warn(
+                    "Invalid client or client secret provided to the social service: " + errorMsg);
+                throw ServiceException
+                    .OPERATION_DENIED("Invalid client details provided to the social service.");
+            default:
+                ZimbraLog.extensions
+                    .warn("Unexpected error while trying to authenticate the user: " + errorMsg);
+                throw ServiceException.PERM_DENIED("Unable to authenticate the user.");
+            }
+        }
 
-		// ensure the response contains the necessary credentials
-		validateAuthenticateResponse(json);
+        // ensure the tokens we requested are present
+        if (!response.has("access_token") || !response.has("refresh_token")
+            || !response.has(YahooOAuth2Constants.GUID_KEY.getValue())) {
+            throw ServiceException.PARSE_ERROR("Unexpected response from social service.", null);
+        }
 
-		return json;
-	}
+    }
 
-	/**
-	 * Validates that the response from authenticate has no errors, and contains the
-	 * requested access information.
-	 *
-	 * @param response The json response from authenticate
-	 * @throws InvalidOperationException If the refresh token was deemed invalid, or incorrect redirect uri
-	 * @throws UserUnauthorizedException If the refresh token or code is expired, or for general rejection
-	 * @throws UserForbiddenException If the user did not provide authorization for the same client Id used in the authenticate
-	 * @throws InvalidResponseException If the response from Yahoo has no errors, but the access info is missing
-	 * @throws ConfigurationException If the client id or client secret are incorrect
-	 * @throws GenericOAuthException If there are issues with the response
-	 */
-	protected void validateAuthenticateResponse(JsonNode response) throws GenericOAuthException {
-		// check for errors
-		if (response.has("error")) {
-			final String error = response.get("error").asText();
-			final JsonNode errorMsg = response.get("error_description");
-			switch (error) {
-				case YahooConstants.RESPONSE_ERROR_ACCOUNT_NOT_AUTHORIZED:
-					ZimbraLog.extensions.info("User did not provide authorization for this service: " + errorMsg);
-					throw new UserForbiddenException("User did not provide authorization for this service.");
-				case YahooConstants.RESPONSE_ERROR_INVALID_REDIRECT_URI:
-					ZimbraLog.extensions.info("Redirect does not match the one found in authorization request: " + errorMsg);
-					throw new InvalidOperationException("Redirect does not match the one found in authorization request.");
-				case YahooConstants.RESPONSE_ERROR_INVALID_CALLBACK:
-					ZimbraLog.extensions.warn("Redirect does not match the configured one expected by the server: " + errorMsg);
-					throw new InvalidOperationException("Redirect does not match the configured one expected by the server.");
-				case YahooConstants.RESPONSE_ERROR_INVALID_REFRESH_TOKEN:
-					ZimbraLog.extensions.debug("Invalid refresh token used: " + errorMsg);
-					throw new InvalidOperationException("Refresh token is invalid.");
-				case YahooConstants.RESPONSE_ERROR_INVALID_AUTHORIZATION_CODE:
-				case YahooConstants.RESPONSE_ERROR_INVALID_GRANT:
-					ZimbraLog.extensions.debug("Invalid authorization token used: " + errorMsg);
-					throw new UserUnauthorizedException("Authorization token is expired or invalid. Unable to authenticate the user.");
-				case YahooConstants.RESPONSE_ERROR_TOKEN_EXPIRED:
-					ZimbraLog.extensions.debug("Refresh token is expired: " + errorMsg);
-					throw new UserUnauthorizedException("Refresh token is expired. Unable to authenticate the user.");
-				case YahooConstants.RESPONSE_ERROR_INVALID_CLIENT:
-				case YahooConstants.RESPONSE_ERROR_INVALID_CLIENT_SECRET:
-					ZimbraLog.extensions.warn("Invalid client or client secret provided to mail server: " + errorMsg );
-					throw new ConfigurationException("Invalid client details provided to mail server.");
-				default:
-					ZimbraLog.extensions.warn("Unexpected error while trying to authenticate the user: " + errorMsg);
-					throw new UserUnauthorizedException("Unable to authenticate the user.");
-			}
-		}
+    /**
+     * Retrieves the primary email of the user from the profile api.
+     *
+     * @see OAuth2Handler#getPrimaryEmail(JsonNode, Account)
+     */
+    @Override
+    protected String getPrimaryEmail(JsonNode credentials, Account acct) throws ServiceException {
+        final String guid = credentials.get(YahooOAuth2Constants.GUID_KEY.getValue()).asText();
+        final String authToken = credentials.get("access_token").asText();
+        final String url = String.format(YahooOAuth2Constants.PROFILE_URI.getValue(), guid);
+        final GetMethod request = new GetMethod(url);
+        request.setRequestHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
+            "application/x-www-form-urlencoded");
+        request.setRequestHeader(OAuth2HttpConstants.HEADER_ACCEPT.getValue(), "application/json");
+        request.setRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
+            "Bearer " + authToken);
 
-		// ensure the tokens we requested are present
-		if (!response.has("access_token") || !response.has("refresh_token") || !response.has("xoauth_yahoo_guid")) {
-			throw new InvalidResponseException("Unexpected response from mail server.");
-		}
+        JsonNode json = null;
+        try {
+            json = executeRequestForJson(request);
+        } catch (final IOException e) {
+            ZimbraLog.extensions.errorQuietly("There was an issue acquiring the user's profile.",
+                e);
+            throw ServiceException.FAILURE("There was an issue acquiring the user's profile.",
+                null);
+        }
 
-	}
-
-	/**
-	 * Retrieves the primary email of the user with the specified guid and auth token.
-	 *
-	 * @param guid The identifier for the user
-	 * @param authToken The auth for the user
-	 * @param context The http context
-	 * @return The user's primary email
-	 * @throws GenericOAuthExcpetion If there are issues
-	 */
-	protected String getPrimaryEmail(String guid, String authToken, HttpClientContext context) throws GenericOAuthException
-	{
-		final String url = String.format(profileUriTemplate, guid);
-		final HttpGet request = new HttpGet(url);
-		request.setHeader("Content-Type", "application/x-www-form-urlencoded");
-		request.setHeader("Accept", "application/json");
-		request.setHeader("Authorization", "Bearer " + authToken);
-
-		JsonNode json = null;
-		try
-		{
-			json = executeRequestForJson(request, context);
-		}
-		catch (final IOException e)
-		{
-			ZimbraLog.extensions.error("There was an issue acquiring the user's profile.", e);
-			throw new GenericOAuthException("There was an issue acquiring the user's profile.");
-		}
-
-		final JsonNode profile = json.get("profile");
-		if (profile != null) {
-			final JsonNode profileEmails = profile.get("emails");
-			if (profileEmails != null && profileEmails.has(0)) {
-				final JsonNode profileHandle = profileEmails.get(0);
-				if (profileHandle.has("handle")) {
-					return profileHandle.get("handle").asText();
-				}
-			}
-		}
-		// if we couldn't retrieve the handle email, the response from downstream is missing data
-		// this could be the result of a misconfigured application id/secret (not enough scopes)
-		ZimbraLog.extensions.error("The primary email could not be retrieved from the profile api.");
-		throw new InvalidResponseException("The primary email could not be retrieved from the profile api.");
-	}
+        final JsonNode profile = json.get("profile");
+        if (profile != null) {
+            final JsonNode profileEmails = profile.get("emails");
+            if (profileEmails != null && profileEmails.has(0)) {
+                final JsonNode profileHandle = profileEmails.get(0);
+                if (profileHandle.has("handle")) {
+                    return profileHandle.get("handle").asText();
+                }
+            }
+        }
+        // if we couldn't retrieve the handle email, the response from
+        // downstream is missing data
+        // this could be the result of a misconfigured application id/secret
+        // (not enough scopes)
+        ZimbraLog.extensions
+            .error("The primary email could not be retrieved from the profile api.");
+        throw ServiceException.UNSUPPORTED();
+    }
 
 }

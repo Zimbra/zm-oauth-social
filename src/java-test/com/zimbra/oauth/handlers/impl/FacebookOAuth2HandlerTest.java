@@ -14,6 +14,7 @@
  * If not, see <https://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK *****
  */
+
 package com.zimbra.oauth.handlers.impl;
 
 import static org.easymock.EasyMock.anyObject;
@@ -41,7 +42,7 @@ import org.powermock.reflect.Whitebox;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.cs.account.Account;
-import com.zimbra.oauth.handlers.impl.OutlookOAuth2Handler.OutlookOAuth2Constants;
+import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookOAuth2Constants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
@@ -50,17 +51,17 @@ import com.zimbra.oauth.utilities.OAuth2DataSource;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
 
 /**
- * Test class for {@link OutlookOAuth2Handler}.
+ * Test class for {@link FacebookOAuth2Handler}.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ OAuth2DataSource.class, OAuth2Handler.class, OutlookOAuth2Handler.class, ZMailbox.class })
+@PrepareForTest({ OAuth2DataSource.class, OAuth2Handler.class, FacebookOAuth2Handler.class, ZMailbox.class })
 @SuppressStaticInitializationFor("com.zimbra.client.ZMailbox")
-public class OutlookOAuth2HandlerTest {
+public class FacebookOAuth2HandlerTest {
 
     /**
      * Class under test.
      */
-    protected OutlookOAuth2Handler handler;
+    protected FacebookOAuth2Handler handler;
 
     /**
      * Mock configuration handler property.
@@ -99,32 +100,32 @@ public class OutlookOAuth2HandlerTest {
      */
     @Before
     public void setUp() throws Exception {
-        handler = PowerMock.createPartialMockForAllMethodsExcept(OutlookOAuth2Handler.class,
+        handler = PowerMock.createPartialMockForAllMethodsExcept(FacebookOAuth2Handler.class,
             "authorize", "authenticate");
         Whitebox.setInternalState(handler, "config", mockConfig);
-        Whitebox.setInternalState(handler, "relayKey", OutlookOAuth2Constants.RELAY_KEY.getValue());
+        Whitebox.setInternalState(handler, "relayKey", FacebookOAuth2Constants.RELAY_KEY.getValue());
         Whitebox.setInternalState(handler, "typeKey",
             OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue());
         Whitebox.setInternalState(handler, "authenticateUri",
-            OutlookOAuth2Constants.AUTHENTICATE_URI.getValue());
+            FacebookOAuth2Constants.AUTHENTICATE_URI.getValue());
         Whitebox.setInternalState(handler, "authorizeUriTemplate",
-            OutlookOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue());
+            FacebookOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue());
         Whitebox.setInternalState(handler, "requiredScopes",
-            OutlookOAuth2Constants.REQUIRED_SCOPES.getValue());
+            FacebookOAuth2Constants.REQUIRED_SCOPES.getValue());
         Whitebox.setInternalState(handler, "scopeDelimiter",
-            OutlookOAuth2Constants.SCOPE_DELIMITER.getValue());
-        Whitebox.setInternalState(handler, "client", OutlookOAuth2Constants.CLIENT_NAME.getValue());
+            FacebookOAuth2Constants.SCOPE_DELIMITER.getValue());
+        Whitebox.setInternalState(handler, "client", FacebookOAuth2Constants.CLIENT_NAME.getValue());
         Whitebox.setInternalState(handler, "dataSource", mockDataSource);
     }
 
     /**
-     * Test method for {@link OutlookOAuth2Handler#OutlookOAuth2Handler}<br>
+     * Test method for {@link FacebookOAuth2Handler#FacebookOAuth2Handler}<br>
      * Validates that the constructor configured some necessary properties.
      *
      * @throws Exception If there are issues testing
      */
     @Test
-    public void testOutlookOAuth2Handler() throws Exception {
+    public void testFacebookOAuth2Handler() throws Exception {
         final OAuth2DataSource mockDataSource = EasyMock.createMock(OAuth2DataSource.class);
 
         expect(mockConfig.getString(OAuth2ConfigConstants.LC_HOST_URI_TEMPLATE.getValue(),
@@ -133,20 +134,20 @@ public class OutlookOAuth2HandlerTest {
         expect(mockConfig.getString(OAuth2ConfigConstants.LC_ZIMBRA_SERVER_HOSTNAME.getValue()))
             .andReturn(hostname);
         PowerMock.mockStatic(OAuth2DataSource.class);
-        expect(OAuth2DataSource.createDataSource(OutlookOAuth2Constants.CLIENT_NAME.getValue(),
-            OutlookOAuth2Constants.HOST_OUTLOOK.getValue())).andReturn(mockDataSource);
+        expect(OAuth2DataSource.createDataSource(FacebookOAuth2Constants.CLIENT_NAME.getValue(),
+            FacebookOAuth2Constants.HOST_FACEBOOK.getValue())).andReturn(mockDataSource);
 
         replay(mockConfig);
         PowerMock.replay(OAuth2DataSource.class);
 
-        new OutlookOAuth2Handler(mockConfig);
+        new FacebookOAuth2Handler(mockConfig);
 
         verify(mockConfig);
         PowerMock.verify(OAuth2DataSource.class);
     }
 
     /**
-     * Test method for {@link OutlookOAuth2Handler#authorize}<br>
+     * Test method for {@link FacebookOAuth2Handler#authorize}<br>
      * Validates that the authorize method returns a location with an encoded
      * redirect uri.
      *
@@ -160,13 +161,13 @@ public class OutlookOAuth2HandlerTest {
         final Map<String, String> params = new HashMap<String, String>();
         params.put(OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue(), "contact");
         final String authorizeBase = String.format(
-            OutlookOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code",
-            OutlookOAuth2Constants.REQUIRED_SCOPES.getValue());
+            FacebookOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code",
+            FacebookOAuth2Constants.REQUIRED_SCOPES.getValue());
         // expect a contact state with no relay
         final String expectedAuthorize = authorizeBase + "&state=;contact";
 
         // expect buildAuthorize call
-        expect(handler.buildAuthorizeUri(OutlookOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(),
+        expect(handler.buildAuthorizeUri(FacebookOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(),
             null, "contact")).andReturn(authorizeBase);
 
         replay(handler);
@@ -181,47 +182,47 @@ public class OutlookOAuth2HandlerTest {
     }
 
     /**
-     * Test method for {@link OutlookOAuth2Handler#authenticate}<br>
+     * Test method for {@link FacebookOAuth2Handler#authenticate}<br>
      * Validates that the authenticate method calls sync datasource.
      *
      * @throws Exception If there are issues testing
      */
     @Test
     public void testAuthenticate() throws Exception {
-        final String username = "test-user@localhost";
-        final String refreshToken = "refresh-token";
+        final String user_id = "1234567890";
+        final String accessToken = "access-token";
         final String zmAuthToken = "zm-auth-token";
         final OAuthInfo mockOAuthInfo = EasyMock.createMock(OAuthInfo.class);
         final ZMailbox mockZMailbox = EasyMock.createMock(ZMailbox.class);
         final JsonNode mockCredentials = EasyMock.createMock(JsonNode.class);
-        final JsonNode mockCredentialsRToken = EasyMock.createMock(JsonNode.class);
+        final JsonNode mockCredentialsAToken = EasyMock.createMock(JsonNode.class);
 
         PowerMock.mockStatic(OAuth2Handler.class);
 
         expect(mockOAuthInfo.getAccount()).andReturn(null);
         expect(mockConfig.getString(
             matches(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(),
-                OutlookOAuth2Constants.CLIENT_NAME.getValue())),
-            matches(OutlookOAuth2Constants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientId);
+                FacebookOAuth2Constants.CLIENT_NAME.getValue())),
+            matches(FacebookOAuth2Constants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientId);
         expect(mockConfig.getString(
             matches(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(),
-                OutlookOAuth2Constants.CLIENT_NAME.getValue())),
-            matches(OutlookOAuth2Constants.CLIENT_NAME.getValue()), anyObject())).andReturn(clientSecret);
+                FacebookOAuth2Constants.CLIENT_NAME.getValue())),
+            matches(FacebookOAuth2Constants.CLIENT_NAME.getValue()), anyObject()))
+                .andReturn(clientSecret);
         expect(mockConfig.getString(
             matches(String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(),
-                OutlookOAuth2Constants.CLIENT_NAME.getValue())),
-            matches(OutlookOAuth2Constants.CLIENT_NAME.getValue()), anyObject()))
+                FacebookOAuth2Constants.CLIENT_NAME.getValue())),
+            matches(FacebookOAuth2Constants.CLIENT_NAME.getValue()), anyObject()))
                 .andReturn(clientRedirectUri);
         expect(handler.getZimbraMailbox(anyObject(String.class))).andReturn(mockZMailbox);
-        expect(handler.getDatasourceCustomAttrs(anyObject())).andReturn(null);
         expect(OAuth2Handler.getTokenRequest(anyObject(OAuthInfo.class), anyObject(String.class)))
             .andReturn(mockCredentials);
-        handler.validateTokenResponse(anyObject());
+        handler.validateTokenResponse(anyObject(JsonNode.class));
         EasyMock.expectLastCall().once();
-        expect(mockCredentials.get("refresh_token")).andReturn(mockCredentialsRToken);
-        expect(mockCredentialsRToken.asText()).andReturn(refreshToken);
+        expect(mockCredentials.get("access_token")).andReturn(mockCredentialsAToken);
+        expect(mockCredentialsAToken.asText()).andReturn(accessToken);
         expect(handler.getPrimaryEmail(anyObject(JsonNode.class), anyObject(Account.class)))
-            .andReturn(username);
+            .andReturn(user_id);
 
         mockOAuthInfo.setClientId(matches(clientId));
         EasyMock.expectLastCall().once();
@@ -229,12 +230,12 @@ public class OutlookOAuth2HandlerTest {
         EasyMock.expectLastCall().once();
         mockOAuthInfo.setClientRedirectUri(matches(clientRedirectUri));
         EasyMock.expectLastCall().once();
-        mockOAuthInfo.setTokenUrl(matches(OutlookOAuth2Constants.AUTHENTICATE_URI.getValue()));
+        mockOAuthInfo.setTokenUrl(matches(FacebookOAuth2Constants.AUTHENTICATE_URI.getValue()));
         EasyMock.expectLastCall().once();
         expect(mockOAuthInfo.getZmAuthToken()).andReturn(zmAuthToken);
-        mockOAuthInfo.setUsername(username);
+        mockOAuthInfo.setUsername(user_id);
         EasyMock.expectLastCall().once();
-        mockOAuthInfo.setRefreshToken(refreshToken);
+        mockOAuthInfo.setRefreshToken(accessToken);
         EasyMock.expectLastCall().once();
         mockDataSource.syncDatasource(mockZMailbox, mockOAuthInfo, null);
         EasyMock.expectLastCall().once();
@@ -244,7 +245,7 @@ public class OutlookOAuth2HandlerTest {
         replay(mockOAuthInfo);
         replay(mockConfig);
         replay(mockCredentials);
-        replay(mockCredentialsRToken);
+        replay(mockCredentialsAToken);
         replay(mockDataSource);
 
         handler.authenticate(mockOAuthInfo);
@@ -254,7 +255,7 @@ public class OutlookOAuth2HandlerTest {
         verify(mockOAuthInfo);
         verify(mockConfig);
         verify(mockCredentials);
-        verify(mockCredentialsRToken);
+        verify(mockCredentialsAToken);
         verify(mockDataSource);
     }
 

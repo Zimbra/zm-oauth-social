@@ -1,107 +1,271 @@
+/*
+ * ***** BEGIN LICENSE BLOCK *****
+ * Zimbra OAuth Social Extension
+ * Copyright (C) 2018 Synacor, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software Foundation,
+ * version 2 of the License.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License along with this program.
+ * If not, see <https://www.gnu.org/licenses/>.
+ * ***** END LICENSE BLOCK *****
+ */
 package com.zimbra.oauth.models;
 
 import java.util.Map;
 
+import com.zimbra.cs.account.Account;
+
+/**
+ * The OAuthInfo class.<br>
+ * Contains OAuth related data.
+ *
+ * @author Zimbra API Team
+ * @package com.zimbra.oauth.models
+ * @copyright Copyright © 2018
+ */
 public class OAuthInfo {
 
-	protected String clientId;
+    /**
+     * A client id.
+     */
+    protected String clientId;
 
-	protected String clientSecret;
+    /**
+     * A client secret.
+     */
+    protected String clientSecret;
 
-	protected String accessToken;
+    /**
+     * A client redirect uri.
+     */
+    protected String clientRedirectUri;
 
-	protected String refreshToken;
+    /**
+     * An access token.
+     */
+    protected String accessToken;
 
-	protected String zmAuthToken;
+    /**
+     * A refresh token.
+     */
+    protected String refreshToken;
 
-	protected String username;
+    /**
+     * A Zimbra auth token.
+     */
+    protected String zmAuthToken;
 
-	protected long timestamp;
+    /**
+     * A username.
+     */
+    protected String username;
 
-	protected long expires;
+    /**
+     * A token url.
+     */
+    protected String tokenUrl;
 
-	protected String refreshUrl;
+    /**
+     * A map of parameters.
+     */
+    protected Map<String, String> params;
 
-	protected Map<String, String> params;
+    /**
+     * User account
+     */
+    protected Account account;
 
-	public OAuthInfo(Map<String, String> params) {
-		this.params = params;
-	}
+    /**
+     * Constructor.
+     *
+     * @param params A map of parameters.
+     */
+    public OAuthInfo(Map<String, String> params) {
+        this.params = params;
+    }
 
-	public String getClientId() {
-		return clientId;
-	}
+    /**
+     * Get the clientId.
+     *
+     * @return clientId A client id
+     */
+    public String getClientId() {
+        return clientId;
+    }
 
-	public void setClientId(String clientId) {
-		this.clientId = clientId;
-	}
+    /**
+     * Set the clientId.
+     *
+     * @param clientId A client id
+     */
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
+    }
 
-	public String getClientSecret() {
-		return clientSecret;
-	}
+    /**
+     * Get the client secret.
+     *
+     * @return clientSecret A client secret
+     */
+    public String getClientSecret() {
+        return clientSecret;
+    }
 
-	public void setClientSecret(String clientSecret) {
-		this.clientSecret = clientSecret;
-	}
+    /**
+     * Set the client secret.
+     *
+     * @param clientSecret A client secret
+     */
+    public void setClientSecret(String clientSecret) {
+        this.clientSecret = clientSecret;
+    }
 
-	public String getParam(String key) {
-		return params.get(key);
-	}
+    /**
+     * Get the client redirect uri.
+     *
+     * @return clientRedirectUri A client redirect uri
+     */
+    public String getClientRedirectUri() {
+        return clientRedirectUri;
+    }
 
-	public String getAccessToken() {
-		return accessToken;
-	}
+    /**
+     * Set the client redirect uri.
+     *
+     * @param clientRedirectUri A client redirect uri
+     */
+    public void setClientRedirectUri(String clientRedirectUri) {
+        this.clientRedirectUri = clientRedirectUri;
+    }
 
-	public void setAccessToken(String accessToken) {
-		this.accessToken = accessToken;
-	}
+    /**
+     * Get a parameter value.
+     *
+     * @param key A key value
+     * @return The value associated with the provided key parameter
+     */
+    public String getParam(String key) {
+        return params.get(key);
+    }
 
-	public String getRefreshToken() {
-		return refreshToken;
-	}
+    /**
+     * Get the access token.
+     *
+     * @return accessToken The access token
+     */
+    public String getAccessToken() {
+        return accessToken;
+    }
 
-	public void setRefreshToken(String refreshToken) {
-		this.refreshToken = refreshToken;
-	}
+    /**
+     * Set the access token.
+     *
+     * @param An access token
+     */
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
+    }
 
-	public String getZmAuthToken() {
-		return zmAuthToken;
-	}
+    /**
+     * Get the refresh token.
+     *
+     * @return The refresh token
+     */
+    public String getRefreshToken() {
+        return refreshToken;
+    }
 
-	public void setZmAuthToken(String zmAuthToken) {
-		this.zmAuthToken = zmAuthToken;
-	}
+    /**
+     * Set the refresh token.
+     *
+     * @param refreshToken A refresh token
+     */
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
 
-	public String getUsername() {
-		return username;
-	}
+    /**
+     * Get the Zimbra auth token.
+     *
+     * @return The Zimbra auth token
+     */
+    public String getZmAuthToken() {
+        return zmAuthToken;
+    }
 
-	public void setUsername(String username) {
-		this.username = username;
-	}
+    /**
+     * Set the Zimbra auth token.
+     *
+     * @param zmAuthToken A Zimbra auth token
+     */
+    public void setZmAuthToken(String zmAuthToken) {
+        this.zmAuthToken = zmAuthToken;
+    }
 
-	public long getTimestamp() {
-		return timestamp;
-	}
+    /**
+     * Get the username.
+     *
+     * @return The username
+     */
+    public String getUsername() {
+        return username;
+    }
 
-	public void setTimestamp(long timestamp) {
-		this.timestamp = timestamp;
-	}
+    /**
+     * Set the username.
+     *
+     * @param username The username
+     */
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
-	public long getExpires() {
-		return expires;
-	}
+    /**
+     * Get the token url.
+     *
+     * @return The token url
+     */
+    public String getTokenUrl() {
+        return tokenUrl;
+    }
 
-	public void setExpires(long expires) {
-		this.expires = expires;
-	}
+    /**
+     * Set the token url.
+     *
+     * @param tokenUrl A token url
+     */
+    public void setTokenUrl(String tokenUrl) {
+        this.tokenUrl = tokenUrl;
+    }
 
-	public String getRefreshUrl() {
-		return refreshUrl;
-	}
+    /**
+     * Get the user account
+     * @return the user account
+     */
+    public Account getAccount() {
+        return account;
+    }
 
-	public void setRefreshUrl(String refreshUrl) {
-		this.refreshUrl = refreshUrl;
-	}
+    /**
+     * Set the user account
+     * @param account user account
+     */
+    public void setAccount(Account account) {
+        this.account = account;
+    }
+
+    @Override
+    public String toString() {
+        return String.format(
+            "OAuthInfo [clientId=%s, clientSecret=%s, clientRedirectUri=%s, accessToken=%s, refreshToken=%s, zmAuthToken=%s, username=%s, tokenUrl=%s, account=%s]",
+            clientId, "***", clientRedirectUri, accessToken, refreshToken, zmAuthToken,
+            username, tokenUrl, account);
+    }
+
 
 }

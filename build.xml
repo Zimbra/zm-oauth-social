@@ -1,11 +1,62 @@
 <?xml version="1.0"?>
-<project name="zm-oauth2" default="jar" xmlns:ivy="antlib:org.apache.ivy.ant">
+<project name="zm-oauth-social" default="jar" xmlns:ivy="antlib:org.apache.ivy.ant">
   <import file="../zm-zcs/ant-global.xml" />
   <!-- Properties -->
-  <property name="ext.class" value="com.zimbra.oauth.resources.OAuth2Extension" />
-  <property name="ext.name" value="zm-oauth2" />
+  <property name="ext.name" value="${ant.project.name}" />
+  <property name="zimbra.extension.class" value="com.zimbra.oauth.resources.OAuth2Extension" />
+  <property name="implementation.title" value="Extension with various OAuth2 authorization and authentication resources"/>
+  <property name="dist.lib.dir" location="${dist.dir}/lib"/>
+  <property name="dist.lib.ext.dir" location="${dist.lib.dir}/ext"/>
   <property name="build.dir" location="build"/>
   <property name="classes.dir" location="${build.dir}/classes"/>
+  <property name="extension.deploy.dir" location="${zimbra.home.dir}/lib/ext/${ext.name}"/>
+
+  <target name="build-init">
+    <mkdir dir="${build.classes.dir}"/>
+    <mkdir dir="${dist.dir}"/>
+    <mkdir dir="${dist.lib.dir}"/>
+    <mkdir dir="${dist.lib.ext.dir}"/>
+  </target>
+
+  <!-- builds the server extension jar -->
+  <target name="jar" depends="compile,zimbra-jar" description="Creates the jar file" />
+
+  <!-- deploy to the server extension directory -->
+  <target name="deploy" depends="jar">
+    <delete dir="${extension.deploy.dir}"/>
+    <mkdir dir="${extension.deploy.dir}"/>
+    <ivy:install organisation="com.auth0" module="java-jwt" revision="3.2.0" settingsRef="dev.settings" from="chain-resolver" to="build-dist" overwrite="true" transitive="true" type="jar"/>
+    <ivy:install organisation="com.fasterxml.jackson.core" module="jackson-annotations" revision="2.9.2" settingsRef="dev.settings" from="chain-resolver" to="build-dist" overwrite="true" transitive="true" type="jar"/>
+    <ivy:install organisation="com.fasterxml.jackson.core" module="jackson-core" revision="2.9.2" settingsRef="dev.settings" from="chain-resolver" to="build-dist" overwrite="true" transitive="true" type="jar"/>
+    <ivy:install organisation="com.fasterxml.jackson.core" module="jackson-databind" revision="2.9.2" settingsRef="dev.settings" from="chain-resolver" to="build-dist" overwrite="true" transitive="true" type="jar"/>
+    <echo> Copying ${build.dir}/${jar.file} and ${dist.dir}/*.jar to ${extension.deploy.dir}</echo>
+    <copy todir="${extension.deploy.dir}">
+      <fileset dir="${build.dir}" includes="${jar.file}" />
+      <fileset dir="${dist.dir}" includes="*.jar" />
+    </copy>
+  </target>
+
+  <!-- removes the server extension directory -->
+  <target name="undeploy">
+    <delete dir="${extension.deploy.dir}"/>
+  </target>
+
+  <!-- clean build directory -->
+  <target name="clean">
+    <delete dir="${build.dir}"/>
+  </target>
+
+  <!-- clean build directory and ivy cache -->
+  <target name="clean-all" depends="clean">
+    <ivy:cleancache/>
+  </target>
+
+  <!-- used by packaging scripts -->
+  <target name="dist" depends="jar" description="Copies jar to dist dir so that packaging scripts can pick it up from there">
+    <copy todir="${dist.lib.ext.dir}">
+      <fileset dir="${build.dir}" includes="${jar.file}" />
+    </copy>
+  </target>
 
   <!-- Doclet -->
   <target name="doclet" depends="jar,set-dev-version">
@@ -14,42 +65,11 @@
         <include name="com/zimbra/oauth/**" />
       </packageset>
       <doclet name="com.tenxerconsulting.swagger.doclet.ServiceDoclet" pathref="class.path">
-        <param name="-docBasePath" value="/zm-oauth2-docs-latest"/>
+        <param name="-docBasePath" value="/${ant.project.name}-docs-latest"/>
         <param name="-apiBasePath" value="/"/>
         <param name="-apiVersion" value="${dev.version}"/>
       </doclet>
     </javadoc>
   </target>
-	
-  <target name="deploy" depends="jar,set-dev-version">
-    <delete verbose="true">
-      <fileset dir="${extension.deploy.dir}" includes="${ant.project.name}*.jar" />
-    </delete>
-    <echo> Copying ${build.dir}/${jar.file} to ${extension.deploy.dir}</echo>
-    <copy todir="${extension.deploy.dir}">
-      <fileset dir="${build.dir}" includes="${jar.file}" />
-    </copy>
-  </target>
 
-  <!-- Clean Targets -->
-  <target name="clean">
-    <delete dir="${build.dir}"/>
-  </target>
-
-  <target name="clean-all" depends="clean">
-    <ivy:cleancache/>
-  </target>
-
-  <target name="dist" depends="jar" description="Copies jar to dist dir">
-    <copy todir="${extension.dist.dir}">
-      <fileset dir="${build.dir}" includes="${jar.file}" />
-    </copy>
-  </target>
-
-  <target name="jar" depends="compile" description="Creates the jar file">
-    <antcall target="zimbra-jar">
-      <param name="implementation.title" value="${ext.name}" />
-      <param name="zimbra.extension.class" value="${ext.class}" />
-    </antcall>
-  </target>
 </project>

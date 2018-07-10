@@ -16,29 +16,25 @@
  */
 package com.zimbra.oauth.utilities;
 
+
 /**
- * The OAuth2Constants class.<br>
- * OAuth2Constants contains application constants used in the project.
+ * The OAuth2ErrorConstants class.<br>
+ * OAuth2HttpConstants contains error-related constants used in the project.
  *
  * @author Zimbra API Team
  * @package com.zimbra.oauth.utilities
  * @copyright Copyright © 2018
  */
-public enum OAuth2Constants {
+public enum OAuth2ErrorConstants {
 
-    API_NAME("zm-oauth-social"),
-    ENCODING("utf-8"),
-    DEFAULT_SERVER_PATH("/oauth2"),
-
-    DEFAULT_SUCCESS_REDIRECT("/"),
-    DEFAULT_HOST_URI_TEMPLATE("https://%s:443"),
-    DEFAULT_OAUTH_FOLDER_TEMPLATE("%s-%s"),
-
-    DATASOURCE_POLLING_INTERVAL("1d"),
-
-    CONTACTS_IMAGE_BUFFER_SIZE("2048"),
-
-    PROPERTIES_NAME_APPLICATION("application");
+    ERROR_ACCESS_DENIED("access_denied"),
+    ERROR_INVALID_AUTH_CODE("invalid_auth_code"),
+    ERROR_INVALID_ZM_AUTH_CODE("invalid_zm_auth_code"),
+    ERROR_INVALID_ZM_AUTH_CODE_MSG("Invalid or missing Zimbra session."),
+    ERROR_AUTHENTICATION_ERROR("authentication_error"),
+    ERROR_UNHANDLED_ERROR("unhandled_error"),
+    ERROR_TYPE_MISSING("missing_type"),
+    ERROR_PARAM_MISSING("missing_param");
 
     /**
      * The value of this enum.
@@ -55,7 +51,7 @@ public enum OAuth2Constants {
     /**
      * @param constant The enum value to set
      */
-    private OAuth2Constants(String constant) {
+    private OAuth2ErrorConstants(String constant) {
         this.constant = constant;
     }
 }
