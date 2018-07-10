@@ -23,7 +23,7 @@ For testing purposes you can build and deploy the extension to `/opt/zimbra/lib/
 ant deploy
 ```
 
-Afterwards, add any necessary configuration to the `/opt/zimbra/conf/localconfig.xml` file, then become the `zimbra` user, and perform a `zmmailboxdctl restart`.
+Afterwards, configure ldap and localconfig as necessary, then become the `zimbra` user, and perform a `zmmailboxdctl restart`.
 
 **Testing from CLI**
 
@@ -39,7 +39,7 @@ ant test
 
 See the [documentation for api usage].
 
-After a user completes the oauth2 flow, the credentials for their account will be stored as a data source with a configured folder created in the user's root mailbox during authentication. An import can be triggered manually with a `zmsoap` import data request.
+After a user completes the oauth2 flow, the credentials for their account will be stored as a data source with a configured folder created in the user's root mailbox during authentication. The import it triggered after successful completion of the OAuth flow. An import can also be triggered manually with a `zmsoap` import data request.
 
 ---
 
@@ -55,7 +55,7 @@ See the [client setup wiki].
 | --- | ----------- | ----------- | -------- |
 | zimbraOAuthConsumerCredentials | OAuth credentials for a client, set at global config or domain level. | All | `<client-id>:<client-secret>:<client>` |
 | zimbraOAuthConsumerRedirectUri | The callback where the client returns the user too. | All | `http[s]://<domain[:port]>/service/extension/oauth2/authenticate/<client>:<client>` |
-| zimbraOAuthConsumerAPIScope | The scopes required to access user data. | Google, Facebook | `<scope1>,<scope2>,...:<client>` |
+| zimbraOAuthConsumerAPIScope | The scopes required to access user data. | Google, Facebook | `<scope1>+<scope2>+...:<client>` |
 
 ***Client specific scopes to use with the zimbraOAuthConsumerAPIScope config***
 
@@ -63,6 +63,8 @@ See the [client setup wiki].
 | ------ | ---------------------- |
 | Google | `https://www.googleapis.com/auth/contacts profile:google` |
 | Facebook | `user_friends,read_custom_friendlists,email,user_location,public_profile,user_about_me,user_birthday,groups_access_member_info:facebook` |
+
+Note: Delimiters can vary across clients.
 
 **Localconfig General Properties**
 
