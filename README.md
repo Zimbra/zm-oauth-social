@@ -39,7 +39,7 @@ ant test
 
 See the [documentation for api usage].
 
-After a user completes the oauth2 flow, the credentials for their account will be stored as a data source with a configured folder created in the user's root mailbox during authentication. The import it triggered after successful completion of the OAuth flow. An import can also be triggered manually with a `zmsoap` import data request.
+After a user completes the oauth2 flow, the credentials for their account will be stored as a data source with a configured folder created in the user's root mailbox during authentication. The import is triggered after successful completion of the OAuth flow. An import can also be triggered manually with a `zmsoap` import data request.
 
 ---
 
