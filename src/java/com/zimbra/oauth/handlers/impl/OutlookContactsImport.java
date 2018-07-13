@@ -69,6 +69,7 @@ import org.apache.commons.lang.StringUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
+import com.zimbra.common.util.Pair;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.DataSource;
@@ -76,6 +77,10 @@ import com.zimbra.cs.account.DataSource.DataImport;
 import com.zimbra.cs.account.Provisioning;
 import com.zimbra.cs.mailbox.Contact;
 import com.zimbra.cs.mailbox.Contact.Attachment;
+import com.zimbra.cs.mailbox.Folder;
+import com.zimbra.cs.mailbox.Folder.FolderOptions;
+import com.zimbra.cs.mailbox.MailItem.Type;
+import com.zimbra.cs.mailbox.MailServiceException.NoSuchItemException;
 import com.zimbra.cs.mailbox.Mailbox;
 import com.zimbra.cs.mime.ParsedContact;
 import com.zimbra.cs.service.mail.CreateContact;
@@ -268,6 +273,47 @@ public class OutlookContactsImport implements DataImport {
     }
 
     /**
+     * Creates a contact folder if it doesn't exist.<br>
+     * Returns contact folder id.
+     *
+     * @param mailbox The mailbox associated with the datasource
+     * @param parentFolderId The datasource folder id
+     * @param folderName Outlook folder display name
+     * @return Id of outlook named subfolder, or datasource folder id
+     * @throws ServiceException If there are issues fetching or creating the folder
+     */
+    protected int ensureFolder(Mailbox mailbox, int parentFolderId, String folderName)
+        throws ServiceException {
+        // folder id to create/fetch, default to parent folder
+        int folderId = parentFolderId;
+        if (!StringUtils.isEmpty(folderName)) {
+            try {
+                // search for the subfolder of ds folder by name
+                Folder childFolder = null;
+                try {
+                    childFolder = mailbox.getFolderByName(null, parentFolderId, folderName);
+                } catch (final NoSuchItemException e) {
+                    // do nothing
+                }
+                if (childFolder == null) {
+                    // create child folder if doesn't exist
+                    final FolderOptions opts = new FolderOptions();
+                    opts.setDefaultView(Type.CONTACT);
+                    childFolder = mailbox.createFolder(null, folderName, parentFolderId, opts);
+                }
+                // use child folder id
+                folderId = childFolder.getId();
+            } catch (final ServiceException e) {
+                ZimbraLog.extensions.errorQuietly(
+                    "Failed to retrieve or create folder during Outlook contact sync.", e);
+                throw ServiceException
+                    .FAILURE("Failed to retrieve or create folder during Outlook contact sync.", e);
+            }
+        }
+        return folderId;
+    }
+
+    /**
      * Processes json contacts from outlook api into a ParsedContact, adding it
      * to a create list if the contact does not already exist in the datasource
      * folder - based on the OutlookId property.
@@ -303,18 +349,18 @@ public class OutlookContactsImport implements DataImport {
     }
 
     /**
-     * Retrieves a list of contact folder ids.
+     * Retrieves and validates a list of contact folder ids.
      *
      * @param authorizationHeader The authorization header to use in requests
      * @return A list of folder ids
      * @throws ServiceException If there are issues handling the request
      * @throws IOException If there are issues handling the request
      */
-    protected List<String> getContactFolders(String authorizationHeader)
+    protected List<Pair<String, String>> getContactFolders(String authorizationHeader)
         throws ServiceException, IOException {
-        final List<String> folders = new ArrayList<String>();
+        final List<Pair<String, String>> folders = new ArrayList<Pair<String, String>>();
         // add null first for for the root folder
-        folders.add(null);
+        folders.add(new Pair<String, String>(null, null));
         final GetMethod get = new GetMethod(OutlookContactConstants.CONTACTS_FOLDER_URI.getValue());
         get.addRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
         ZimbraLog.extensions.debug("Fetching contact folders to import from.");
@@ -324,8 +370,10 @@ public class OutlookContactsImport implements DataImport {
             // if the folder list isn't null loop and add all the Ids to our list
             if (!jsonFolders.isNull() && jsonFolders.isArray()) {
                 for (final JsonNode folder : jsonFolders) {
-                    if (folder.has("Id") && !folder.get("Id").isNull()) {
-                        folders.add(folder.get("Id").asText());
+                    if (folder.has("Id") && !folder.get("Id").isNull()
+                        && folder.has("DisplayName") && !folder.get("DisplayName").isNull()) {
+                        folders.add(new Pair<String, String>(folder.get("Id").asText(),
+                            folder.get("DisplayName").asText()));
                     }
                 }
             }
@@ -336,25 +384,29 @@ public class OutlookContactsImport implements DataImport {
     @Override
     public void importData(List<Integer> folderIds, boolean fullSync) throws ServiceException {
         final Mailbox mailbox = mDataSource.getMailbox();
-        final int folderId = mDataSource.getFolderId();
+        final int parentFolderId = mDataSource.getFolderId();
         // list of contacts to create after parsing each outlook response
         final List<ParsedContact> createList = new ArrayList<ParsedContact>();
-        // existing contacts from the datasource folder
-        final Set<String> existingContacts = getExistingContacts(mailbox, folderId);
         // get a new access token and build the auth header
         authorizationHeader = String.format("Bearer %s", refresh());
         try {
-            // list of folders to import contacts from
-            final List<String> contactFolders = getContactFolders(authorizationHeader);
+            // list of folders {outlookFolderId, displayName} to import contacts from
+            final List<Pair<String, String>> contactFolders = getContactFolders(authorizationHeader);
             // loop to import contacts for all folders retrieved
-            for (final String contactFolderId : contactFolders) {
+            for (final Pair<String, String> outlookContactFolder : contactFolders) {
+                // ensure folder exists, determine which folderId to:
+                // - check existing contacts in
+                // - create new contacts in
+                final int folderId = ensureFolder(mailbox, parentFolderId, outlookContactFolder.getSecond());
+                // existing contacts from the datasource (sub)folder
+                final Set<String> existingContacts = getExistingContacts(mailbox, folderId);
                 // first request behavior differs for each folder
                 boolean isFirstRequest = true;
                 // use root folder fetch if contactFolderId is null
                 String pageUrl = OutlookContactConstants.CONTACTS_URI.getValue();
-                if (!StringUtils.isEmpty(contactFolderId)) {
+                if (!StringUtils.isEmpty(outlookContactFolder.getFirst())) {
                     pageUrl = OutlookContactConstants.CONTACTS_FOLDER_URI.getValue() + "/"
-                        + contactFolderId + "/contacts";
+                        + outlookContactFolder.getFirst() + "/contacts";
                 }
                 // loop to handle pagination
                 do {
