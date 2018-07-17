@@ -124,7 +124,7 @@ public class OAuth2DataSource {
         final String refreshToken = credentials.getRefreshToken();
         final String type = credentials.getParam("type");
         final String dsFolderName = String
-                .format(OAuth2Constants.DEFAULT_OAUTH_FOLDER_TEMPLATE.getValue(), username, type);
+                .format(OAuth2Constants.DEFAULT_OAUTH_FOLDER_TEMPLATE.getValue(), username, type, client);
         try {
             // get datasource, create if missing
             ZDataSource osource = mailbox.getDataSourceByName(dsFolderName);
