@@ -32,7 +32,7 @@ public enum OAuth2Constants {
 
     DEFAULT_SUCCESS_REDIRECT("/"),
     DEFAULT_HOST_URI_TEMPLATE("https://%s:443"),
-    DEFAULT_OAUTH_FOLDER_TEMPLATE("%s-%s"),
+    DEFAULT_OAUTH_FOLDER_TEMPLATE("%s-%s-%s"),
 
     DATASOURCE_POLLING_INTERVAL("1d"),
 
