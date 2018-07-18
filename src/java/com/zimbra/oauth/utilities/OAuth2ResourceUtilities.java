@@ -357,7 +357,9 @@ public class OAuth2ResourceUtilities {
                 // if we couldn't find a JWT, search for cookie auth
                 final String cookieString = getFromCookie(cookies,
                     ZimbraCookie.authTokenCookieName(false));
-                authToken = ZimbraAuthToken.getAuthToken(cookieString);
+                if (!StringUtils.isEmpty(cookieString)) {
+                    authToken = ZimbraAuthToken.getAuthToken(cookieString);
+                }
 
             }
         } catch (final AuthTokenException e) {
