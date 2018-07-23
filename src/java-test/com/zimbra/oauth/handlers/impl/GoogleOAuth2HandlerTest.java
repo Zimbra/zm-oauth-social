@@ -84,11 +84,6 @@ public class GoogleOAuth2HandlerTest {
     protected final String clientSecret = "test-secret";
 
     /**
-     * Hostname for testing.
-     */
-    protected final String hostname = "localhost";
-
-    /**
      * Redirect URI for testing.
      */
     protected final String clientRedirectUri = "http://localhost/oauth2/authenticate";
@@ -128,11 +123,6 @@ public class GoogleOAuth2HandlerTest {
     public void testGoogleOAuth2Handler() throws Exception {
         final OAuth2DataSource mockDataSource = EasyMock.createMock(OAuth2DataSource.class);
 
-        expect(mockConfig.getString(OAuth2ConfigConstants.LC_HOST_URI_TEMPLATE.getValue(),
-            OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE.getValue()))
-                .andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE.getValue());
-        expect(mockConfig.getString(OAuth2ConfigConstants.LC_ZIMBRA_SERVER_HOSTNAME.getValue()))
-            .andReturn(hostname);
         PowerMock.mockStatic(OAuth2DataSource.class);
         expect(OAuth2DataSource.createDataSource(GoogleOAuth2Constants.CLIENT_NAME.getValue(),
             GoogleOAuth2Constants.HOST_GOOGLE.getValue())).andReturn(mockDataSource);
@@ -215,7 +205,8 @@ public class GoogleOAuth2HandlerTest {
             matches(GoogleOAuth2Constants.CLIENT_NAME.getValue()), anyObject()))
                 .andReturn(clientRedirectUri);
         expect(handler.getDatasourceCustomAttrs(anyObject())).andReturn(customAttrs);
-        expect(handler.getZimbraMailbox(anyObject(AuthToken.class))).andReturn(mockZMailbox);
+        expect(handler.getZimbraMailbox(anyObject(AuthToken.class), anyObject(Account.class)))
+            .andReturn(mockZMailbox);
         expect(OAuth2Handler.getTokenRequest(anyObject(OAuthInfo.class), anyObject(String.class)))
             .andReturn(mockCredentials);
         handler.validateTokenResponse(anyObject());

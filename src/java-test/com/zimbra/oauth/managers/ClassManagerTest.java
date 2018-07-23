@@ -42,7 +42,6 @@ import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.LdapConfiguration;
 import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
-import com.zimbra.oauth.utilities.OAuth2Constants;
 
 /**
  * Test class for {@link ClassManager}.
@@ -65,11 +64,6 @@ public class ClassManagerTest {
      * Test client.
      */
     protected final String client = "yahoo";
-
-    /**
-     * Test hostname.
-     */
-    protected static final String hostname = "zcs-dev.test";
 
     /**
      * Setup for tests.
@@ -99,11 +93,6 @@ public class ClassManagerTest {
         PowerMock.expectLastCall().andReturn(mockConfig);
         expect(mockConfig.getString(matches(OAuth2ConfigConstants.LC_HANDLER_CLASS_PREFIX.getValue() + client)))
             .andReturn("com.zimbra.oauth.handlers.impl.YahooOAuth2Handler");
-        expect(mockConfig.getString(OAuth2ConfigConstants.LC_ZIMBRA_SERVER_HOSTNAME.getValue()))
-            .andReturn(hostname);
-        expect(mockConfig.getString(OAuth2ConfigConstants.LC_HOST_URI_TEMPLATE.getValue(),
-            OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE.getValue()))
-                .andReturn(OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE.getValue());
 
         PowerMock.replay(LdapConfiguration.class);
         replay(mockConfig);

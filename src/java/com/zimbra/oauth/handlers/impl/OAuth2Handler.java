@@ -40,6 +40,8 @@ import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.AuthToken;
+import com.zimbra.cs.account.Provisioning;
+import com.zimbra.cs.account.Server;
 import com.zimbra.cs.account.ZimbraAuthToken;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.models.OAuthInfo;
@@ -113,11 +115,6 @@ public abstract class OAuth2Handler {
     protected static final ObjectMapper mapper = OAuth2Utilities.createDefaultMapper();
 
     /**
-     * A URI string for the Zimbra host.
-     */
-    protected final String zimbraHostUri;
-
-    /**
      * Constructor.
      *
      * @param config A configuration object
@@ -129,16 +126,6 @@ public abstract class OAuth2Handler {
         this.config = config;
         typeKey = OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue();
         dataSource = OAuth2DataSource.createDataSource(client, clientHost);
-        final String zimbraHostname = config
-            .getString(OAuth2ConfigConstants.LC_ZIMBRA_SERVER_HOSTNAME.getValue());
-        // warn if missing hostname
-        if (StringUtils.isEmpty(zimbraHostname)) {
-            ZimbraLog.extensions.warn("The zimbra server hostname is not configured.");
-        }
-        // cache the host uri
-        zimbraHostUri = String
-            .format(config.getString(OAuth2ConfigConstants.LC_HOST_URI_TEMPLATE.getValue(),
-                OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE.getValue()), zimbraHostname);
     }
 
     /**
@@ -333,7 +320,7 @@ public abstract class OAuth2Handler {
         ZimbraLog.extensions.trace("Authentication performed for:" + username);
 
         // get zimbra mailbox
-        final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken());
+        final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken(), account);
 
         // store refreshToken
         oauthInfo.setUsername(username);
@@ -499,18 +486,28 @@ public abstract class OAuth2Handler {
     }
 
     /**
-     * Retrieves the Zimbra mailbox via specified auth token.
+     * Retrieves the Zimbra mailbox via specified auth token.<br>
+     * Uses the account's zimbraServiceHostname in the soap uri.
      *
      * @param zmAuthToken The Zimbra auth token to identify the account with
+     * @param account Instance of the account we want a mailbox for
      * @return The Zimbra mailbox
      * @throws ServiceException If there is an issue retrieving the account
      *             mailbox
      */
-    protected ZMailbox getZimbraMailbox(AuthToken zmAuthToken) throws ServiceException {
+    protected ZMailbox getZimbraMailbox(AuthToken zmAuthToken, Account account) throws ServiceException {
         // create a mailbox by auth token
         try {
+            // use the serviceHostname for the account for multi-node envs
+            final Server server = Provisioning.getInstance().getServer(account);
+            final String zimbraHostname = server.getAttr(Provisioning.A_zimbraServiceHostname);
+            final String hostUri = String
+                .format(config.getString(OAuth2ConfigConstants.LC_HOST_URI_TEMPLATE.getValue(),
+                    OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE.getValue()), zimbraHostname);
+            ZimbraLog.extensions.debug("Creating ZMailbox for account: %s, host uri: %s",
+                account.getName(), hostUri);
             final Options options = new Options();
-            options.setUri(zimbraHostUri);
+            options.setUri(hostUri);
             final ZMailbox mbox = new ZMailbox(options);
             // get a csrf unsecured token since we are internal
             final AuthToken csrfUnsafeToken = ZimbraAuthToken
