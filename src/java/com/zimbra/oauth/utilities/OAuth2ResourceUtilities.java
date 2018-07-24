@@ -84,11 +84,11 @@ public class OAuth2ResourceUtilities {
         try {
             // verify params
             oauth2Handler.verifyAuthorizeParams(paramsForAuthorize);
-//            if (isJWT(authToken)) {
-//                // if our credential is a jwt, pass it along too
-//                paramsForAuthorize.put(OAuth2HttpConstants.JWT_PARAM_KEY.getValue(),
-//                    authToken.getEncoded());
-//            }
+            if (isJWT(authToken)) {
+                // if our credential is a jwt, pass it along too
+                paramsForAuthorize.put(OAuth2HttpConstants.JWT_PARAM_KEY.getValue(),
+                    authToken.getEncoded());
+            }
             return oauth2Handler.authorize(paramsForAuthorize, account);
         } catch (final ServiceException e) {
             // return redirect error if invalid request
@@ -99,9 +99,9 @@ public class OAuth2ResourceUtilities {
             }
             // otherwise bubble error
             throw e;
-//        } catch (final AuthTokenException e) {
-//            throw ServiceException
-//                .PERM_DENIED(OAuth2ErrorConstants.ERROR_INVALID_ZM_AUTH_CODE.getValue());
+        } catch (final AuthTokenException e) {
+            throw ServiceException
+                .PERM_DENIED(OAuth2ErrorConstants.ERROR_INVALID_ZM_AUTH_CODE.getValue());
         }
     }
 
