@@ -1,18 +1,17 @@
 /*
- * ***** BEGIN LICENSE BLOCK *****
- * Zimbra OAuth Social Extension
- * Copyright (C) 2018 Synacor, Inc.
+ * ***** BEGIN LICENSE BLOCK ***** Zimbra OAuth Social Extension Copyright (C)
+ * 2018 Synacor, Inc.
  *
  * This program is free software: you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software Foundation,
- * version 2 of the License.
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, version 2 of the License.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
- * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
- * You should have received a copy of the GNU General Public License along with this program.
- * If not, see <https://www.gnu.org/licenses/>.
- * ***** END LICENSE BLOCK *****
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details. You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>. *****
+ * END LICENSE BLOCK *****
  */
 
 package com.zimbra.oauth.handlers.impl;
@@ -51,15 +50,15 @@ public class LinkedinContactsImport implements DataImport {
     /**
      * Constructor.
      *
-     * @param datasource The datasource to set
+     * @param datasource
+     *            The datasource to set
      */
     public LinkedinContactsImport(DataSource datasource) {
         mDataSource = datasource;
         try {
             config = LdapConfiguration.buildConfiguration(LinkedinOAuth2Constants.CLIENT_NAME.getValue());
         } catch (final ServiceException e) {
-            ZimbraLog.extensions.info("Error loading configuration for Linkedin: %s",
-                e.getMessage());
+            ZimbraLog.extensions.info("Error loading configuration for Linkedin: %s", e.getMessage());
             ZimbraLog.extensions.debug(e);
         }
     }
