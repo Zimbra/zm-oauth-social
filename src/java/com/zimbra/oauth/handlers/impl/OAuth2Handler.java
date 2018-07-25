@@ -60,21 +60,6 @@ import com.zimbra.oauth.utilities.OAuth2Utilities;
  * @copyright Copyright © 2018
  */
 public abstract class OAuth2Handler {
-    // for relay encoding
-    public enum RelayEnum {
-        RELAY("relay"),
-        TYPE("type"),
-        JWT("jwt");
-
-        String name;
-        RelayEnum(String name) {
-            this.name = name;
-        }
-
-        public String getValue() {
-            return this.name;
-        }
-    }
 
     public static final String RELAY_DELIMETER = ";";
     /**

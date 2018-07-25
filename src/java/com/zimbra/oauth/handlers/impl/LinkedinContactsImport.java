@@ -28,8 +28,8 @@ import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.LdapConfiguration;
 
 /**
- * The FacebookContactsImport class.<br>
- * Used to sync contacts from the Facebook social service.<br>
+ * The LinkedinContactsImport class.<br>
+ * Used to sync contacts from the Linkedin social service.<br>
  * Source from the original YahooContactsImport class by @author Greg Solovyev.
  *
  * @author Zimbra API Team

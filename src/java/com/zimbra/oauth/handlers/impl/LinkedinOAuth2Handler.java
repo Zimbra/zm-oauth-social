@@ -29,8 +29,10 @@ public class LinkedinOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         SCOPE_DELIMITER(" "),
         AUTHENTICATE_URI("https://www.linkedin.com/oauth/v2/accessToken"),
         ACCESS_TOKEN("access_token"),
-        EXPIRES_IN("expires_in")
-        ;
+        EXPIRES_IN("expires_in"),
+        SERVICE_ERROR_CODE("serviceErrorCode"),
+        ERROR_MESSAGE("message"),
+        ERROR_STATUS("status");
 
         private String constant;
 
@@ -47,8 +49,7 @@ public class LinkedinOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         ME_URI("https://api.linkedin.com/v2/me"),
         ID("id"),
         FIRST_NAME("firstName"),
-        LAST_NAME("lastName")
-        ;
+        LAST_NAME("lastName");
 
         private String constant;
 
@@ -67,12 +68,8 @@ public class LinkedinOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         USER_CANCELLED_AUTHORIZE("user_cancelled_authorize"),
         ERROR_DESCRIPTION("error_description"),
         DEFAULT_ERROR("default_error"),
-        SERVICE_ERROR_CODE("serviceErrorCode"),
-        ERROR_MESSAGE("message"),
-        ERROR_STATUS("status"),
         SERVICE_ERROR_CODE_100("100"),
-        ERROR_MESSAGE_NOT_ENOUGH_PERM("Not enough permissions to access")
-        ;
+        ERROR_MESSAGE_NOT_ENOUGH_PERM("Not enough permissions to access");
 
         private String constant;
 
@@ -156,17 +153,17 @@ public class LinkedinOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
                     null);
         }
         // check for errors
-        if (json.has(LinkedinErrorCodes.SERVICE_ERROR_CODE.getValue())
-                && json.has(LinkedinErrorCodes.ERROR_MESSAGE.getValue())) {
-            if (json.get(LinkedinErrorCodes.SERVICE_ERROR_CODE.getValue()).asText().equals(LinkedinErrorCodes.SERVICE_ERROR_CODE_100.getValue())
-                    && json.get(LinkedinErrorCodes.ERROR_MESSAGE.getValue()).asText().contains(LinkedinErrorCodes.ERROR_MESSAGE_NOT_ENOUGH_PERM.getValue())
+        if (json.has(LinkedinOAuth2Constants.SERVICE_ERROR_CODE.getValue())
+                && json.has(LinkedinOAuth2Constants.ERROR_MESSAGE.getValue())) {
+            if (json.get(LinkedinOAuth2Constants.SERVICE_ERROR_CODE.getValue()).asText().equals(LinkedinErrorCodes.SERVICE_ERROR_CODE_100.getValue())
+                    && json.get(LinkedinOAuth2Constants.ERROR_MESSAGE.getValue()).asText().contains(LinkedinErrorCodes.ERROR_MESSAGE_NOT_ENOUGH_PERM.getValue())
                     ) {
                 return account.getMail();
             }
             ZimbraLog.extensions.warnQuietly("Error occured while getting profile details."
-                    + " Code=" + json.get(LinkedinErrorCodes.SERVICE_ERROR_CODE.getValue())
-                    + ", Status=" + json.get(LinkedinErrorCodes.ERROR_STATUS.getValue())
-                    + ", ErrorMessage=" + json.get(LinkedinErrorCodes.ERROR_MESSAGE.getValue()),
+                    + " Code=" + json.get(LinkedinOAuth2Constants.SERVICE_ERROR_CODE.getValue())
+                    + ", Status=" + json.get(LinkedinOAuth2Constants.ERROR_STATUS.getValue())
+                    + ", ErrorMessage=" + json.get(LinkedinOAuth2Constants.ERROR_MESSAGE.getValue()),
                     null);
             throw ServiceException.FAILURE("Error occured while getting profile details.",
                     null);
@@ -221,7 +218,7 @@ public class LinkedinOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         // get zimbra mailbox
         final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken());
 
-        // store refreshToken
+        // store access_token
         oauthInfo.setUsername(username);
         oauthInfo.setRefreshToken(credentials.get(LinkedinOAuth2Constants.ACCESS_TOKEN.getValue()).asText());
         dataSource.syncDatasource(mailbox, oauthInfo, null);
