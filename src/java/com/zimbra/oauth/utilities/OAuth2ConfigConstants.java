@@ -28,7 +28,6 @@ package com.zimbra.oauth.utilities;
 public enum OAuth2ConfigConstants {
 
     LC_HANDLER_CLASS_PREFIX("zm_oauth_classes_handlers_"),
-    LC_HOST_URI_TEMPLATE("host_uri_template"),
 
     LC_OAUTH_CLIENT_ID_TEMPLATE("zm_oauth_%s_client_id"),
     LC_OAUTH_CLIENT_SECRET_TEMPLATE("zm_oauth_%s_client_secret"),

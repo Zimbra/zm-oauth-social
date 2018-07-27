@@ -40,9 +40,8 @@ import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.AuthToken;
-import com.zimbra.cs.account.Provisioning;
-import com.zimbra.cs.account.Server;
 import com.zimbra.cs.account.ZimbraAuthToken;
+import com.zimbra.cs.util.AccountUtil;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
@@ -487,7 +486,7 @@ public abstract class OAuth2Handler {
 
     /**
      * Retrieves the Zimbra mailbox via specified auth token.<br>
-     * Uses the account's zimbraServiceHostname in the soap uri.
+     * Fetches the soap uri for the specified account.
      *
      * @param zmAuthToken The Zimbra auth token to identify the account with
      * @param account Instance of the account we want a mailbox for
@@ -498,16 +497,12 @@ public abstract class OAuth2Handler {
     protected ZMailbox getZimbraMailbox(AuthToken zmAuthToken, Account account) throws ServiceException {
         // create a mailbox by auth token
         try {
-            // use the serviceHostname for the account for multi-node envs
-            final Server server = Provisioning.getInstance().getServer(account);
-            final String zimbraHostname = server.getAttr(Provisioning.A_zimbraServiceHostname);
-            final String hostUri = String
-                .format(config.getString(OAuth2ConfigConstants.LC_HOST_URI_TEMPLATE.getValue(),
-                    OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE.getValue()), zimbraHostname);
-            ZimbraLog.extensions.debug("Creating ZMailbox for account: %s, host uri: %s",
-                account.getName(), hostUri);
+            // fetch soap uri via the account for multi-node envs
+            final String zimbraSoapUri = AccountUtil.getSoapUri(account);
+            ZimbraLog.extensions.debug("Creating ZMailbox for account: %s, soap uri: %s",
+                account.getName(), zimbraSoapUri);
             final Options options = new Options();
-            options.setUri(hostUri);
+            options.setUri(zimbraSoapUri);
             final ZMailbox mbox = new ZMailbox(options);
             // get a csrf unsecured token since we are internal
             final AuthToken csrfUnsafeToken = ZimbraAuthToken
