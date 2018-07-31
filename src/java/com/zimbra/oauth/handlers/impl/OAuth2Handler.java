@@ -263,7 +263,7 @@ public abstract class OAuth2Handler {
                 if (relayValue.isEmpty()) {
                     relayValue = "&" + relayKey + "=";
                 }
-                relayValue += RELAY_DELIMETER
+                relayValue += URLEncoder.encode(RELAY_DELIMETER, OAuth2Constants.ENCODING.getValue())
                     + URLEncoder.encode(type, OAuth2Constants.ENCODING.getValue());
             } catch (final UnsupportedEncodingException e) {
                 throw ServiceException.INVALID_REQUEST("Unable to encode type parameter.", e);
@@ -276,7 +276,7 @@ public abstract class OAuth2Handler {
         // jwt is third and optional
         if (!jwt.isEmpty()) {
             try {
-                relayValue += RELAY_DELIMETER
+                relayValue += URLEncoder.encode(RELAY_DELIMETER, OAuth2Constants.ENCODING.getValue())
                     + URLEncoder.encode(jwt, OAuth2Constants.ENCODING.getValue());
             } catch (final UnsupportedEncodingException e) {
                 throw ServiceException.INVALID_REQUEST("Unable to encode jwt parameter.", e);

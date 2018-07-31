@@ -223,9 +223,9 @@ public class OAuth2ResourceUtilities {
                     relay = decodedUrl;
                 }
             } catch (final UnsupportedEncodingException e) {
-                ZimbraLog.extensions.info("Unable to decode relay parameter.");
+                ZimbraLog.extensions.info("Unable to decode relay parameter. URI=" + url);
             } catch (final URISyntaxException e) {
-                ZimbraLog.extensions.info("Invalid relay URI syntax found.");
+                ZimbraLog.extensions.info("Invalid relay URI syntax found. URI=" + url);
             }
         }
         return relay;
