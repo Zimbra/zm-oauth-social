@@ -339,7 +339,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         ZimbraLog.extensions.trace("Authentication performed for:" + username);
 
         // get zimbra mailbox
-        final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken());
+        final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken(), account);
 
         // store refreshToken
         oauthInfo.setUsername(username);

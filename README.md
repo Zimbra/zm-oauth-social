@@ -52,7 +52,6 @@ This service's configuration can all be found in Zimbra's `localconfig.xml` file
 
 | Key | Description | Optional | Example Options |
 | --- | ----------- | -------- | --------------- |
-| host_uri_template | The host uri to connect via ZMailbox | Yes | `https://%s:443` |
 | zm_oauth_classes_handlers_yahoo<sup>1</sup> | The handler implementation class for the client | | `com.zimbra.oauth.handlers.impl.YahooOAuth2Handler` |
 
 <sup>1</sup>Replace the `yahoo` part of the key name with the name of the client (e.g. `yahoo`, `google`, `outlook`).
