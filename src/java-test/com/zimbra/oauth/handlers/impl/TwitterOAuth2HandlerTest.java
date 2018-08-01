@@ -24,7 +24,6 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,35 +32,34 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.api.easymock.PowerMock;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.core.classloader.annotations.SuppressStaticInitializationFor;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.powermock.reflect.Whitebox;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.zimbra.client.ZDataSource;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.AuthToken;
-import com.zimbra.oauth.handlers.impl.YahooOAuth2Handler.YahooOAuth2Constants;
+import com.zimbra.oauth.handlers.impl.TwitterOAuth2Handler.TwitterOAuth2Constants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
-import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2DataSource;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
 
 /**
- * Test class for {@link YahooOAuth2Handler}.
+ * Test class for {@link TwitterOAuth2Handler}.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ OAuth2DataSource.class, OAuth2Handler.class, YahooOAuth2Handler.class, ZMailbox.class })
+@PrepareForTest({ OAuth2DataSource.class, OAuth2Handler.class, TwitterOAuth2Handler.class, ZMailbox.class })
 @SuppressStaticInitializationFor("com.zimbra.client.ZMailbox")
-public class YahooOAuth2HandlerTest {
+@PowerMockIgnore({"javax.crypto.*" })
+public class TwitterOAuth2HandlerTest {
 
     /**
      * Class under test.
      */
-    protected YahooOAuth2Handler handler;
+    protected TwitterOAuth2Handler handler;
 
     /**
      * Mock configuration handler property.
@@ -95,45 +93,45 @@ public class YahooOAuth2HandlerTest {
      */
     @Before
     public void setUp() throws Exception {
-        handler = PowerMock.createPartialMockForAllMethodsExcept(YahooOAuth2Handler.class,
-            "authorize", "authenticate");
+        handler = PowerMock.createPartialMockForAllMethodsExcept(TwitterOAuth2Handler.class,
+            "authorize", "authenticate", "splitToMap");
         Whitebox.setInternalState(handler, "config", mockConfig);
-        Whitebox.setInternalState(handler, "relayKey", YahooOAuth2Constants.RELAY_KEY.getValue());
+        Whitebox.setInternalState(handler, "relayKey", TwitterOAuth2Constants.RELAY_KEY.getValue());
         Whitebox.setInternalState(handler, "typeKey",
             OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue());
         Whitebox.setInternalState(handler, "authenticateUri",
-            YahooOAuth2Constants.AUTHENTICATE_URI.getValue());
+            TwitterOAuth2Constants.AUTHENTICATE_URI.getValue());
         Whitebox.setInternalState(handler, "authorizeUriTemplate",
-            YahooOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue());
-        Whitebox.setInternalState(handler, "client", YahooOAuth2Constants.CLIENT_NAME.getValue());
+            TwitterOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue());
+        Whitebox.setInternalState(handler, "client", TwitterOAuth2Constants.CLIENT_NAME.getValue());
         Whitebox.setInternalState(handler, "dataSource", mockDataSource);
     }
 
     /**
-     * Test method for {@link YahooOAuth2Handler#YahooOAuth2Handler}<br>
+     * Test method for {@link TwitterOAuth2Handler#TwitterOAuth2Handler}<br>
      * Validates that the constructor configured some necessary properties.
      *
      * @throws Exception If there are issues testing
      */
     @Test
-    public void testYahooOAuth2Handler() throws Exception {
+    public void testTwitterOAuth2Handler() throws Exception {
         final OAuth2DataSource mockDataSource = EasyMock.createMock(OAuth2DataSource.class);
 
         PowerMock.mockStatic(OAuth2DataSource.class);
-        expect(OAuth2DataSource.createDataSource(YahooOAuth2Constants.CLIENT_NAME.getValue(),
-            ZDataSource.SOURCE_HOST_YAHOO)).andReturn(mockDataSource);
+        expect(OAuth2DataSource.createDataSource(TwitterOAuth2Constants.CLIENT_NAME.getValue(),
+            TwitterOAuth2Constants.HOST_TWITTER.getValue())).andReturn(mockDataSource);
 
         replay(mockConfig);
         PowerMock.replay(OAuth2DataSource.class);
 
-        new YahooOAuth2Handler(mockConfig);
+        new TwitterOAuth2Handler(mockConfig);
 
         verify(mockConfig);
         PowerMock.verify(OAuth2DataSource.class);
     }
 
     /**
-     * Test method for {@link YahooOAuth2Handler#authorize}<br>
+     * Test method for {@link TwitterOAuth2Handler#authorize}<br>
      * Validates that the authorize method returns a location with an encoded
      * redirect uri.
      *
@@ -141,23 +139,23 @@ public class YahooOAuth2HandlerTest {
      */
     @Test
     public void testAuthorize() throws Exception {
-        final String encodedUri = URLEncoder.encode(clientRedirectUri,
-            OAuth2Constants.ENCODING.getValue());
+        final String authorizeToken = "token";
+        final String authorizeSecret = "secret";
+        final String authorizeTokenRaw = "oauth_token=%s&oauth_token_secret=%s&oauth_callback_confirmed=%s";
+        final String stateValue = "?state=;contact";
         // use contact type
         final Map<String, String> params = new HashMap<String, String>();
         params.put(OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue(), "contact");
-        final String stateValue = "&state=;contact";
-        final String authorizeBase = String.format(
-            YahooOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code");
-        // expect a contact state with no relay
-        final String expectedAuthorize = authorizeBase + stateValue;
+        // expect a redirect with just a token
+        final String expectedAuthorize = String.format(
+            TwitterOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(), authorizeToken);
 
         // expect buildStateString call
-        expect(handler.buildStateString("&", "", "contact", "")).andReturn(stateValue);
+        expect(handler.buildStateString("?", "", "contact", "")).andReturn(stateValue);
 
-        // expect buildAuthorize call
-        expect(handler.buildAuthorizeUri(YahooOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(),
-            null, "contact")).andReturn(authorizeBase);
+        // expect authorizeRequest call
+        expect(handler.authorizeRequest(null, stateValue))
+            .andReturn(String.format(authorizeTokenRaw, authorizeToken, authorizeSecret, true));
 
         replay(handler);
 
@@ -171,20 +169,23 @@ public class YahooOAuth2HandlerTest {
     }
 
     /**
-     * Test method for {@link YahooOAuth2Handler#authenticate}<br>
+     * Test method for {@link TwitterOAuth2Handler#authenticate}<br>
      * Validates that the authenticate method calls sync datasource.
      *
      * @throws Exception If there are issues testing
      */
     @Test
     public void testAuthenticate() throws Exception {
-        final String username = "test-user@localhost";
-        final String refreshToken = "refresh-token";
+        final String username = "test-user";
+        final String authToken = "auth-token";
+        final String tokenSecret = "auth-secret";
         final AuthToken mockAuthToken = EasyMock.createMock(AuthToken.class);
         final OAuthInfo mockOAuthInfo = EasyMock.createMock(OAuthInfo.class);
         final ZMailbox mockZMailbox = EasyMock.createMock(ZMailbox.class);
-        final JsonNode mockCredentials = EasyMock.createMock(JsonNode.class);
-        final JsonNode mockCredentialsRToken = EasyMock.createMock(JsonNode.class);
+        final Map<String, String> credentials = new HashMap<String, String>(3);
+        credentials.put("oauth_token", authToken);
+        credentials.put("oauth_token_secret", tokenSecret);
+        credentials.put("screen_name", username);
 
         PowerMock.mockStatic(OAuth2Handler.class);
 
@@ -193,24 +194,19 @@ public class YahooOAuth2HandlerTest {
         EasyMock.expectLastCall();
         expect(mockOAuthInfo.getClientId()).andReturn(clientId);
         expect(mockOAuthInfo.getClientSecret()).andReturn(clientSecret);
+        expect(mockOAuthInfo.getParam("oauth_token")).andReturn("authorize-token");
         expect(handler.getZimbraMailbox(anyObject(AuthToken.class), anyObject(Account.class)))
             .andReturn(mockZMailbox);
         expect(handler.getDatasourceCustomAttrs(anyObject())).andReturn(null);
-        expect(OAuth2Handler.getTokenRequest(anyObject(OAuthInfo.class), anyObject(String.class)))
-            .andReturn(mockCredentials);
-        handler.validateTokenResponse(anyObject());
-        EasyMock.expectLastCall().once();
-        expect(mockCredentials.get("refresh_token")).andReturn(mockCredentialsRToken);
-        expect(mockCredentialsRToken.asText()).andReturn(refreshToken);
-        expect(handler.getPrimaryEmail(anyObject(JsonNode.class), anyObject(Account.class)))
-            .andReturn(username);
+        expect(handler.getTokenRequestMap(anyObject(OAuthInfo.class), anyObject(String.class)))
+            .andReturn(credentials);
 
-        mockOAuthInfo.setTokenUrl(matches(YahooOAuth2Constants.AUTHENTICATE_URI.getValue()));
+        mockOAuthInfo.setTokenUrl(matches(TwitterOAuth2Constants.AUTHENTICATE_URI.getValue()));
         EasyMock.expectLastCall().once();
         expect(mockOAuthInfo.getZmAuthToken()).andReturn(mockAuthToken);
         mockOAuthInfo.setUsername(username);
         EasyMock.expectLastCall().once();
-        mockOAuthInfo.setRefreshToken(refreshToken);
+        mockOAuthInfo.setRefreshToken(authToken + TwitterOAuth2Constants.TOKEN_DELIMITER.getValue() + tokenSecret);
         EasyMock.expectLastCall().once();
         mockDataSource.syncDatasource(mockZMailbox, mockOAuthInfo, null);
         EasyMock.expectLastCall().once();
@@ -219,8 +215,6 @@ public class YahooOAuth2HandlerTest {
         PowerMock.replay(OAuth2Handler.class);
         replay(mockOAuthInfo);
         replay(mockConfig);
-        replay(mockCredentials);
-        replay(mockCredentialsRToken);
         replay(mockDataSource);
 
         handler.authenticate(mockOAuthInfo);
@@ -229,9 +223,55 @@ public class YahooOAuth2HandlerTest {
         PowerMock.verify(OAuth2Handler.class);
         verify(mockOAuthInfo);
         verify(mockConfig);
-        verify(mockCredentials);
-        verify(mockCredentialsRToken);
         verify(mockDataSource);
+    }
+
+    /**
+     * Test method for {@link TwitterOAuth2Handler#splitToMap}<br>
+     * Validates that the splitToMap method splits a tokenized string.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testSplitToMap() throws Exception {
+        final String tokenizedStringTemplate = "oauth_token=%s&oauth_token_secret=%s&oauth_callback_confirmed=%s";
+
+        final Map<String, String> res = handler.splitToMap(
+            String.format(tokenizedStringTemplate, "token", "secret", "true"));
+
+        assertNotNull(res);
+        assertEquals("token", res.get("oauth_token"));
+        assertEquals("secret", res.get("oauth_token_secret"));
+        assertEquals("true", res.get("oauth_callback_confirmed"));
+    }
+
+    /**
+     * Test method for {@link TwitterOAuth2Handler#splitToMap}<br>
+     * Validates that the splitToMap method handles null input,
+     * empty values, and broken input.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testSplitToMapBadInput() throws Exception {
+        // null test
+        final Map<String, String> nullTestRes = handler.splitToMap(null);
+        assertNotNull(nullTestRes);
+        assertEquals(0, nullTestRes.size());
+
+        // empty value test
+        final Map<String, String> emptyTestRes = handler.splitToMap("emptyx=");
+        assertNotNull(emptyTestRes);
+        assertEquals(1, emptyTestRes.size());
+        assertEquals("", emptyTestRes.get("emptyx"));
+
+        // broken token test
+        final Map<String, String> brokenTestRes = handler.splitToMap("emptyx=&baddata&zerome=true");
+        assertNotNull(brokenTestRes);
+        assertEquals(2, brokenTestRes.size());
+        assertEquals("", brokenTestRes.get("emptyx"));
+        assertEquals("true", brokenTestRes.get("zerome"));
+
     }
 
 }
