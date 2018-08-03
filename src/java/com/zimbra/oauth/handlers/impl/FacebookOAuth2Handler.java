@@ -30,7 +30,6 @@ import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
-import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
 import com.zimbra.soap.admin.type.DataSourceType;
 
@@ -312,23 +311,10 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
     @Override
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
         final Account account = oauthInfo.getAccount();
-        final String clientId = config.getString(
-            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(), client), client,
-            account);
-        final String clientSecret = config.getString(
-            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(), client),
-            client, account);
-        final String clientRedirectUri = config.getString(
-            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(), client),
-            client, account);
-        if (StringUtils.isEmpty(clientId) ||StringUtils.isEmpty(clientSecret)
-            || StringUtils.isEmpty(clientRedirectUri)) {
-            throw ServiceException.FAILURE("Required config(id, secret and redirectUri) parameters are not provided.", null);
-        }
+        loadClientConfig(account, oauthInfo);
+        final String clientId = oauthInfo.getClientId();
+        final String clientSecret = oauthInfo.getClientSecret();
         final String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
-        oauthInfo.setClientId(clientId);
-        oauthInfo.setClientSecret(clientSecret);
-        oauthInfo.setClientRedirectUri(clientRedirectUri);
         oauthInfo.setTokenUrl(authenticateUri);
         // request credentials from social service
         final JsonNode credentials = getTokenRequest(oauthInfo, basicToken);

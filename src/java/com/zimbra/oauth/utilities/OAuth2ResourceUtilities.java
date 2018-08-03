@@ -91,11 +91,16 @@ public class OAuth2ResourceUtilities {
             }
             return oauth2Handler.authorize(paramsForAuthorize, account);
         } catch (final ServiceException e) {
-            // return redirect error if invalid request
             if (ServiceException.INVALID_REQUEST.equals(e.getCode())) {
+                // return redirect error if invalid request
                 return OAuth2ResourceUtilities.addQueryParams(
                     getValidatedRelay(oauth2Handler.getRelay(paramsForAuthorize)),
                     mapError(OAuth2ErrorConstants.ERROR_PARAM_MISSING.getValue(), e.getMessage()));
+            } else if (ServiceException.PERM_DENIED.equals(e.getCode())) {
+                // return access denied error if perm denied
+                return OAuth2ResourceUtilities.addQueryParams(
+                    getValidatedRelay(oauth2Handler.getRelay(paramsForAuthorize)),
+                    mapError(OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue(), e.getMessage()));
             }
             // otherwise bubble error
             throw e;

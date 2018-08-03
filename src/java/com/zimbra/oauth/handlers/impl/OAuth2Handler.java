@@ -187,11 +187,13 @@ public abstract class OAuth2Handler {
      *
      * @param template The authorize uri template for this implementation
      * @param account The account to acquire configuration by access level
+     * @param datasourceType The type of datasource we're authorizing to create
      * @return The authorize uri
      * @throws ServiceException If there are issues with the app configuration
      *             (missing credentials)
      */
-    protected String buildAuthorizeUri(String template, Account account, String datasourceType) throws ServiceException {
+    protected String buildAuthorizeUri(String template, Account account, String datasourceType)
+        throws ServiceException {
         final String responseType = "code";
         String encodedRedirectUri = "";
         final String clientId = config.getString(
@@ -233,55 +235,11 @@ public abstract class OAuth2Handler {
      * @see IOAuth2Handler#authorize(String, Account)
      */
     public String authorize(Map<String, String> params, Account account) throws ServiceException {
-        String relayValue = "";
-        String relay = StringUtils.defaultString(params.get(relayKey), "");
+        final String relay = StringUtils.defaultString(params.get(relayKey), "");
         final String type = StringUtils.defaultString(params.get(typeKey), "");
         final String jwt = StringUtils
             .defaultString(params.get(OAuth2HttpConstants.JWT_PARAM_KEY.getValue()), "");
-
-        // TODO: move these into a separate method that handles optional, required, etc
-
-        // relay is first and optional
-        if (!relay.isEmpty()) {
-            try {
-                relay = URLDecoder.decode(relay, OAuth2Constants.ENCODING.getValue());
-            } catch (final UnsupportedEncodingException e) {
-                throw ServiceException.INVALID_REQUEST("Unable to decode relay parameter.", e);
-            }
-
-            try {
-                relayValue = "&" + relayKey + "="
-                    + URLEncoder.encode(relay, OAuth2Constants.ENCODING.getValue());
-            } catch (final UnsupportedEncodingException e) {
-                throw ServiceException.INVALID_REQUEST("Unable to encode relay parameter.", e);
-            }
-        }
-
-        // type is second and required before we arrive in this method
-        if (!type.isEmpty()) {
-            try {
-                if (relayValue.isEmpty()) {
-                    relayValue = "&" + relayKey + "=";
-                }
-                relayValue += RELAY_DELIMETER
-                    + URLEncoder.encode(type, OAuth2Constants.ENCODING.getValue());
-            } catch (final UnsupportedEncodingException e) {
-                throw ServiceException.INVALID_REQUEST("Unable to encode type parameter.", e);
-            }
-        } else {
-            ZimbraLog.extensions.error("Missing data source type");
-            throw ServiceException.FAILURE("Missing data source type", null);
-        }
-
-        // jwt is third and optional
-        if (!jwt.isEmpty()) {
-            try {
-                relayValue += RELAY_DELIMETER
-                    + URLEncoder.encode(jwt, OAuth2Constants.ENCODING.getValue());
-            } catch (final UnsupportedEncodingException e) {
-                throw ServiceException.INVALID_REQUEST("Unable to encode jwt parameter.", e);
-            }
-        }
+        final String relayValue = buildStateString("&", relay, type, jwt);
 
         return buildAuthorizeUri(authorizeUriTemplate, account, type) + relayValue;
     }
@@ -291,24 +249,9 @@ public abstract class OAuth2Handler {
      */
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
         final Account account = oauthInfo.getAccount();
-        final String clientId = config.getString(
-            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(), client), client,
-            account);
-        final String clientSecret = config.getString(
-            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(), client),
-            client, account);
-        final String clientRedirectUri = config.getString(
-            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(), client),
-            client, account);
-        if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientSecret)
-            || StringUtils.isEmpty(clientRedirectUri)) {
-            throw ServiceException.FAILURE("Required config(id, secret and redirectUri) parameters are not provided.", null);
-        }
-        final String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
-        // set client specific properties
-        oauthInfo.setClientId(clientId);
-        oauthInfo.setClientSecret(clientSecret);
-        oauthInfo.setClientRedirectUri(clientRedirectUri);
+        loadClientConfig(account, oauthInfo);
+        final String basicToken = OAuth2Utilities.encodeBasicHeader(
+            oauthInfo.getClientId(), oauthInfo.getClientSecret());
         oauthInfo.setTokenUrl(authenticateUri);
         // request credentials from social service
         final JsonNode credentials = getTokenRequest(oauthInfo, basicToken);
@@ -329,6 +272,35 @@ public abstract class OAuth2Handler {
         // oauthinfo for calendar datasource. see example below
         // e.g. dataSource.syncDatasource(mailbox, oauthInfo, DataSourceType.oauth2calendar);
         return true;
+    }
+
+    /**
+     * Loads client config for oauth into the specified auth info object.
+     *
+     * @param account The account to use when fetching config
+     * @param authInfo The auth info to update
+     * @throws ServiceException If any of the credentials are missing
+     */
+    protected void loadClientConfig(Account account, OAuthInfo authInfo) throws ServiceException {
+        final String clientId = config.getString(
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(), client), client,
+            account);
+        final String clientSecret = config.getString(
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(), client),
+            client, account);
+        final String clientRedirectUri = config.getString(
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(), client),
+            client, account);
+        // error if missing any
+        if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientSecret)
+            || StringUtils.isEmpty(clientRedirectUri)) {
+            throw ServiceException.FAILURE(
+                "Required config(id, secret and redirectUri) parameters are not provided.", null);
+        }
+        // update the existing auth info
+        authInfo.setClientId(clientId);
+        authInfo.setClientSecret(clientSecret);
+        authInfo.setClientRedirectUri(clientRedirectUri);
     }
 
     /**
@@ -381,49 +353,29 @@ public abstract class OAuth2Handler {
     }
 
     /**
-     * Default param verifier. Ensures no `error`, and that `code` is passed
-     * in.<br>
-     * This method should be overridden if the implementing client expects
-     * different parameters.
+     * Default param verifier for authenticate.<br>
+     * Ensures a relay is passed in with the ds type,
+     * then delegates to handle client specific params.
      *
-     * @see IOAuth2Handler#verifyAuthenticateParams()
+     * @see IOAuth2Handler#verifyAndSplitAuthenticateParams()
      */
-    public void verifyAndSplitAuthenticateParams(Map<String, String> params) throws ServiceException {
-        // split available params before checking for errors
-        if (params.containsKey(relayKey)) {
-            final String[] origVal = params.get(relayKey).split(RELAY_DELIMETER);
-            if (origVal.length < 2) {
-                throw ServiceException.INVALID_REQUEST(OAuth2ErrorConstants.ERROR_TYPE_MISSING.getValue(), null);
-            }
-            // store the redirect location even if empty
-            params.put(relayKey, origVal[0]);
-            // ensure type exists
-            if (origVal[1].isEmpty()) {
-                throw ServiceException.INVALID_REQUEST(OAuth2ErrorConstants.ERROR_TYPE_MISSING.getValue(), null);
-            } else {
-                ZimbraLog.extensions.debug("Adding %s = %s", typeKey, origVal[1]);
-                params.put(typeKey, origVal[1]);
-            }
-            // store the jwt if exists and not empty
-            if (origVal.length > 2 && !StringUtils.isEmpty(origVal[2])) {
-                params.put(OAuth2HttpConstants.JWT_PARAM_KEY.getValue(), origVal[2]);
-            }
-        } else {
-            throw ServiceException.INVALID_REQUEST(OAuth2ErrorConstants.ERROR_TYPE_MISSING.getValue(), null);
+    public void verifyAndSplitAuthenticateParams(Map<String, String> params)
+        throws ServiceException {
+        // invalid if no state param since we need `type`
+        if (!params.containsKey(relayKey)) {
+            throw ServiceException
+                .INVALID_REQUEST(OAuth2ErrorConstants.ERROR_TYPE_MISSING.getValue(), null);
         }
 
-        final String error = params.get("error");
-        // check for errors
-        if (!StringUtils.isEmpty(error)) {
-            throw ServiceException.PERM_DENIED(error);
-            // ensure code exists
-        } else if (!params.containsKey("code")) {
-            throw ServiceException.INVALID_REQUEST(OAuth2ErrorConstants.ERROR_INVALID_AUTH_CODE.getValue(), null);
-        }
+        // split available params before checking for errors
+        splitStateString(params.get(relayKey), params);
+
+        // check for client specific errors
+        verifyAuthenticateParams(params);
     }
 
     /**
-     * Default param verifier for authorize.
+     * Default param verifier for authorize.<br>
      * This method should be overridden if the implementing client expects
      * different parameters.
      *
@@ -443,6 +395,122 @@ public abstract class OAuth2Handler {
         } else {
             //validate if type is valid
             OAuth2DataSource.getDataSourceTypeForOAuth2(type);
+        }
+    }
+
+    /**
+     * Default param verifier for authenticate.<br>
+     * Ensures configurable params are in a specific state.<br>
+     * This method should be overridden if the implementing client
+     * expects different params than the default.
+     *
+     * @param params Map of params to check
+     * @throws ServiceException If client specific params are not valid
+     */
+    protected void verifyAuthenticateParams(Map<String, String> params) throws ServiceException {
+        // ensure no errors exist
+        final String error = params.get("error");
+        if (!StringUtils.isEmpty(error)) {
+            throw ServiceException.PERM_DENIED(error);
+            // ensure code exists
+        } else if (!params.containsKey("code")) {
+            throw ServiceException
+                .INVALID_REQUEST(OAuth2ErrorConstants.ERROR_INVALID_AUTH_CODE.getValue(), null);
+        }
+    }
+
+    /**
+     * Builds a state string with given input.<br>
+     * The state string may be returned in the authorize response location
+     * when directing the requester to the social service's endpoint.
+     *
+     * @param prefix Query key prefix (&, ?)
+     * @param relay The redirect
+     * @param type The datasource type (contact, caldav)
+     * @param jwt A jwt
+     * @return The state string
+     * @throws ServiceException If any input is invalid (required and missing, invalid redirect, etc)
+     */
+    protected String buildStateString(String prefix, String relay, String type, String jwt)
+        throws ServiceException {
+        // TODO: make a utility class that handles ordering, naming,
+        // optional, required, etc for parsing back and forth between
+        // authorize keys and authenticate state data
+        String relayValue = "";
+        // relay is first and optional
+        if (!relay.isEmpty()) {
+            try {
+                relay = URLDecoder.decode(relay, OAuth2Constants.ENCODING.getValue());
+            } catch (final UnsupportedEncodingException e) {
+                throw ServiceException.INVALID_REQUEST("Unable to decode relay parameter.", e);
+            }
+
+            try {
+                relayValue = prefix + relayKey + "="
+                    + URLEncoder.encode(relay, OAuth2Constants.ENCODING.getValue());
+            } catch (final UnsupportedEncodingException e) {
+                throw ServiceException.INVALID_REQUEST("Unable to encode relay parameter.", e);
+            }
+        }
+
+        // type is second and required before we arrive in this method
+        if (!type.isEmpty()) {
+            try {
+                if (relayValue.isEmpty()) {
+                    relayValue = prefix + relayKey + "=";
+                }
+                relayValue += RELAY_DELIMETER
+                    + URLEncoder.encode(type, OAuth2Constants.ENCODING.getValue());
+            } catch (final UnsupportedEncodingException e) {
+                throw ServiceException.INVALID_REQUEST("Unable to encode type parameter.", e);
+            }
+        } else {
+            ZimbraLog.extensions.error("Missing data source type");
+            throw ServiceException.FAILURE("Missing data source type", null);
+        }
+
+        // jwt is third and optional
+        if (!jwt.isEmpty()) {
+            try {
+                relayValue += RELAY_DELIMETER
+                    + URLEncoder.encode(jwt, OAuth2Constants.ENCODING.getValue());
+            } catch (final UnsupportedEncodingException e) {
+                throw ServiceException.INVALID_REQUEST("Unable to encode jwt parameter.", e);
+            }
+        }
+        return relayValue;
+    }
+
+    /**
+     * Splits a state string for expected key/value pairs,
+     * then adds them to the passed in params.
+     *
+     * @param state The string to split
+     * @param params The map to update
+     * @throws ServiceException If there are invalid pairs
+     */
+    protected void splitStateString(String state, Map<String, String> params)
+        throws ServiceException {
+        if (state != null && params != null) {
+            final String[] origVal = state.split(RELAY_DELIMETER);
+            if (origVal.length < 2) {
+                throw ServiceException
+                    .INVALID_REQUEST(OAuth2ErrorConstants.ERROR_TYPE_MISSING.getValue(), null);
+            }
+            // store the redirect location even if empty
+            params.put(relayKey, origVal[0]);
+            // ensure type exists
+            if (origVal[1].isEmpty()) {
+                throw ServiceException
+                    .INVALID_REQUEST(OAuth2ErrorConstants.ERROR_TYPE_MISSING.getValue(), null);
+            } else {
+                ZimbraLog.extensions.debug("Adding %s = %s", typeKey, origVal[1]);
+                params.put(typeKey, origVal[1]);
+            }
+            // store the jwt if exists and not empty
+            if (origVal.length > 2 && !StringUtils.isEmpty(origVal[2])) {
+                params.put(OAuth2HttpConstants.JWT_PARAM_KEY.getValue(), origVal[2]);
+            }
         }
     }
 
@@ -474,7 +542,7 @@ public abstract class OAuth2Handler {
         // throw if the upstream response
         // is not what we previously expected
         try {
-            json = mapper.readTree(responseBody);
+            json = stringToJson(responseBody);
         } catch (final JsonParseException e) {
             ZimbraLog.extensions.warn("The destination server responded with unexpected data.");
             throw ServiceException
@@ -482,6 +550,21 @@ public abstract class OAuth2Handler {
         }
 
         return json;
+    }
+
+    /**
+     * Reads a given string into a json node.<br>
+     * Returns null if input is empty.
+     *
+     * @param jsonString The string to read
+     * @return A json node
+     * @throws IOException If there are issues parsing the string
+     */
+    protected static JsonNode stringToJson(String jsonString) throws IOException {
+        if (StringUtils.isEmpty(jsonString)) {
+            return null;
+        }
+        return mapper.readTree(jsonString);
     }
 
     /**
