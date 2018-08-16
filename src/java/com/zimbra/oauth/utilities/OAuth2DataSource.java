@@ -212,7 +212,7 @@ public class OAuth2DataSource {
         final String refreshToken = source.getOauthRefreshToken();
         if (refreshToken == null || refreshToken.isEmpty()) {
             throw ServiceException.FAILURE(String.format(
-                "Refresh token is not set for DataSource %s of Account %s. Cannot access Yahoo API without a valid refresh token.",
+                "Refresh token is not set for DataSource %s of Account %s. Cannot access API without a valid refresh token.",
                 source.getName(), source.getAccountId()), null);
         }
         return refreshToken;
