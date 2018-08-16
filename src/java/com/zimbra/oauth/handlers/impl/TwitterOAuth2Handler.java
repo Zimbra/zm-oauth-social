@@ -157,6 +157,47 @@ public class TwitterOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
     }
 
     /**
+     * Contains contact constants used in this implementation.
+     */
+    protected enum TwitterContactConstants {
+
+        /**
+         * The contacts endpoint for Twitter.
+         */
+        CONTACTS_URI("https://api.twitter.com/1.1/friends/list.json"),
+
+        /**
+         * The contacts pagination size for Twitter.
+         */
+        CONTACTS_PAGE_SIZE("100"),
+
+        /**
+         * The contact identifier key for Twitter.
+         */
+        CONTACT_ID("TwitterId");
+
+        /**
+         * The value of this enum.
+         */
+        private String constant;
+
+        /**
+         * @return The enum value
+         */
+        public String getValue() {
+            return constant;
+        }
+
+        /**
+         * @param constant The enum value to set
+         */
+        TwitterContactConstants(String constant) {
+            this.constant = constant;
+        }
+
+    }
+
+    /**
      * Contains oauth constants used in this implementation.
      */
     protected enum TwitterOAuth2Constants {
@@ -491,7 +532,7 @@ public class TwitterOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
      * @package com.zimbra.oauth.handlers.impl
      * @copyright Copyright © 2018
      */
-    protected class TwitterAuthorizationBuilder {
+    protected static class TwitterAuthorizationBuilder {
 
         /**
          * The request method.
