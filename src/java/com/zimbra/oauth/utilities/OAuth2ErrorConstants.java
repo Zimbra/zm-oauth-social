@@ -29,6 +29,7 @@ public enum OAuth2ErrorConstants {
 
     ERROR_ACCESS_DENIED("access_denied"),
     ERROR_INVALID_AUTH_CODE("invalid_auth_code"),
+    ERROR_INVALID_CLIENT("invalid_client"),
     ERROR_INVALID_ZM_AUTH_CODE("invalid_zm_auth_code"),
     ERROR_INVALID_ZM_AUTH_CODE_MSG("Invalid or missing Zimbra session."),
     ERROR_AUTHENTICATION_ERROR("authentication_error"),

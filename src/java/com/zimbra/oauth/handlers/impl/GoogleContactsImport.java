@@ -374,10 +374,7 @@ public class GoogleContactsImport implements DataImport {
                     syncToken, pageToken);
                 // always set an empty page token during pagination
                 pageToken = null;
-                // log only at most verbose level, this contains privileged info
-                ZimbraLog.extensions.trace(
-                    "Attempting to sync Google contacts. URL: %s. authorizationHeader: %s", url,
-                    authorizationHeader);
+                ZimbraLog.extensions.debug("Attempting to sync Google contacts.");
                 // fetch contacts
                 final JsonNode jsonResponse = getContactsRequest(url, authorizationHeader);
                 if (jsonResponse != null && jsonResponse.isContainerNode()) {
@@ -782,7 +779,7 @@ public class GoogleContactsImport implements DataImport {
                         try {
                             // fetch the image
                             final GetMethod get = new GetMethod(imageUrl);
-                            OAuth2Handler.executeRequest(get);
+                            OAuth2Utilities.executeRequest(get);
                             String imageNum = "";
                             if (i > 1) {
                                 imageNum = String.valueOf(i++);

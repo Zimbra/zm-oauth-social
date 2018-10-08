@@ -124,7 +124,7 @@ public class OAuth2DataSource {
         final String refreshToken = credentials.getRefreshToken();
         final String type = credentials.getParam("type");
         final String dsFolderName = String
-                .format(OAuth2Constants.DEFAULT_OAUTH_FOLDER_TEMPLATE.getValue(), username, type);
+                .format(OAuth2Constants.DEFAULT_OAUTH_FOLDER_TEMPLATE.getValue(), username, type, client);
         try {
             // get datasource, create if missing
             ZDataSource osource = mailbox.getDataSourceByName(dsFolderName);
@@ -212,7 +212,7 @@ public class OAuth2DataSource {
         final String refreshToken = source.getOauthRefreshToken();
         if (refreshToken == null || refreshToken.isEmpty()) {
             throw ServiceException.FAILURE(String.format(
-                "Refresh token is not set for DataSource %s of Account %s. Cannot access Yahoo API without a valid refresh token.",
+                "Refresh token is not set for DataSource %s of Account %s. Cannot access API without a valid refresh token.",
                 source.getName(), source.getAccountId()), null);
         }
         return refreshToken;

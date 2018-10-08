@@ -19,6 +19,7 @@ package com.zimbra.oauth.models;
 import java.util.Map;
 
 import com.zimbra.cs.account.Account;
+import com.zimbra.cs.account.AuthToken;
 
 /**
  * The OAuthInfo class.<br>
@@ -58,7 +59,7 @@ public class OAuthInfo {
     /**
      * A Zimbra auth token.
      */
-    protected String zmAuthToken;
+    protected AuthToken zmAuthToken;
 
     /**
      * A username.
@@ -194,7 +195,7 @@ public class OAuthInfo {
      *
      * @return The Zimbra auth token
      */
-    public String getZmAuthToken() {
+    public AuthToken getZmAuthToken() {
         return zmAuthToken;
     }
 
@@ -203,7 +204,7 @@ public class OAuthInfo {
      *
      * @param zmAuthToken A Zimbra auth token
      */
-    public void setZmAuthToken(String zmAuthToken) {
+    public void setZmAuthToken(AuthToken zmAuthToken) {
         this.zmAuthToken = zmAuthToken;
     }
 

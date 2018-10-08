@@ -18,19 +18,15 @@ package com.zimbra.oauth.handlers.impl;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.SocketTimeoutException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.lang.StringUtils;
-import org.apache.http.conn.ConnectionPoolTimeoutException;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.Claim;
@@ -39,13 +35,13 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zimbra.client.ZMailbox;
-import com.zimbra.common.auth.ZAuthToken;
-import com.zimbra.common.httpclient.HttpClientUtil;
+import com.zimbra.client.ZMailbox.Options;
 import com.zimbra.common.service.ServiceException;
-import com.zimbra.common.util.ZimbraHttpConnectionManager;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
-import com.zimbra.cs.httpclient.HttpProxyUtil;
+import com.zimbra.cs.account.AuthToken;
+import com.zimbra.cs.account.ZimbraAuthToken;
+import com.zimbra.cs.util.AccountUtil;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
@@ -118,11 +114,6 @@ public abstract class OAuth2Handler {
     protected static final ObjectMapper mapper = OAuth2Utilities.createDefaultMapper();
 
     /**
-     * A URI string for the Zimbra host.
-     */
-    protected final String zimbraHostUri;
-
-    /**
      * Constructor.
      *
      * @param config A configuration object
@@ -134,16 +125,6 @@ public abstract class OAuth2Handler {
         this.config = config;
         typeKey = OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue();
         dataSource = OAuth2DataSource.createDataSource(client, clientHost);
-        final String zimbraHostname = config
-            .getString(OAuth2ConfigConstants.LC_ZIMBRA_SERVER_HOSTNAME.getValue());
-        // warn if missing hostname
-        if (StringUtils.isEmpty(zimbraHostname)) {
-            ZimbraLog.extensions.warn("The zimbra server hostname is not configured.");
-        }
-        // cache the host uri
-        zimbraHostUri = String
-            .format(config.getString(OAuth2ConfigConstants.LC_HOST_URI_TEMPLATE.getValue(),
-                OAuth2Constants.DEFAULT_HOST_URI_TEMPLATE.getValue()), zimbraHostname);
     }
 
     /**
@@ -154,18 +135,6 @@ public abstract class OAuth2Handler {
      * @throws ServiceException If there are issues with the response
      */
     protected abstract void validateTokenResponse(JsonNode response) throws ServiceException;
-
-    /**
-     * Get an instance of HttpClient which is configured to use Zimbra proxy.
-     *
-     * @return HttpClient A HttpClient instance
-     */
-    protected static HttpClient getHttpClient() {
-        final HttpClient httpClient = ZimbraHttpConnectionManager.getExternalHttpConnMgr()
-            .newHttpClient();
-        HttpProxyUtil.configureProxy(httpClient);
-        return httpClient;
-    }
 
     /**
      * Default get_token implementation, usable by standard oauth2 services.<br>
@@ -200,7 +169,7 @@ public abstract class OAuth2Handler {
         JsonNode json = null;
         try {
             json = executeRequestForJson(request);
-            ZimbraLog.extensions.trace("Response for autn token request:%s", json);
+            ZimbraLog.extensions.debug("Request for auth token completed.");
         } catch (final IOException e) {
             ZimbraLog.extensions
                 .errorQuietly("There was an issue acquiring the authorization token.", e);
@@ -218,11 +187,13 @@ public abstract class OAuth2Handler {
      *
      * @param template The authorize uri template for this implementation
      * @param account The account to acquire configuration by access level
+     * @param datasourceType The type of datasource we're authorizing to create
      * @return The authorize uri
      * @throws ServiceException If there are issues with the app configuration
      *             (missing credentials)
      */
-    protected String buildAuthorizeUri(String template, Account account, String datasourceType) throws ServiceException {
+    protected String buildAuthorizeUri(String template, Account account, String datasourceType)
+        throws ServiceException {
         final String responseType = "code";
         String encodedRedirectUri = "";
         final String clientId = config.getString(
@@ -264,39 +235,11 @@ public abstract class OAuth2Handler {
      * @see IOAuth2Handler#authorize(String, Account)
      */
     public String authorize(Map<String, String> params, Account account) throws ServiceException {
-        final String relayState = params.get(relayKey);
+        final String relay = StringUtils.defaultString(params.get(relayKey), "");
         final String type = StringUtils.defaultString(params.get(typeKey), "");
-        String relayValue = "";
-        String relay = StringUtils.defaultString(relayState, "");
-
-        if (!relay.isEmpty()) {
-            try {
-                relay = URLDecoder.decode(relay, OAuth2Constants.ENCODING.getValue());
-            } catch (final UnsupportedEncodingException e) {
-                throw ServiceException.INVALID_REQUEST("Unable to decode relay parameter.", e);
-            }
-
-            try {
-                relayValue = "&" + relayKey + "="
-                    + URLEncoder.encode(relay, OAuth2Constants.ENCODING.getValue());
-            } catch (final UnsupportedEncodingException e) {
-                throw ServiceException.INVALID_REQUEST("Unable to encode relay parameter.", e);
-            }
-        }
-
-        if (!type.isEmpty()) {
-            try {
-                if (relayValue.isEmpty()) {
-                    relayValue = "&" + relayKey + "=";
-                }
-                relayValue += RELAY_DELIMETER + URLEncoder.encode(type, OAuth2Constants.ENCODING.getValue());
-            } catch (final UnsupportedEncodingException e) {
-                throw ServiceException.INVALID_REQUEST("Unable to decode type parameter.", e);
-            }
-        } else {
-            ZimbraLog.extensions.error("Missing data source type");
-            throw ServiceException.FAILURE("Missing data source type", null);
-        }
+        final String jwt = StringUtils
+            .defaultString(params.get(OAuth2HttpConstants.JWT_PARAM_KEY.getValue()), "");
+        final String relayValue = buildStateString("&", relay, type, jwt);
 
         return buildAuthorizeUri(authorizeUriTemplate, account, type) + relayValue;
     }
@@ -306,24 +249,9 @@ public abstract class OAuth2Handler {
      */
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException {
         final Account account = oauthInfo.getAccount();
-        final String clientId = config.getString(
-            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(), client), client,
-            account);
-        final String clientSecret = config.getString(
-            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(), client),
-            client, account);
-        final String clientRedirectUri = config.getString(
-            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(), client),
-            client, account);
-        if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientSecret)
-            || StringUtils.isEmpty(clientRedirectUri)) {
-            throw ServiceException.FAILURE("Required config(id, secret and redirectUri) parameters are not provided.", null);
-        }
-        final String basicToken = OAuth2Utilities.encodeBasicHeader(clientId, clientSecret);
-        // set client specific properties
-        oauthInfo.setClientId(clientId);
-        oauthInfo.setClientSecret(clientSecret);
-        oauthInfo.setClientRedirectUri(clientRedirectUri);
+        loadClientConfig(account, oauthInfo);
+        final String basicToken = OAuth2Utilities.encodeBasicHeader(
+            oauthInfo.getClientId(), oauthInfo.getClientSecret());
         oauthInfo.setTokenUrl(authenticateUri);
         // request credentials from social service
         final JsonNode credentials = getTokenRequest(oauthInfo, basicToken);
@@ -334,7 +262,7 @@ public abstract class OAuth2Handler {
         ZimbraLog.extensions.trace("Authentication performed for:" + username);
 
         // get zimbra mailbox
-        final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken());
+        final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken(), account);
 
         // store refreshToken
         oauthInfo.setUsername(username);
@@ -344,6 +272,35 @@ public abstract class OAuth2Handler {
         // oauthinfo for calendar datasource. see example below
         // e.g. dataSource.syncDatasource(mailbox, oauthInfo, DataSourceType.oauth2calendar);
         return true;
+    }
+
+    /**
+     * Loads client config for oauth into the specified auth info object.
+     *
+     * @param account The account to use when fetching config
+     * @param authInfo The auth info to update
+     * @throws ServiceException If any of the credentials are missing
+     */
+    protected void loadClientConfig(Account account, OAuthInfo authInfo) throws ServiceException {
+        final String clientId = config.getString(
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_ID_TEMPLATE.getValue(), client), client,
+            account);
+        final String clientSecret = config.getString(
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_SECRET_TEMPLATE.getValue(), client),
+            client, account);
+        final String clientRedirectUri = config.getString(
+            String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(), client),
+            client, account);
+        // error if missing any
+        if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientSecret)
+            || StringUtils.isEmpty(clientRedirectUri)) {
+            throw ServiceException.FAILURE(
+                "Required config(id, secret and redirectUri) parameters are not provided.", null);
+        }
+        // update the existing auth info
+        authInfo.setClientId(clientId);
+        authInfo.setClientSecret(clientSecret);
+        authInfo.setClientRedirectUri(clientRedirectUri);
     }
 
     /**
@@ -396,43 +353,29 @@ public abstract class OAuth2Handler {
     }
 
     /**
-     * Default param verifier. Ensures no `error`, and that `code` is passed
-     * in.<br>
-     * This method should be overridden if the implementing client expects
-     * different parameters.
+     * Default param verifier for authenticate.<br>
+     * Ensures a relay is passed in with the ds type,
+     * then delegates to handle client specific params.
      *
-     * @see IOAuth2Handler#verifyAuthenticateParams()
+     * @see IOAuth2Handler#verifyAndSplitAuthenticateParams()
      */
-    public void verifyAndSplitAuthenticateParams(Map<String, String> params) throws ServiceException {
-        // split available params before checking for errors
-        if (params.containsKey(relayKey)) {
-            final String[] origVal = params.get(relayKey).split(RELAY_DELIMETER);
-            if (origVal.length != 2) {
-                throw ServiceException.INVALID_REQUEST(OAuth2ErrorConstants.ERROR_TYPE_MISSING.getValue(), null);
-            }
-            params.put(relayKey, origVal[0]);
-            if (origVal[1].isEmpty()) {
-                throw ServiceException.INVALID_REQUEST(OAuth2ErrorConstants.ERROR_TYPE_MISSING.getValue(), null);
-            } else {
-                ZimbraLog.extensions.debug("Adding %s = %s", typeKey, origVal[1]);
-                params.put(typeKey, origVal[1]);
-            }
-        } else {
-            throw ServiceException.INVALID_REQUEST(OAuth2ErrorConstants.ERROR_TYPE_MISSING.getValue(), null);
+    public void verifyAndSplitAuthenticateParams(Map<String, String> params)
+        throws ServiceException {
+        // invalid if no state param since we need `type`
+        if (!params.containsKey(relayKey)) {
+            throw ServiceException
+                .INVALID_REQUEST(OAuth2ErrorConstants.ERROR_TYPE_MISSING.getValue(), null);
         }
 
-        final String error = params.get("error");
-        // check for errors
-        if (!StringUtils.isEmpty(error)) {
-            throw ServiceException.PERM_DENIED(error);
-            // ensure code exists
-        } else if (!params.containsKey("code")) {
-            throw ServiceException.INVALID_REQUEST(OAuth2ErrorConstants.ERROR_INVALID_AUTH_CODE.getValue(), null);
-        }
+        // split available params before checking for errors
+        splitStateString(params.get(relayKey), params);
+
+        // check for client specific errors
+        verifyAuthenticateParams(params);
     }
 
     /**
-     * Default param verifier for authorize.
+     * Default param verifier for authorize.<br>
      * This method should be overridden if the implementing client expects
      * different parameters.
      *
@@ -452,6 +395,122 @@ public abstract class OAuth2Handler {
         } else {
             //validate if type is valid
             OAuth2DataSource.getDataSourceTypeForOAuth2(type);
+        }
+    }
+
+    /**
+     * Default param verifier for authenticate.<br>
+     * Ensures configurable params are in a specific state.<br>
+     * This method should be overridden if the implementing client
+     * expects different params than the default.
+     *
+     * @param params Map of params to check
+     * @throws ServiceException If client specific params are not valid
+     */
+    protected void verifyAuthenticateParams(Map<String, String> params) throws ServiceException {
+        // ensure no errors exist
+        final String error = params.get("error");
+        if (!StringUtils.isEmpty(error)) {
+            throw ServiceException.PERM_DENIED(error);
+            // ensure code exists
+        } else if (!params.containsKey("code")) {
+            throw ServiceException
+                .INVALID_REQUEST(OAuth2ErrorConstants.ERROR_INVALID_AUTH_CODE.getValue(), null);
+        }
+    }
+
+    /**
+     * Builds a state string with given input.<br>
+     * The state string may be returned in the authorize response location
+     * when directing the requester to the social service's endpoint.
+     *
+     * @param prefix Query key prefix (&, ?)
+     * @param relay The redirect
+     * @param type The datasource type (contact, caldav)
+     * @param jwt A jwt
+     * @return The state string
+     * @throws ServiceException If any input is invalid (required and missing, invalid redirect, etc)
+     */
+    protected String buildStateString(String prefix, String relay, String type, String jwt)
+        throws ServiceException {
+        // TODO: make a utility class that handles ordering, naming,
+        // optional, required, etc for parsing back and forth between
+        // authorize keys and authenticate state data
+        String relayValue = "";
+        // relay is first and optional
+        if (!relay.isEmpty()) {
+            try {
+                relay = URLDecoder.decode(relay, OAuth2Constants.ENCODING.getValue());
+            } catch (final UnsupportedEncodingException e) {
+                throw ServiceException.INVALID_REQUEST("Unable to decode relay parameter.", e);
+            }
+
+            try {
+                relayValue = prefix + relayKey + "="
+                    + URLEncoder.encode(relay, OAuth2Constants.ENCODING.getValue());
+            } catch (final UnsupportedEncodingException e) {
+                throw ServiceException.INVALID_REQUEST("Unable to encode relay parameter.", e);
+            }
+        }
+
+        // type is second and required before we arrive in this method
+        if (!type.isEmpty()) {
+            try {
+                if (relayValue.isEmpty()) {
+                    relayValue = prefix + relayKey + "=";
+                }
+                relayValue += RELAY_DELIMETER
+                    + URLEncoder.encode(type, OAuth2Constants.ENCODING.getValue());
+            } catch (final UnsupportedEncodingException e) {
+                throw ServiceException.INVALID_REQUEST("Unable to encode type parameter.", e);
+            }
+        } else {
+            ZimbraLog.extensions.error("Missing data source type");
+            throw ServiceException.FAILURE("Missing data source type", null);
+        }
+
+        // jwt is third and optional
+        if (!jwt.isEmpty()) {
+            try {
+                relayValue += RELAY_DELIMETER
+                    + URLEncoder.encode(jwt, OAuth2Constants.ENCODING.getValue());
+            } catch (final UnsupportedEncodingException e) {
+                throw ServiceException.INVALID_REQUEST("Unable to encode jwt parameter.", e);
+            }
+        }
+        return relayValue;
+    }
+
+    /**
+     * Splits a state string for expected key/value pairs,
+     * then adds them to the passed in params.
+     *
+     * @param state The string to split
+     * @param params The map to update
+     * @throws ServiceException If there are invalid pairs
+     */
+    protected void splitStateString(String state, Map<String, String> params)
+        throws ServiceException {
+        if (state != null && params != null) {
+            final String[] origVal = state.split(RELAY_DELIMETER);
+            if (origVal.length < 2) {
+                throw ServiceException
+                    .INVALID_REQUEST(OAuth2ErrorConstants.ERROR_TYPE_MISSING.getValue(), null);
+            }
+            // store the redirect location even if empty
+            params.put(relayKey, origVal[0]);
+            // ensure type exists
+            if (origVal[1].isEmpty()) {
+                throw ServiceException
+                    .INVALID_REQUEST(OAuth2ErrorConstants.ERROR_TYPE_MISSING.getValue(), null);
+            } else {
+                ZimbraLog.extensions.debug("Adding %s = %s", typeKey, origVal[1]);
+                params.put(typeKey, origVal[1]);
+            }
+            // store the jwt if exists and not empty
+            if (origVal.length > 2 && !StringUtils.isEmpty(origVal[2])) {
+                params.put(OAuth2HttpConstants.JWT_PARAM_KEY.getValue(), origVal[2]);
+            }
         }
     }
 
@@ -477,13 +536,13 @@ public abstract class OAuth2Handler {
     public static JsonNode executeRequestForJson(HttpMethod request)
         throws ServiceException, IOException {
         JsonNode json = null;
-        final String responseBody = executeRequest(request);
+        final String responseBody = OAuth2Utilities.executeRequest(request);
 
         // try to parse json
         // throw if the upstream response
         // is not what we previously expected
         try {
-            json = mapper.readTree(responseBody);
+            json = stringToJson(responseBody);
         } catch (final JsonParseException e) {
             ZimbraLog.extensions.warn("The destination server responded with unexpected data.");
             throw ServiceException
@@ -494,54 +553,45 @@ public abstract class OAuth2Handler {
     }
 
     /**
-     * Executes an Http Request and returns the response body.
+     * Reads a given string into a json node.<br>
+     * Returns null if input is empty.
      *
-     * @param request Request to execute
-     * @return Response body as a string
-     * @throws ServiceException If there are issues with the connection
-     * @throws IOException If there are non connection related issues
+     * @param jsonString The string to read
+     * @return A json node
+     * @throws IOException If there are issues parsing the string
      */
-    protected static String executeRequest(HttpMethod request)
-        throws ServiceException, IOException {
-        String responseBody = null;
-        try {
-            final HttpClient client = getHttpClient();
-            HttpClientUtil.executeMethod(client, request);
-            responseBody = request.getResponseBodyAsString();
-        } catch (final UnknownHostException e) {
-            ZimbraLog.extensions.errorQuietly(
-                "The configured destination address is unknown: " + request.getURI(), e);
-            throw ServiceException
-                .RESOURCE_UNREACHABLE("The configured destination address is unknown.", e);
-        } catch (final SocketTimeoutException e) {
-            ZimbraLog.extensions
-                .warn("The destination server took too long to respond to our request.");
-            throw ServiceException.RESOURCE_UNREACHABLE(
-                "The destination server took too long to respond to our request.", e);
-        } catch (final ConnectionPoolTimeoutException e) {
-            ZimbraLog.extensions
-                .warn("Too many active HTTP client connections, not enough resources available.");
-            throw ServiceException.TEMPORARILY_UNAVAILABLE();
-        } finally {
-            if (request != null) {
-                request.releaseConnection();
-            }
+    protected static JsonNode stringToJson(String jsonString) throws IOException {
+        if (StringUtils.isEmpty(jsonString)) {
+            return null;
         }
-        return responseBody;
+        return mapper.readTree(jsonString);
     }
 
     /**
-     * Retrieves the Zimbra mailbox via specified auth token.
+     * Retrieves the Zimbra mailbox via specified auth token.<br>
+     * Fetches the soap uri for the specified account.
      *
      * @param zmAuthToken The Zimbra auth token to identify the account with
+     * @param account Instance of the account we want a mailbox for
      * @return The Zimbra mailbox
      * @throws ServiceException If there is an issue retrieving the account
      *             mailbox
      */
-    protected ZMailbox getZimbraMailbox(String zmAuthToken) throws ServiceException {
+    protected ZMailbox getZimbraMailbox(AuthToken zmAuthToken, Account account) throws ServiceException {
         // create a mailbox by auth token
         try {
-            return ZMailbox.getByAuthToken(new ZAuthToken(zmAuthToken), zimbraHostUri, true, true);
+            // fetch soap uri via the account for multi-node envs
+            final String zimbraSoapUri = AccountUtil.getSoapUri(account);
+            ZimbraLog.extensions.debug("Creating ZMailbox for account: %s, soap uri: %s",
+                account.getName(), zimbraSoapUri);
+            final Options options = new Options();
+            options.setUri(zimbraSoapUri);
+            final ZMailbox mbox = new ZMailbox(options);
+            // get a csrf unsecured token since we are internal
+            final AuthToken csrfUnsafeToken = ZimbraAuthToken
+                .getCsrfUnsecuredAuthToken(zmAuthToken);
+            mbox.initAuthToken(csrfUnsafeToken.toZAuthToken());
+            return mbox;
         } catch (final ServiceException e) {
             ZimbraLog.extensions.errorQuietly(
                 "There was an issue acquiring the mailbox using the specified auth token.", e);

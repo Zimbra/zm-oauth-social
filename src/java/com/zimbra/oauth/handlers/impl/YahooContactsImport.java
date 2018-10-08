@@ -256,11 +256,7 @@ public class YahooContactsImport implements DataImport {
             final String url = String.format(YahooContactConstants.CONTACTS_URI_TEMPLATE.getValue(),
                 tokenAndGuid.getSecond(), "json", rev);
             final String authorizationHeader = String.format("Bearer %s", tokenAndGuid.getFirst());
-            // log this only at the most verbose level, because this contains
-            // privileged information
-            ZimbraLog.extensions.trace(
-                "Attempting to sync Yahoo contacts. URL: %s. authorizationHeader: %s", url,
-                authorizationHeader);
+            ZimbraLog.extensions.debug("Attempting to sync Yahoo contacts.");
             final JsonNode jsonResponse = getContactsRequest(url, authorizationHeader);
             respContent = jsonResponse.toString();
             // log this only at the most verbose level, because this contains
@@ -580,7 +576,7 @@ public class YahooContactsImport implements DataImport {
                         try {
                             // fetch the image
                             final GetMethod get = new GetMethod(imageUrl);
-                            OAuth2Handler.executeRequest(get);
+                            OAuth2Utilities.executeRequest(get);
                             // add to attachments
                             final Attachment attachment = OAuth2Utilities
                                 .createAttachmentFromResponse(get, key,
