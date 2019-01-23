@@ -55,14 +55,14 @@ See the [client setup wiki].
 | --- | ----------- | ----------- | -------- |
 | zimbraOAuthConsumerCredentials | OAuth credentials for a client, set at global config or domain level. | All | `<client-id>:<client-secret>:<client>` |
 | zimbraOAuthConsumerRedirectUri | The callback where the client returns the user too. | All | `http[s]://<domain[:port]>/service/extension/oauth2/authenticate/<client>:<client>` |
-| zimbraOAuthConsumerAPIScope | The scopes required to access user data. | Google, Facebook | `<scope1>+<scope2>+...:<client>` |
+| zimbraOAuthConsumerAPIScope | The scopes required to access user data. Types: `contact`, `caldav` | Google, Facebook | `<scope1>+<scope2>+...:<client>_<type>` |
 
 ***Client specific scopes to use with the zimbraOAuthConsumerAPIScope config***
 
 | Client | Required scopes string |
 | ------ | ---------------------- |
-| Google | `https://www.googleapis.com/auth/contacts profile:google` |
-| Facebook | `user_friends,read_custom_friendlists,email,user_location,public_profile,user_about_me,user_birthday,groups_access_member_info:facebook` |
+| Google | `https://www.googleapis.com/auth/contacts profile:google_contact` |
+| Facebook | `user_friends,read_custom_friendlists,email,user_location,public_profile,user_about_me,user_birthday,groups_access_member_info:facebook_contact` |
 
 Note: Delimiters can vary across clients.
 
@@ -70,7 +70,9 @@ Note: Delimiters can vary across clients.
 
 | Key | Description | Optional | Example Options |
 | --- | ----------- | -------- | --------------- |
-| zm_oauth_classes_handlers_yahoo<sup>1</sup> | The handler implementation class for the client | | `com.zimbra.oauth.handlers.impl.YahooOAuth2Handler` |
+| zm_oauth_classes_handlers_twitter<sup>1</sup> | The handler implementation class for the client | Yes | `com.zimbra.oauth.handlers.impl.TwitterOAuth2Handler` |
+
+<sup>1</sup>Replace the `twitter` part of the key name with the name of the client (e.g. `yahoo`, `google`, `outlook`).
 
 Localconfig can be found in Zimbra's `localconfig.xml` file (usually located at `/opt/zimbra/conf/localconfig.xml`)
 
