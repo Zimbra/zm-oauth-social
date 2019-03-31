@@ -17,13 +17,13 @@ The `zm-build` and `zm-zcs` projects should also reside in the same local parent
 
 **Deploying the extension from CLI**
 
-For testing purposes you can build and and deploy the extension to `/opt/zimbra/lib/ext/zm-oauth-social` by running the following:
+For testing purposes you can build and deploy the extension to `/opt/zimbra/lib/ext/zm-oauth-social` by running the following:
 
 ```sh
 ant deploy
 ```
 
-Afterwards, add the necessary configuration to the `/opt/zimbra/conf/localconfig.xml` file, then become the `zimbra` user, and perform a `zmmailboxdctl restart`.
+Afterwards, configure ldap and localconfig as necessary, then become the `zimbra` user, and perform a `zmmailboxdctl restart`.
 
 **Testing from CLI**
 
@@ -39,53 +39,42 @@ ant test
 
 See the [documentation for api usage].
 
-After a user completes the oauth2 flow, the credentials for their account will be stored as a data source with a configured folder created in the user's root mailbox during authentication. If an import class is associated, it can be triggered manually with a `zmsoap` import data request.
+After a user completes the oauth2 flow, the credentials for their account will be stored as a data source with a configured folder created in the user's root mailbox during authentication. The import is triggered after successful completion of the OAuth flow. An import can also be triggered manually with a `zmsoap` import data request.
 
 ---
 
 ## Configuration
 
-This service's configuration can all be found in Zimbra's `localconfig.xml` file (usually located at `/opt/zimbra/conf/localconfig.xml`)
+This service's configuration for OAuth clients are setup in Ldap attributes on a global or domain level.
+
+**Ldap Properties**
+
+See the [client setup wiki].
+
+| Key | Description | Required By | Template |
+| --- | ----------- | ----------- | -------- |
+| zimbraOAuthConsumerCredentials | OAuth credentials for a client, set at global config or domain level. | All | `<client-id>:<client-secret>:<client>` |
+| zimbraOAuthConsumerRedirectUri | The callback where the client returns the user too. | All | `http[s]://<domain[:port]>/service/extension/oauth2/authenticate/<client>:<client>` |
+| zimbraOAuthConsumerAPIScope | The scopes required to access user data. Types: `contact`, `caldav` | Google, Facebook | `<scope1>+<scope2>+...:<client>_<type>` |
+
+***Client specific scopes to use with the zimbraOAuthConsumerAPIScope config***
+
+| Client | Required scopes string |
+| ------ | ---------------------- |
+| Google | `https://www.googleapis.com/auth/contacts profile:google_contact` |
+| Facebook | `user_friends,read_custom_friendlists,email,user_location,public_profile,user_about_me,user_birthday,groups_access_member_info:facebook_contact` |
+
+Note: Delimiters can vary across clients.
 
 **Localconfig General Properties**
 
-
 | Key | Description | Optional | Example Options |
 | --- | ----------- | -------- | --------------- |
-| zm_oauth_classes_handlers_yahoo<sup>1</sup> | The handler implementation class for the client | | `com.zimbra.oauth.handlers.impl.YahooOAuth2Handler` |
+| zm_oauth_classes_handlers_twitter<sup>1</sup> | The handler implementation class for the client | Yes | `com.zimbra.oauth.handlers.impl.TwitterOAuth2Handler` |
 
-<sup>1</sup>Replace the `yahoo` part of the key name with the name of the client (e.g. `yahoo`, `google`, `outlook`).
+<sup>1</sup>Replace the `twitter` part of the key name with the name of the client (e.g. `yahoo`, `google`, `outlook`).
 
-
-**Localconfig Client Specific Properties**
-
-**Yahoo Implementation Properties**
-
-| Key | Description | Optional | Example Options |
-| --- | ----------- | -------- | --------------- |
-| zm_oauth_yahoo_client_id | The Yahoo app's client id | | |
-| zm_oauth_yahoo_client_secret | The Yahoo app's client secret | | |
-| zm_oauth_yahoo_client_redirect_uri | The callback Yahoo returns the user to | | `https://this.service.host.com/service/extension/oauth2/authenticate/yahoo` |
-
-
-**Google Implementation Properties**
-
-| Key | Description | Optional | Example Options |
-| --- | ----------- | -------- | --------------- |
-| zm_oauth_google_client_id | The Google app's client id | | |
-| zm_oauth_google_client_secret | The Google app's client secret | | |
-| zm_oauth_google_client_redirect_uri | The callback Google returns the user to | | `https://this.service.host.com/service/extension/oauth2/authenticate/google` |
-| zm_oauth_google_scope | The token scope to request | | `profile` |
-
-
-**Facebook Implementation Properties**
-
-| Key | Description | Optional | Example Options |
-| --- | ----------- | -------- | --------------- |
-| zm_oauth_facebook_client_id | The Facebook app's client id | | |
-| zm_oauth_facebook_client_secret | The Facebook app's client secret | | |
-| zm_oauth_facebook_client_redirect_uri | The callback Facebook returns the user to | | `https://this.service.host.com/service/extension/oauth2/authenticate/facebook` |
-| zm_oauth_facebook_scope | The token scope to request | | `profile` |
-
+Localconfig can be found in Zimbra's `localconfig.xml` file (usually located at `/opt/zimbra/conf/localconfig.xml`)
 
 [documentation for api usage]: http://tools.email.dev.opal.synacor.com/zm-oauth-social-docs-latest/
+[client setup wiki]: http://wiki.eng.zimbra.com/index.php/Zimbra_OAuth_Social
