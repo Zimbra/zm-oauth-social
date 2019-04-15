@@ -20,13 +20,17 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.message.BasicNameValuePair;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.Claim;
@@ -149,22 +153,24 @@ public abstract class OAuth2Handler {
     public static JsonNode getTokenRequest(OAuthInfo authInfo, String basicToken)
         throws ServiceException {
         final String refreshToken = authInfo.getRefreshToken();
-        final PostMethod request = new PostMethod(authInfo.getTokenUrl());
+        final HttpPost request = new HttpPost(authInfo.getTokenUrl());
+        final List<NameValuePair> params = new ArrayList<NameValuePair>();
         if (!StringUtils.isEmpty(refreshToken)) {
             // set refresh token if we have one
-            request.setParameter("grant_type", "refresh_token");
-            request.setParameter("refresh_token", refreshToken);
+            params.add(new BasicNameValuePair("grant_type", "refresh_token"));
+            params.add(new BasicNameValuePair("refresh_token", refreshToken));
         } else {
             // otherwise use the code
-            request.setParameter("grant_type", "authorization_code");
-            request.setParameter("code", authInfo.getParam("code"));
+            params.add(new BasicNameValuePair("grant_type", "authorization_code"));
+            params.add(new BasicNameValuePair("code", authInfo.getParam("code")));
         }
-        request.setParameter("redirect_uri", authInfo.getClientRedirectUri());
-        request.setParameter("client_secret", authInfo.getClientSecret());
-        request.setParameter("client_id", authInfo.getClientId());
-        request.setRequestHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
+        params.add(new BasicNameValuePair("redirect_uri", authInfo.getClientRedirectUri()));
+        params.add(new BasicNameValuePair("client_secret", authInfo.getClientSecret()));
+        params.add(new BasicNameValuePair("client_id", authInfo.getClientId()));
+        setFormEntity(request, params);
+        request.setHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
             "application/x-www-form-urlencoded");
-        request.setRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
+        request.setHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
             "Basic " + basicToken);
         JsonNode json = null;
         try {
@@ -533,7 +539,7 @@ public abstract class OAuth2Handler {
      * @throws ServiceException If there are issues with the connection
      * @throws IOException If there are non connection related issues
      */
-    public static JsonNode executeRequestForJson(HttpMethod request)
+    public static JsonNode executeRequestForJson(HttpRequestBase request)
         throws ServiceException, IOException {
         JsonNode json = null;
         final String responseBody = OAuth2Utilities.executeRequest(request);
@@ -565,6 +571,24 @@ public abstract class OAuth2Handler {
             return null;
         }
         return mapper.readTree(jsonString);
+    }
+
+    /**
+     * Sets a specified form encoded param entity on the request.
+     *
+     * @param request The request to set the entity on
+     * @param params The params to set
+     * @throws ServiceException If there are issues encoding
+     */
+    public static void setFormEntity(HttpPost request, List<NameValuePair> params)
+        throws ServiceException {
+        try {
+            request.setEntity(new UrlEncodedFormEntity(params));
+        } catch (final UnsupportedEncodingException e) {
+            ZimbraLog.extensions.error("Unable to encode token request params %s", params);
+            ZimbraLog.extensions.debug(e);
+            throw ServiceException.INVALID_REQUEST("Unable to encode token request params.", null);
+        }
     }
 
     /**

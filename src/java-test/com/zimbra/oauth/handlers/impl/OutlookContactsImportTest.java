@@ -30,7 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.httpclient.HttpClient;
+import org.apache.http.client.HttpClient;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
