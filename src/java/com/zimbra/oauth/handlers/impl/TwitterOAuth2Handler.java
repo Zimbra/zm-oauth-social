@@ -445,7 +445,7 @@ public class TwitterOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         final HttpEntity entity = response.getEntity();
         if (entity != null) {
             rawResponse = new String(
-                OAuth2Utilities.decodeStream(entity.getContent(), 0));
+                OAuth2Utilities.decodeStream(entity.getContent(), entity.getContentLength()));
         }
         // check for known errors if the status is not ok
         if (HttpStatus.SC_OK != response.getStatusLine().getStatusCode()) {

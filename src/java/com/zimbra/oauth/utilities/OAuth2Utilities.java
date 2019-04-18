@@ -218,7 +218,7 @@ public class OAuth2Utilities {
         if (entity == null) {
             return null;
         }
-        return new String(decodeStream(entity.getContent(), 0));
+        return new String(decodeStream(entity.getContent(), entity.getContentLength()));
     }
 
     /**
