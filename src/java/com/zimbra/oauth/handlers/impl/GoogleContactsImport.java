@@ -82,8 +82,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.URIBuilder;
 import org.xml.sax.SAXException;
 
@@ -239,8 +240,8 @@ public class GoogleContactsImport implements DataImport {
      */
     protected JsonNode getContactsRequest(String url, String authorizationHeader)
         throws ServiceException, IOException {
-        final GetMethod get = new GetMethod(url);
-        get.addRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
+        final HttpGet get = new HttpGet(url);
+        get.addHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
         ZimbraLog.extensions.debug("Fetching contacts for import.");
         return OAuth2Handler.executeRequestForJson(get);
     }
@@ -778,8 +779,8 @@ public class GoogleContactsImport implements DataImport {
                     if (!StringUtils.isEmpty(imageUrl)) {
                         try {
                             // fetch the image
-                            final GetMethod get = new GetMethod(imageUrl);
-                            OAuth2Utilities.executeRequest(get);
+                            final HttpGet get = new HttpGet(imageUrl);
+                            final HttpResponse response = OAuth2Utilities.executeRequestRaw(get);
                             String imageNum = "";
                             if (i > 1) {
                                 imageNum = String.valueOf(i++);
@@ -788,7 +789,7 @@ public class GoogleContactsImport implements DataImport {
                                 GoogleContactConstants.CONTACTS_IMAGE_NAME_TEMPLATE.getValue(), imageNum);
                             // add to attachments
                             final Attachment attachment = OAuth2Utilities
-                                .createAttachmentFromResponse(get, key + imageNum, filename);
+                                .createAttachmentFromResponse(response, key + imageNum, filename);
                             if (attachment != null) {
                                 attachments.add(attachment);
                             }

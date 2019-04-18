@@ -63,9 +63,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
@@ -227,11 +228,11 @@ public class OutlookContactsImport implements DataImport {
      */
     protected JsonNode getContactsRequest(String url, String authorizationHeader)
         throws ServiceException, IOException {
-        final GetMethod get = new GetMethod(url);
-        get.addRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
+        final HttpGet get = new HttpGet(url);
+        get.addHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
             authorizationHeader);
-        get.addRequestHeader("Prefer", "odata.track-changes");
-        get.addRequestHeader("Prefer",
+        get.addHeader("Prefer", "odata.track-changes");
+        get.addHeader("Prefer",
             "odata.maxpagesize=" + OutlookContactConstants.CONTACTS_PAGE_SIZE.getValue());
         ZimbraLog.extensions.debug("Fetching contacts for import.");
         return OAuth2Handler.executeRequestForJson(get);
@@ -361,8 +362,8 @@ public class OutlookContactsImport implements DataImport {
         final List<Pair<String, String>> folders = new ArrayList<Pair<String, String>>();
         // add null first for for the root folder
         folders.add(new Pair<String, String>(null, null));
-        final GetMethod get = new GetMethod(OutlookContactConstants.CONTACTS_FOLDER_URI.getValue());
-        get.addRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
+        final HttpGet get = new HttpGet(OutlookContactConstants.CONTACTS_FOLDER_URI.getValue());
+        get.addHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
         ZimbraLog.extensions.debug("Fetching contact folders to import from.");
         final JsonNode response = OAuth2Handler.executeRequestForJson(get);
         if (response != null && response.has("value")) {
@@ -676,13 +677,15 @@ public class OutlookContactsImport implements DataImport {
                 .format(OutlookContactConstants.CONTACTS_PHOTO_URI_TEMPLATE.getValue(), id);
             try {
                 // fetch the image
-                final GetMethod get = new GetMethod(imageUrl);
+                final HttpGet get = new HttpGet(imageUrl);
                 // use authorization
-                get.addRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
+                get.addHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
                     authorizationHeader);
-                OAuth2Utilities.executeRequest(client, get);
+                final HttpResponse response = OAuth2Utilities.executeRequestRaw(client, get);
                 // add to attachments
-                final Attachment attachment = OAuth2Utilities.createAttachmentFromResponse(get, key,
+                final Attachment attachment = OAuth2Utilities.createAttachmentFromResponse(
+                    response,
+                    key,
                     OutlookContactConstants.CONTACTS_IMAGE_NAME.getValue());
                 if (attachment != null) {
                     attachments.add(attachment);

@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.http.client.methods.HttpGet;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
@@ -196,7 +196,7 @@ public class FacebookContactsImport implements DataImport {
             FacebookOAuth2Constants.REFRESH_ACCESS_TOKEN_FOR_CODE_REQUEST_URI_TEMPLATE.getValue(),
             authInfo.getClientId(), encodedUrl, code);
 
-        final GetMethod request = new GetMethod(queryString);
+        final HttpGet request = new HttpGet(queryString);
         JsonNode json = null;
         try {
             json = FacebookOAuth2Handler.executeRequestForJson(request);
@@ -244,7 +244,7 @@ public class FacebookContactsImport implements DataImport {
         final String queryString = String.format(
             FacebookOAuth2Constants.REFRESH_TOKEN_CODE_REQUEST_URI_TEMPLATE.getValue(), refreshToken,
             authInfo.getClientId(), authInfo.getClientSecret(), encodedUrl);
-        final GetMethod request = new GetMethod(queryString);
+        final HttpGet request = new HttpGet(queryString);
 
         JsonNode json = null;
         try {
@@ -276,7 +276,7 @@ public class FacebookContactsImport implements DataImport {
      * @throws IOException If there are issues executing the request
      */
     protected JsonNode getContactsRequest(String url) throws ServiceException, IOException {
-        final GetMethod get = new GetMethod(url);
+        final HttpGet get = new HttpGet(url);
         ZimbraLog.extensions.trace("Fetching contacts for import.");
         return OAuth2Handler.executeRequestForJson(get);
     }
