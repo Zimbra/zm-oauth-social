@@ -69,8 +69,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
@@ -228,8 +229,8 @@ public class YahooContactsImport implements DataImport {
      */
     protected JsonNode getContactsRequest(String url, String authorizationHeader)
         throws ServiceException, IOException {
-        final GetMethod get = new GetMethod(url);
-        get.addRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
+        final HttpGet get = new HttpGet(url);
+        get.addHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
         ZimbraLog.extensions.debug("Fetching contacts for import.");
         return OAuth2Handler.executeRequestForJson(get);
     }
@@ -575,11 +576,11 @@ public class YahooContactsImport implements DataImport {
                     if (!StringUtils.isEmpty(imageUrl)) {
                         try {
                             // fetch the image
-                            final GetMethod get = new GetMethod(imageUrl);
-                            OAuth2Utilities.executeRequest(get);
+                            final HttpGet get = new HttpGet(imageUrl);
+                            final HttpResponse response = OAuth2Utilities.executeRequestRaw(get);
                             // add to attachments
                             final Attachment attachment = OAuth2Utilities
-                                .createAttachmentFromResponse(get, key,
+                                .createAttachmentFromResponse(response, key,
                                     YahooContactConstants.CONTACTS_IMAGE_NAME.getValue());
                             if (attachment != null) {
                                 attachments.add(attachment);

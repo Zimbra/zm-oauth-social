@@ -18,8 +18,8 @@ package com.zimbra.oauth.handlers.impl;
 
 import java.io.IOException;
 
-import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.client.methods.HttpGet;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZDataSource;
@@ -319,11 +319,11 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         final String guid = credentials.get(YahooOAuth2Constants.GUID_KEY.getValue()).asText();
         final String authToken = credentials.get("access_token").asText();
         final String url = String.format(YahooOAuth2Constants.PROFILE_URI.getValue(), guid);
-        final GetMethod request = new GetMethod(url);
-        request.setRequestHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
+        final HttpGet request = new HttpGet(url);
+        request.setHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
             "application/x-www-form-urlencoded");
-        request.setRequestHeader(OAuth2HttpConstants.HEADER_ACCEPT.getValue(), "application/json");
-        request.setRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
+        request.setHeader(OAuth2HttpConstants.HEADER_ACCEPT.getValue(), "application/json");
+        request.setHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
             "Bearer " + authToken);
 
         JsonNode json = null;

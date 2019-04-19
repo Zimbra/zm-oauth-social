@@ -37,9 +37,13 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.httpclient.HttpStatus;
-import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.message.BasicNameValuePair;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZMailbox;
@@ -372,20 +376,22 @@ public class TwitterOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
             .withEndpoint(TwitterOAuth2Constants.AUTHORIZE_TOKEN_URI.getValue())
             .withParam("oauth_callback", clientRedirectUri + stateValue)
             .build();
-        final PostMethod request = new PostMethod(TwitterOAuth2Constants.AUTHORIZE_TOKEN_URI.getValue());
-        request.setRequestHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
+        final HttpPost request = new HttpPost(
+            TwitterOAuth2Constants.AUTHORIZE_TOKEN_URI.getValue());
+        final List<NameValuePair> params = Arrays.asList(
+            new BasicNameValuePair("oauth_callback", clientRedirectUri + stateValue));
+        setFormEntity(request, params);
+        request.setHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
             "application/x-www-form-urlencoded");
-        request.setRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
+        request.setHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
             authorizationHeader);
-        request.setParameter("oauth_callback", clientRedirectUri + stateValue);
         String responseParams = null;
         try {
-            responseParams = OAuth2Utilities.executeRequest(request);
-            if (HttpStatus.SC_OK != request.getStatusCode()) {
-                validateTokenResponse(stringToJson(responseParams));
-            }
+            final HttpResponse response = OAuth2Utilities.executeRequestRaw(request);
+            responseParams = validateTwitterResponse(response);
         } catch (final IOException e) {
-            ZimbraLog.extensions.errorQuietly("There was an issue acquiring the authorization token.", e);
+            ZimbraLog.extensions
+                .errorQuietly("There was an issue acquiring the authorization token.", e);
             throw ServiceException
                 .PERM_DENIED("There was an issue acquiring an authorization token for this user.");
         }
@@ -400,19 +406,19 @@ public class TwitterOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
      */
     protected Map<String, String> getTokenRequestMap(OAuthInfo authInfo, String authorizationHeader)
         throws ServiceException {
-        final PostMethod request = new PostMethod(authInfo.getTokenUrl());
-        request.setParameter("grant_type", "client_credentials");
-        request.setParameter("oauth_verifier", authInfo.getParam("oauth_verifier"));
-        request.setRequestHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
+        final HttpPost request = new HttpPost(authInfo.getTokenUrl());
+        final List<NameValuePair> params = Arrays.asList(
+            new BasicNameValuePair("grant_type", "client_credentials"),
+            new BasicNameValuePair("oauth_verifier", authInfo.getParam("oauth_verifier")));
+        setFormEntity(request, params);
+        request.setHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
             "application/x-www-form-urlencoded");
-        request.setRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
+        request.setHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
             authorizationHeader);
         String rawResponse = null;
         try {
-            rawResponse = OAuth2Utilities.executeRequest(request);
-            if (HttpStatus.SC_OK != request.getStatusCode()) {
-                validateTokenResponse(stringToJson(rawResponse));
-            }
+            final HttpResponse response = OAuth2Utilities.executeRequestRaw(request);
+            rawResponse = validateTwitterResponse(response);
             ZimbraLog.extensions.debug("Request for auth token completed.");
         } catch (final IOException e) {
             ZimbraLog.extensions
@@ -422,6 +428,30 @@ public class TwitterOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         }
 
         return splitToMap(rawResponse);
+    }
+
+    /**
+     * Validates the twitter response by handling it as json for errors, raw string for success.
+     *
+     * @param response The http response
+     * @return The response body string
+     * @throws ServiceException If there was an issue with the response (non OK status)
+     * @throws IOException If there are issues parsing the response (non OK status or otherwise)
+     */
+    protected String validateTwitterResponse(HttpResponse response)
+        throws ServiceException, IOException {
+        String rawResponse = null;
+        // always get the body if available
+        final HttpEntity entity = response.getEntity();
+        if (entity != null) {
+            rawResponse = new String(
+                OAuth2Utilities.decodeStream(entity.getContent(), entity.getContentLength()));
+        }
+        // check for known errors if the status is not ok
+        if (HttpStatus.SC_OK != response.getStatusLine().getStatusCode()) {
+            validateTokenResponse(stringToJson(rawResponse));
+        }
+        return rawResponse;
     }
 
     /**

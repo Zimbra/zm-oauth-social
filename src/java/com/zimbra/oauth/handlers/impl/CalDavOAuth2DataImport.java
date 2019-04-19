@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.HashMap;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
@@ -73,7 +74,7 @@ public class CalDavOAuth2DataImport extends CalDavDataImport {
      * Initialize the dav client and refresh the access token.
      */
     @Override
-    protected CalDavClient getClient() throws ServiceException, IOException, DavException {
+    protected CalDavClient getClient() throws ServiceException, IOException, DavException, HttpException {
         if (mClient == null) {
             mClient = new CalDavOAuth2Client(getTargetUrl());
             mClient.setAppName(getAppName());
