@@ -38,7 +38,6 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
@@ -51,6 +50,7 @@ import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
+import com.zimbra.oauth.models.HttpResponseWrapper;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
@@ -387,7 +387,7 @@ public class TwitterOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
             authorizationHeader);
         String responseParams = null;
         try {
-            final HttpResponse response = OAuth2Utilities.executeRequestRaw(request);
+            final HttpResponseWrapper response = OAuth2Utilities.executeRequestRaw(request);
             responseParams = validateTwitterResponse(response);
         } catch (final IOException e) {
             ZimbraLog.extensions
@@ -417,7 +417,7 @@ public class TwitterOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
             authorizationHeader);
         String rawResponse = null;
         try {
-            final HttpResponse response = OAuth2Utilities.executeRequestRaw(request);
+            final HttpResponseWrapper response = OAuth2Utilities.executeRequestRaw(request);
             rawResponse = validateTwitterResponse(response);
             ZimbraLog.extensions.debug("Request for auth token completed.");
         } catch (final IOException e) {
@@ -438,14 +438,14 @@ public class TwitterOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
      * @throws ServiceException If there was an issue with the response (non OK status)
      * @throws IOException If there are issues parsing the response (non OK status or otherwise)
      */
-    protected String validateTwitterResponse(HttpResponse response)
+    protected String validateTwitterResponse(HttpResponseWrapper responseWrapper)
         throws ServiceException, IOException {
         String rawResponse = null;
         // always get the body if available
-        final HttpEntity entity = response.getEntity();
-        if (entity != null) {
-            rawResponse = new String(
-                OAuth2Utilities.decodeStream(entity.getContent(), entity.getContentLength()));
+        final HttpResponse response = responseWrapper.getResponse();
+        final byte[] entityBytes = responseWrapper.getEntityBytes();
+        if (entityBytes != null) {
+            rawResponse = new String(entityBytes);
         }
         // check for known errors if the status is not ok
         if (HttpStatus.SC_OK != response.getStatusLine().getStatusCode()) {
