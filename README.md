@@ -61,7 +61,8 @@ See the [client setup wiki].
 
 | Client | Required scopes string |
 | ------ | ---------------------- |
-| Google | `https://www.googleapis.com/auth/contacts.readonly+profile:google_contact` |
+| Google Contact | `https://www.googleapis.com/auth/contacts.readonly+profile:google_contact` |
+| Google CalDav | `https://www.googleapis.com/auth/calendar:google_caldav` |
 | Facebook | `user_friends,read_custom_friendlists,email,user_location,public_profile,user_about_me,user_birthday,groups_access_member_info:facebook_contact` |
 
 Note: Delimiters can vary across clients.
