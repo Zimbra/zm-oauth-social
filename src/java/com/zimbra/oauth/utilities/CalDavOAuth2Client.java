@@ -18,19 +18,11 @@
 package com.zimbra.oauth.utilities;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
-import org.apache.http.Consts;
 import org.apache.http.HttpException;
 import org.apache.http.HttpResponse;
-import org.apache.http.auth.AuthSchemeProvider;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.config.AuthSchemes;
 import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.client.params.AuthPolicy;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
-import org.apache.http.impl.auth.BasicSchemeFactory;
 
 import com.zimbra.common.httpclient.HttpClientUtil;
 import com.zimbra.cs.dav.DavContext.Depth;
@@ -57,9 +49,6 @@ public class CalDavOAuth2Client extends CalDavClient {
 
     @Override
     protected HttpResponse executeMethod(HttpRequestBase m, Depth d, String bodyForLogging) throws IOException, HttpException {
-        final Registry<AuthSchemeProvider> authSchemeRegistry = RegistryBuilder.<AuthSchemeProvider>create()
-            .register(AuthSchemes.BASIC, new BasicSchemeFactory(Consts.UTF_8)).build();
-        mClient.setDefaultAuthSchemeRegistry(authSchemeRegistry);
         final HttpClient client = mClient.build();
         m.setHeader("User-Agent", mUserAgent);
         String depth = "0";
@@ -75,9 +64,8 @@ public class CalDavOAuth2Client extends CalDavClient {
         default:
             break;
         }
-        m.setHeader("Depth", depth);
         final String authorizationHeader = String.format("Bearer %s", accessToken);
-        m.addHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
+        m.setHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
         m.setHeader("Depth", depth);
         logRequestInfo(m, bodyForLogging);
         final HttpResponse response = HttpClientUtil.executeMethod(client, m);
