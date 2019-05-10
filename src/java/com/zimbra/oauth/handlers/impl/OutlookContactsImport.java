@@ -64,7 +64,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 
@@ -89,6 +88,7 @@ import com.zimbra.cs.service.util.ItemId;
 import com.zimbra.oauth.handlers.impl.OutlookContactsImport.OutlookContactsUtil.OContactFieldType;
 import com.zimbra.oauth.handlers.impl.OutlookOAuth2Handler.OutlookContactConstants;
 import com.zimbra.oauth.handlers.impl.OutlookOAuth2Handler.OutlookOAuth2Constants;
+import com.zimbra.oauth.models.HttpResponseWrapper;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.LdapConfiguration;
@@ -681,7 +681,7 @@ public class OutlookContactsImport implements DataImport {
                 // use authorization
                 get.addHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
                     authorizationHeader);
-                final HttpResponse response = OAuth2Utilities.executeRequestRaw(client, get);
+                final HttpResponseWrapper response = OAuth2Utilities.executeRequestRaw(client, get);
                 // add to attachments
                 final Attachment attachment = OAuth2Utilities.createAttachmentFromResponse(
                     response,

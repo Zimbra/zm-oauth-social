@@ -70,7 +70,6 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -87,6 +86,7 @@ import com.zimbra.cs.service.mail.CreateContact;
 import com.zimbra.cs.service.util.ItemId;
 import com.zimbra.oauth.handlers.impl.YahooOAuth2Handler.YahooContactConstants;
 import com.zimbra.oauth.handlers.impl.YahooOAuth2Handler.YahooOAuth2Constants;
+import com.zimbra.oauth.models.HttpResponseWrapper;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.LdapConfiguration;
@@ -577,7 +577,8 @@ public class YahooContactsImport implements DataImport {
                         try {
                             // fetch the image
                             final HttpGet get = new HttpGet(imageUrl);
-                            final HttpResponse response = OAuth2Utilities.executeRequestRaw(get);
+                            final HttpResponseWrapper response = OAuth2Utilities
+                                .executeRequestRaw(get);
                             // add to attachments
                             final Attachment attachment = OAuth2Utilities
                                 .createAttachmentFromResponse(response, key,

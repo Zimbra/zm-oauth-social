@@ -16,9 +16,7 @@
  */
 package com.zimbra.oauth.utilities;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Base64;
@@ -38,6 +36,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.conn.ConnectionPoolTimeoutException;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonParser;
@@ -50,6 +49,7 @@ import com.zimbra.common.util.ZimbraHttpConnectionManager;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.httpclient.HttpProxyUtil;
 import com.zimbra.cs.mailbox.Contact.Attachment;
+import com.zimbra.oauth.models.HttpResponseWrapper;
 import com.zimbra.oauth.models.ResponseObject;
 
 /**
@@ -115,34 +115,19 @@ public class OAuth2Utilities {
     }
 
     /**
-     * Decodes given stream with a size boundary.
+     * Decodes given http entity.<br>
+     * Returns null if the entity is null.
      *
-     * @param input An InputStream object
-     * @param size A boundary limit (optional : Use 0 to default)
+     * @param entity An http entity
      * @return The the current contents of this output stream, as a byte array.
-     * @throws IOException
+     * @throws IOException If there are issues decoding
      */
-    public static byte[] decodeStream(InputStream input, long size) throws IOException {
-        final long MIN_BUFFER_SIZE = 100;
-        final long MAX_BUFFER_SIZE = 4096;
-        final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        int lengthRead;
-        // buffer size must be within our bounds
-        if (size < MIN_BUFFER_SIZE || size > MAX_BUFFER_SIZE) {
-            size = MAX_BUFFER_SIZE;
+    protected static byte[] decodeEntity(HttpEntity entity) throws IOException {
+        byte[] entityBytes = null;
+        if (entity != null) {
+            entityBytes = EntityUtils.toByteArray(entity);
         }
-        final byte[] data = new byte[(int) size];
-        try {
-            // read until the end
-            while ((lengthRead = input.read(data)) != -1) {
-                buffer.write(data, 0, lengthRead);
-            }
-            buffer.flush();
-        } finally {
-            // always close the input
-            input.close();
-        }
-        return buffer.toByteArray();
+        return entityBytes;
     }
 
     /**
@@ -154,20 +139,19 @@ public class OAuth2Utilities {
      * @return An image Attachment object
      * @throws IOException If there are issues creating the attachment with the given parameters
      */
-    public static Attachment createAttachmentFromResponse(HttpResponse response, String key,
+    public static Attachment createAttachmentFromResponse(HttpResponseWrapper responseWrapper, String key,
         String filename) throws IOException {
         // check for the content type header
+        final HttpResponse response = responseWrapper.getResponse();
         final Header ctypeHeader = response.getFirstHeader("Content-Type");
         if (ctypeHeader != null) {
             // grab content type header as string
             final String ctype = StringUtils.lowerCase(ctypeHeader.getValue());
+            final byte[] entityBytes = responseWrapper.getEntityBytes();
             ZimbraLog.extensions.debug("The Content-Type: %s", ctype);
-            if (StringUtils.startsWith(ctype, "image/")) {
+            if (entityBytes != null && StringUtils.startsWith(ctype, "image/")) {
                 ZimbraLog.extensions.debug("Creating image attachment: %s as key: %s", filename, key);
-                return new Attachment(
-                    decodeStream(response.getEntity().getContent(),
-                        Integer.valueOf(OAuth2Constants.CONTACTS_IMAGE_BUFFER_SIZE.getValue())),
-                    ctype, key, filename);
+                return new Attachment(entityBytes, ctype, key, filename);
             }
         }
         return null;
@@ -195,7 +179,7 @@ public class OAuth2Utilities {
      * @throws ServiceException If there are issues with the connection
      * @throws IOException If there are non connection related issues
      */
-    public static HttpResponse executeRequestRaw(HttpRequestBase request)
+    public static HttpResponseWrapper executeRequestRaw(HttpRequestBase request)
         throws ServiceException, IOException {
         final HttpClient client = OAuth2Utilities.getHttpClient();
         return executeRequestRaw(client, request);
@@ -213,27 +197,30 @@ public class OAuth2Utilities {
      */
     public static String executeRequest(HttpClient client, HttpRequestBase request)
         throws ServiceException, IOException {
-        final HttpResponse response = executeRequestRaw(client, request);
-        final HttpEntity entity = response.getEntity();
+        final HttpResponseWrapper response = executeRequestRaw(client, request);
+        final byte [] entity = response.getEntityBytes();
         if (entity == null) {
             return null;
         }
-        return new String(decodeStream(entity.getContent(), entity.getContentLength()));
+        return new String(entity);
     }
 
     /**
-     * Executes an Http Request with a given client and returns the raw response.
+     * Executes an Http Request with a given client and returns the
+     * raw response and body in a wrapper.
      *
      * @param client The client to execute with
      * @param request Request to execute
-     * @return The raw response object
+     * @return The raw response object and body in a wrapper
      * @throws ServiceException If there are issues with the connection
      * @throws IOException If there are non connection related issues
      */
-    public static HttpResponse executeRequestRaw(HttpClient client, HttpRequestBase request)
+    public static HttpResponseWrapper executeRequestRaw(HttpClient client, HttpRequestBase request)
         throws ServiceException, IOException {
         try {
-            return HttpClientUtil.executeMethod(client, request);
+            final HttpResponse response = HttpClientUtil.executeMethod(client, request);
+            // read response body and add to wrapper before closing request connection
+            return new HttpResponseWrapper(response, decodeEntity(response.getEntity()));
         } catch (final UnknownHostException e) {
             ZimbraLog.extensions.errorQuietly(
                 "The configured destination address is unknown: " + request.getURI(), e);
