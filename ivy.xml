@@ -12,8 +12,8 @@
       <dependency org="commons-io" name="commons-io" rev="1.4" />
       <dependency org="commons-codec" name="commons-codec" rev="1.7" />
       <dependency org="commons-lang" name="commons-lang" rev="2.6" />
-      <dependency org="org.apache.httpcomponents" name="httpclient" rev="4.5.8" />
-      <dependency org="org.apache.httpcomponents" name="httpcore" rev="4.4.11" />
+      <dependency org="org.apache.httpcomponents" name="httpclient" rev="${httpclient.version}" />
+      <dependency org="org.apache.httpcomponents" name="httpcore" rev="${httpclient.httpcore.version}" />
       <!-- Local Requirements -->
       <dependency org="zimbra" name="zm-common" rev="latest.integration" />
       <dependency org="zimbra" name="zm-client" rev="latest.integration" />
