@@ -18,11 +18,11 @@
 package com.zimbra.oauth.utilities;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.auth.AuthPolicy;
-import org.apache.commons.httpclient.params.HttpMethodParams;
+import org.apache.http.HttpException;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpRequestBase;
 
 import com.zimbra.common.httpclient.HttpClientUtil;
 import com.zimbra.cs.dav.DavContext.Depth;
@@ -48,13 +48,9 @@ public class CalDavOAuth2Client extends CalDavClient {
     }
 
     @Override
-    protected HttpMethod executeMethod(HttpMethod m, Depth d, String bodyForLogging) throws IOException {
-        final HttpMethodParams p = m.getParams();
-        if ( p != null )
-            p.setCredentialCharset("UTF-8");
-
-        m.setDoAuthentication(true);
-        m.setRequestHeader("User-Agent", mUserAgent);
+    protected HttpResponse executeMethod(HttpRequestBase m, Depth d, String bodyForLogging) throws IOException, HttpException {
+        final HttpClient client = mClient.build();
+        m.setHeader("User-Agent", mUserAgent);
         String depth = "0";
         switch (d) {
         case one:
@@ -68,17 +64,12 @@ public class CalDavOAuth2Client extends CalDavClient {
         default:
             break;
         }
-        m.setRequestHeader("Depth", depth);
         final String authorizationHeader = String.format("Bearer %s", accessToken);
-        m.addRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
-        m.setRequestHeader("Depth", depth);
+        m.setHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
+        m.setHeader("Depth", depth);
         logRequestInfo(m, bodyForLogging);
-        final ArrayList<String> authPrefs = new ArrayList<String>();
-        authPrefs.add(AuthPolicy.BASIC);
-        mClient.getParams().setParameter(AuthPolicy.AUTH_SCHEME_PRIORITY, authPrefs);
-        mClient.getParams().setAuthenticationPreemptive(true);
-        HttpClientUtil.executeMethod(mClient, m);
-        logResponseInfo(m);
-        return m;
+        final HttpResponse response = HttpClientUtil.executeMethod(client, m);
+        logResponseInfo(response);
+        return response;
     }
 }
