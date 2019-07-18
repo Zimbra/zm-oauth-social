@@ -3,6 +3,7 @@
 > Zimbra OAuth2 Social Service
 
 This service provides an interface for users to register for social service sync operations. (e.g. daily contacts import from non-zimbra accounts).
+Facebook, Outlook
 
 ---
 
