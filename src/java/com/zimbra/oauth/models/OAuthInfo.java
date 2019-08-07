@@ -155,6 +155,24 @@ public class OAuthInfo {
     }
 
     /**
+     * Get the param map.
+     *
+     * @return The param map
+     */
+    public Map<String, String> getParams() {
+        return params;
+    }
+
+    /**
+     * Set the parameters.
+     *
+     * @param params The parameters to set
+     */
+    public void setParams(Map<String, String> params) {
+        this.params = params;
+    }
+
+    /**
      * Get the access token.
      *
      * @return accessToken The access token

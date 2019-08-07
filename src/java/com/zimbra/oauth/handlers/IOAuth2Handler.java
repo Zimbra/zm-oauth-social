@@ -54,6 +54,25 @@ public interface IOAuth2Handler {
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException;
 
     /**
+     * Refreshes a user's token and updates the credentials in oauthInfo.
+     *
+     * @param oauthInfo Contains the info on which account/token to refresh
+     * @return True on success
+     * @throws ServiceException If there are issues in this process
+     */
+    public Boolean refresh(OAuthInfo oauthInfo) throws ServiceException;
+
+    /**
+     * Retrieves the client info for a specified client and sets it in oauthInfo
+     * params.
+     *
+     * @param oauthInfo Contains the client info
+     * @return True on success
+     * @throws ServiceException If there are issues in this process
+     */
+    public Boolean info(OAuthInfo oauthResponse) throws ServiceException;
+
+    /**
      * Returns a list of keys to expect during authenticate callback.
      *
      * @return List of query param keys

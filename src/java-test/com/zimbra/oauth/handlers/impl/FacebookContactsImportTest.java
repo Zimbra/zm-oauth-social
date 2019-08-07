@@ -47,6 +47,7 @@ import com.zimbra.cs.mime.ParsedContact;
 import com.zimbra.oauth.handlers.impl.FacebookContactsImport.FacebookContactsUtil;
 import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler.FacebookContactConstants;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.OAuth2JsonUtilities;
 
 /**
  * Test class for {@link FacebookContactsImport}.
@@ -119,7 +120,7 @@ public class FacebookContactsImportTest {
     expect(importer.buildContactsUrl(anyObject(), anyObject()))
         .andReturn(FacebookContactConstants.CONTACTS_URI_TEMPLATE.getValue());
     final String jsonData = "{\"data\": [{\"id\": \"114606492762739\",\"name\": \"Ullrich Albfdjafgjfjh Valtchanovstein\"},{\"id\": \"113255442901577\",\"name\": \"Elizabeth Albfeacfecjgh Riceberg\"},{\"id\": \"107932500100943\",\"name\": \"Maria Albfebehjbbed Schrockman\"},{\"id\": \"108947766668167\",\"name\": \"Dave Albfehhcahafb Bushakstein\"}],\"paging\": {\"cursors\": {\"after\": \"dVI1WlhKVFJkQVdB\",\"before\": \"YnFkVXkteXIyQldR\"}},\"summary\": {\"total_count\": 4}}";
-    final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
+    final JsonNode jsonResponse = OAuth2JsonUtilities.stringToJson(jsonData);
     expect(importer.getContactsRequest(anyObject())).andReturn(jsonResponse);
     // expect parse new contacts to be called
     importer.parseNewContacts(anyObject(Set.class), anyObject(JsonNode.class),
@@ -151,7 +152,7 @@ public class FacebookContactsImportTest {
     final Set<String> existingContacts = new HashSet<String>();
     existingContacts.add("111111111111");
     final String jsonData = "{\"data\": [{\"id\": \"108947766668167\",\"name\": \"Dave Albfehhcahafb Bushakstein\"}],\"paging\": {\"cursors\": {\"after\": \"lhKVFJkQVdB\",\"before\": \"kNtYnFkVXkteXIyQldR\"}},\"summary\": {\"total_count\": 1}}";
-    final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
+    final JsonNode jsonResponse = OAuth2JsonUtilities.stringToJson(jsonData);
     final JsonNode jsonContacts = jsonResponse.get("data");
     final String matcherName = "id";
     final List<ParsedContact> createList = new ArrayList<ParsedContact>();
@@ -175,7 +176,7 @@ public class FacebookContactsImportTest {
     final Set<String> existingContacts = new HashSet<String>();
     existingContacts.add("108947766668167");
     final String jsonData = "{\"data\": [{\"id\": \"108947766668167\",\"name\": \"Dave Albfehhcahafb Bushakstein\"}],\"paging\": {\"cursors\": {\"after\": \"lhKVFJkQVdB\",\"before\": \"kNtYnFkVXkteXIyQldR\"}},\"summary\": {\"total_count\": 1}}";
-    final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
+    final JsonNode jsonResponse = OAuth2JsonUtilities.stringToJson(jsonData);
     final JsonNode jsonContacts = jsonResponse.get("data");
     final String matcherName = "id";
     final List<ParsedContact> createList = new ArrayList<ParsedContact>();
@@ -205,7 +206,7 @@ public class FacebookContactsImportTest {
     expect(importer.buildContactsUrl(anyObject(), anyObject()))
         .andReturn(FacebookContactConstants.CONTACTS_URI_TEMPLATE.getValue());
     final String jsonData = "{\"error\": {\"message\": \"Error validating access token: Session has expired on Monday, 11-Jun-18 11:00:00 PDT. The current time is Thursday, 14-Jun-18 22:26:28 PDT.\",\"type\": \"OAuthException\",\"code\": 190,\"error_subcode\": 463,\"fbtrace_id\": \"Ey9c3rSW3cD\"}}";
-    final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
+    final JsonNode jsonResponse = OAuth2JsonUtilities.stringToJson(jsonData);
     expect(importer.getContactsRequest(anyObject())).andReturn(jsonResponse);
     PowerMock.expectLastCall();
 

@@ -27,6 +27,8 @@ import com.zimbra.client.ZFolder;
 import com.zimbra.client.ZFolder.View;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.common.service.ServiceException;
+import com.zimbra.common.soap.Element;
+import com.zimbra.common.soap.MailConstants;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.DataSource;
 import com.zimbra.cs.account.Provisioning;
@@ -81,7 +83,9 @@ public class OAuth2DataSource {
     }
 
     /**
-     * Ensures a folder of the name exists, creating one if necessary.
+     * Ensures a folder of the name exists, creating one if necessary.<br>
+     * Folder is created in user root, or real root if the View type is unknown
+     * (for oauth2noop datasource).
      *
      * @param mailbox The mailbox to check
      * @param folderName The folder name
@@ -92,23 +96,28 @@ public class OAuth2DataSource {
      */
     protected String ensureFolder(ZMailbox mailbox, String folderName, View type)
         throws ServiceException {
-        ZFolder folder = null;
+        String parentId = ZFolder.ID_USER_ROOT;
+        // use real root to hide the folder from view if this is a no-op datasource
+        if (View.unknown.equals(type)) {
+            parentId = ZFolder.ID_ROOT;
+        }
         try {
-            // find target folder
-            folder = mailbox.getFolderByPath(ZMailbox.PATH_SEPARATOR + folderName);
-            // create target folder if it does not exist
-            if (folder == null) {
-                ZimbraLog.extensions.debug("Creating oauth datasource folder : " + folderName);
-                folder = mailbox.createFolder(ZFolder.ID_USER_ROOT, folderName, type, null, null,
-                    null);
-            }
+            // create target folder, fetch if it exists
+            ZimbraLog.extensions.debug("Creating oauth datasource folder: % in parentId: %s", folderName, parentId);
+            final Element req = mailbox.newRequestElement(MailConstants.CREATE_FOLDER_REQUEST);
+            final Element folderEl = req.addUniqueElement(MailConstants.E_FOLDER);
+            folderEl.addAttribute(MailConstants.A_NAME, folderName);
+            folderEl.addAttribute(MailConstants.A_FOLDER, parentId);
+            folderEl.addAttribute(MailConstants.A_DEFAULT_VIEW, type.name());
+            folderEl.addAttribute(MailConstants.A_FETCH_IF_EXISTS, true);
+            final Element newFolderEl = mailbox.invoke(req).getElement(MailConstants.E_FOLDER);
+            // return target folder's id
+            return newFolderEl.getAttribute(MailConstants.A_ID);
         } catch (final ServiceException e) {
             ZimbraLog.extensions
                 .errorQuietly("There was an issue acquiring or creating the datasource folder.", e);
             throw e;
         }
-        // return target folder's id
-        return folder.getId();
     }
 
     /**
@@ -132,20 +141,21 @@ public class OAuth2DataSource {
                 final DataSourceType dsType = getDataSourceTypeForOAuth2(type);
                 final View view = getViewForDataSource(dsType);
                 // define the import class and polling interval
-                ZimbraLog.extensions.debug("Setting datasource polling interval and import class.");
                 // build up attributes
+                ZimbraLog.extensions.debug("Building datasource of type: %s", dsType);
                 final Map<String, Object> dsAttrs = new HashMap<String, Object>();
                 if (importClassMap.containsKey(dsType.name())) {
+                    ZimbraLog.extensions.debug("Setting datasource polling interval and import class.");
                     dsAttrs.put(Provisioning.A_zimbraDataSourceImportClassName,
                         importClassMap.get(dsType.name()));
-                } else {
+                    dsAttrs.put(Provisioning.A_zimbraDataSourcePollingInterval,
+                        OAuth2Constants.DATASOURCE_POLLING_INTERVAL.getValue());
+                } else if (!DataSourceType.oauth2noop.equals(dsType)) {
                     ZimbraLog.extensions.error("Missing import class for %s datasource type",
                         dsType.name());
                     throw ServiceException.FAILURE(
                         "Missing import class for " + dsType.name() + " datasource type", null);
                 }
-                dsAttrs.put(Provisioning.A_zimbraDataSourcePollingInterval,
-                    OAuth2Constants.DATASOURCE_POLLING_INTERVAL.getValue());
                 dsAttrs.put(Provisioning.A_zimbraDataSourceEnabled, "TRUE");
                 dsAttrs.put(Provisioning.A_zimbraDataSourceConnectionType, "cleartext");
                 dsAttrs.put(Provisioning.A_zimbraDataSourceOAuthRefreshToken, refreshToken);
@@ -185,16 +195,19 @@ public class OAuth2DataSource {
      * source does not exist.
      *
      * @param mailbox The user's mailbox
-     * @param username The user to get refreshToken for
-     * @return RefreshToken for specified username
+     * @param identifier The user's social service identifier to get refreshToken for (email, id, etc)
+     * @param type The datasource type
+     * @return RefreshToken for specified username and type
      * @throws InvalidResponseException If there are issues
      */
-    public String getRefreshToken(ZMailbox mailbox, String username) throws ServiceException {
+    public String getRefreshToken(ZMailbox mailbox, String identifier, String type) throws ServiceException {
         ZDataSource osource = null;
         String refreshToken = null;
+        final String dsFolderName = String
+            .format(OAuth2Constants.DEFAULT_OAUTH_FOLDER_TEMPLATE.getValue(), identifier, type, client);
         // get datasource
         try {
-            osource = mailbox.getDataSourceByName(username);
+            osource = mailbox.getDataSourceByName(dsFolderName);
             // get the refresh token if the source is available
             if (osource != null) {
                 refreshToken = osource.getRefreshToken();
@@ -246,6 +259,9 @@ public class OAuth2DataSource {
         case "caldav":
             dsType = DataSourceType.oauth2caldav;
             break;
+        case "noop":
+            dsType = DataSourceType.oauth2noop;
+            break;
         default:
             ZimbraLog.extensions.error("Invalid type: %s", type);
             throw ServiceException.FAILURE("Invalid type: " + type, null);
@@ -270,6 +286,9 @@ public class OAuth2DataSource {
             break;
         case oauth2caldav:
             view = View.appointment;
+            break;
+        case oauth2noop:
+            view = View.unknown;
             break;
         default:
             ZimbraLog.extensions.error("Invalid type received");

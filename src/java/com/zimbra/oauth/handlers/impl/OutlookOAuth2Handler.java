@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
+import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.soap.admin.type.DataSourceType;
 
@@ -238,6 +239,12 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         relayKey = OutlookOAuth2Constants.RELAY_KEY.getValue();
         dataSource.addImportClass(DataSourceType.oauth2contact.name(),
             OutlookContactsImport.class.getCanonicalName());
+    }
+
+    @Override
+    public Boolean refresh(OAuthInfo oauthInfo) throws ServiceException {
+        ZimbraLog.extensions.info("Refresh is not supported for: %s", client);
+        throw ServiceException.UNSUPPORTED();
     }
 
     /**

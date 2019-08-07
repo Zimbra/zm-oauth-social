@@ -1,7 +1,7 @@
 /*
  * ***** BEGIN LICENSE BLOCK *****
  * Zimbra OAuth Social Extension
- * Copyright (C) 2018 Synacor, Inc.
+ * Copyright (C) 2019 Synacor, Inc.
  *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software Foundation,
@@ -18,52 +18,52 @@ package com.zimbra.oauth.models;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.zimbra.oauth.utilities.OAuth2Constants;
+
 /**
- * The ResponseObject class.
+ * The ResponseMeta class.
  *
  * @author Zimbra API Team
  * @package com.zimbra.oauth.models
- * @copyright Copyright © 2018
+ * @copyright Copyright © 2019
  */
 @XmlRootElement
-public class ResponseObject<E> {
+public class ResponseMeta {
+
+    protected final String api = OAuth2Constants.API_NAME.getValue();
 
     /**
-     * Data of type.
+     * HTTP Status.
      */
-    protected final E data;
-
-    /**
-     * Meta instance.
-     */
-    protected final ResponseMeta _meta;
+    @JsonIgnore
+    protected int status;
 
     /**
      * Constructor.
      *
-     * @param data A data object
+     * @param status The status to set
      */
-    public ResponseObject(E data, ResponseMeta meta) {
-        this.data = data;
-        this._meta = meta;
+    public ResponseMeta(int status) {
+        this.status = status;
+    }
+
+    public String getApi() {
+        return api;
     }
 
     /**
-     * Get data.
-     *
-     * @return A data object
+     * @return the status
      */
-    public E getData() {
-        return data;
+    public int getStatus() {
+        return status;
     }
 
     /**
-     * Get the Meta instance.
-     *
-     * @return The instance of Meta object
+     * @param status the status to set
      */
-    public ResponseMeta get_meta() {
-        return _meta;
+    public void setStatus(int status) {
+        this.status = status;
     }
 
 }

@@ -47,6 +47,7 @@ import com.zimbra.cs.account.DataSource;
 import com.zimbra.cs.mime.ParsedContact;
 import com.zimbra.oauth.handlers.impl.OutlookContactsImport.OutlookContactsUtil;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.OAuth2JsonUtilities;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
 
 /**
@@ -134,7 +135,7 @@ public class OutlookContactsImportTest {
         expect(importer.getExistingContacts(anyObject(), eq(childFolderId)))
             .andReturn(new HashSet<String>());
         final String jsonData = "{\"@odata.context\":\"https://outlook.office.com/api/v2.0/$metadata#Me/Contacts(EmailAddresses,GivenName,Surname)\",\"@odata.deltaLink\":\"https://outlook.office.com/api/v2.0/me/contacts/?%24select=EmailAddresses%2cGivenName%2cSurname&%24deltatoken=b_o5fakeToken\",\"value\":[{\"@odata.etag\":\"W/\\\"fake-tag\\\"\",\"@odata.id\":\"https://outlook.office.com/api/v2.0/Users('fake-id')/Contacts('fake-id')\",\"EmailAddresses\":[{\"Address\":\"test2@synacor.net\",\"Name\":\"test2@synacor.net\"},{\"Address\":\"test3@synacor.net\",\"Name\":\"test3@synacor.net\"}],\"GivenName\":\"Test\",\"Id\":\"fake-user-id=\",\"Surname\":\"User\"}]}";
-        final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
+        final JsonNode jsonResponse = OAuth2JsonUtilities.stringToJson(jsonData);
         // expect getContactsRequest to be called 4 times (twice for each folder)
         expect(importer.getContactsRequest(anyObject(), anyObject())).andReturn(jsonResponse).times(4);
         // expect parse new contacts to be called 4 times (twice for each folder)
@@ -171,7 +172,7 @@ public class OutlookContactsImportTest {
         final Set<String> existingContacts = new HashSet<String>();
         existingContacts.add("some-different-id");
         final String jsonData = "{\"@odata.context\":\"https://outlook.office.com/api/v2.0/$metadata#Me/Contacts(EmailAddresses,GivenName,Surname)\",\"@odata.deltaLink\":\"https://outlook.office.com/api/v2.0/me/contacts/?%24select=EmailAddresses%2cGivenName%2cSurname&%24deltatoken=b_o5fakeToken\",\"value\":[{\"@odata.etag\":\"W/\\\"fake-tag\\\"\",\"@odata.id\":\"https://outlook.office.com/api/v2.0/Users('fake-id')/Contacts('fake-id')\",\"EmailAddresses\":[{\"Address\":\"test2@synacor.net\",\"Name\":\"test2@synacor.net\"},{\"Address\":\"test3@synacor.net\",\"Name\":\"test3@synacor.net\"}],\"GivenName\":\"Test\",\"Id\":\"fake-user-id=\",\"Surname\":\"User\"}]}";
-        final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
+        final JsonNode jsonResponse = OAuth2JsonUtilities.stringToJson(jsonData);
         final JsonNode jsonContacts = jsonResponse.get("value");
         final List<ParsedContact> createList = new ArrayList<ParsedContact>();
 
@@ -198,7 +199,7 @@ public class OutlookContactsImportTest {
         final Set<String> existingContacts = new HashSet<String>();
         existingContacts.add("fake-user-id=");
         final String jsonData = "{\"@odata.context\":\"https://outlook.office.com/api/v2.0/$metadata#Me/Contacts(EmailAddresses,GivenName,Surname)\",\"@odata.deltaLink\":\"https://outlook.office.com/api/v2.0/me/contacts/?%24select=EmailAddresses%2cGivenName%2cSurname&%24deltatoken=b_o5fakeToken\",\"value\":[{\"@odata.etag\":\"W/\\\"fake-tag\\\"\",\"@odata.id\":\"https://outlook.office.com/api/v2.0/Users('fake-id')/Contacts('fake-id')\",\"EmailAddresses\":[{\"Address\":\"test2@synacor.net\",\"Name\":\"test2@synacor.net\"},{\"Address\":\"test3@synacor.net\",\"Name\":\"test3@synacor.net\"}],\"GivenName\":\"Test\",\"Id\":\"fake-user-id=\",\"Surname\":\"User\"}]}";
-        final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
+        final JsonNode jsonResponse = OAuth2JsonUtilities.stringToJson(jsonData);
         final JsonNode jsonContacts = jsonResponse.get("value");
         final List<ParsedContact> createList = new ArrayList<ParsedContact>();
 
