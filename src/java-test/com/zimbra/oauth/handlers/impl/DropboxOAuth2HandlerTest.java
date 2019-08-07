@@ -1,7 +1,7 @@
 /*
  * ***** BEGIN LICENSE BLOCK *****
  * Zimbra OAuth Social Extension
- * Copyright (C) 2018 Synacor, Inc.
+ * Copyright (C) 2019 Synacor, Inc.
  *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software Foundation,
@@ -25,6 +25,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.net.URLEncoder;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -40,9 +41,10 @@ import org.powermock.reflect.Whitebox;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZMailbox;
+import com.zimbra.common.service.ServiceException;
 import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.AuthToken;
-import com.zimbra.oauth.handlers.impl.OutlookOAuth2Handler.OutlookOAuth2Constants;
+import com.zimbra.oauth.handlers.impl.DropboxOAuth2Handler.DropboxOAuth2Constants;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
@@ -50,17 +52,17 @@ import com.zimbra.oauth.utilities.OAuth2DataSource;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
 
 /**
- * Test class for {@link OutlookOAuth2Handler}.
+ * Test class for {@link DropboxOAuth2Handler}.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ OAuth2DataSource.class, OutlookOAuth2Handler.class, ZMailbox.class })
+@PrepareForTest({ OAuth2DataSource.class, DropboxOAuth2Handler.class, ZMailbox.class })
 @SuppressStaticInitializationFor("com.zimbra.client.ZMailbox")
-public class OutlookOAuth2HandlerTest {
+public class DropboxOAuth2HandlerTest {
 
     /**
      * Class under test.
      */
-    protected OutlookOAuth2Handler handler;
+    protected DropboxOAuth2Handler handler;
 
     /**
      * Mock configuration handler property.
@@ -94,49 +96,45 @@ public class OutlookOAuth2HandlerTest {
      */
     @Before
     public void setUp() throws Exception {
-        handler = PowerMock.createPartialMockForAllMethodsExcept(OutlookOAuth2Handler.class,
-            "authorize", "authenticate");
+        handler = PowerMock.createPartialMockForAllMethodsExcept(DropboxOAuth2Handler.class,
+            "authorize", "authenticate", "info");
         Whitebox.setInternalState(handler, "config", mockConfig);
-        Whitebox.setInternalState(handler, "relayKey", OutlookOAuth2Constants.RELAY_KEY.getValue());
+        Whitebox.setInternalState(handler, "relayKey", DropboxOAuth2Constants.RELAY_KEY.getValue());
         Whitebox.setInternalState(handler, "typeKey",
             OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue());
         Whitebox.setInternalState(handler, "authenticateUri",
-            OutlookOAuth2Constants.AUTHENTICATE_URI.getValue());
+            DropboxOAuth2Constants.AUTHENTICATE_URI.getValue());
         Whitebox.setInternalState(handler, "authorizeUriTemplate",
-            OutlookOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue());
-        Whitebox.setInternalState(handler, "requiredScopes",
-            OutlookOAuth2Constants.REQUIRED_SCOPES.getValue());
-        Whitebox.setInternalState(handler, "scopeDelimiter",
-            OutlookOAuth2Constants.SCOPE_DELIMITER.getValue());
-        Whitebox.setInternalState(handler, "client", OutlookOAuth2Constants.CLIENT_NAME.getValue());
+            DropboxOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue());
+        Whitebox.setInternalState(handler, "client", DropboxOAuth2Constants.CLIENT_NAME.getValue());
         Whitebox.setInternalState(handler, "dataSource", mockDataSource);
     }
 
     /**
-     * Test method for {@link OutlookOAuth2Handler#OutlookOAuth2Handler}<br>
+     * Test method for {@link DropboxOAuth2Handler#DropboxOAuth2Handler}<br>
      * Validates that the constructor configured some necessary properties.
      *
      * @throws Exception If there are issues testing
      */
     @Test
-    public void testOutlookOAuth2Handler() throws Exception {
+    public void testDropboxOAuth2Handler() throws Exception {
         final OAuth2DataSource mockDataSource = EasyMock.createMock(OAuth2DataSource.class);
 
         PowerMock.mockStatic(OAuth2DataSource.class);
-        expect(OAuth2DataSource.createDataSource(OutlookOAuth2Constants.CLIENT_NAME.getValue(),
-            OutlookOAuth2Constants.HOST_OUTLOOK.getValue())).andReturn(mockDataSource);
+        expect(OAuth2DataSource.createDataSource(DropboxOAuth2Constants.CLIENT_NAME.getValue(),
+            DropboxOAuth2Constants.HOST_DROPBOX.getValue())).andReturn(mockDataSource);
 
         replay(mockConfig);
         PowerMock.replay(OAuth2DataSource.class);
 
-        new OutlookOAuth2Handler(mockConfig);
+        new DropboxOAuth2Handler(mockConfig);
 
         verify(mockConfig);
         PowerMock.verify(OAuth2DataSource.class);
     }
 
     /**
-     * Test method for {@link OutlookOAuth2Handler#authorize}<br>
+     * Test method for {@link DropboxOAuth2Handler#authorize}<br>
      * Validates that the authorize method returns a location with an encoded
      * redirect uri.
      *
@@ -148,20 +146,20 @@ public class OutlookOAuth2HandlerTest {
             OAuth2Constants.ENCODING.getValue());
         // use contact type
         final Map<String, String> params = new HashMap<String, String>();
-        params.put(OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue(), "contact");
-        final String stateValue = "&state=%3Bcontact";
+        params.put(OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue(), "noop");
+        final String stateValue = "&state=%3Bnoop";
         final String authorizeBase = String.format(
-            OutlookOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code",
-            OutlookOAuth2Constants.REQUIRED_SCOPES.getValue());
+            DropboxOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code",
+            DropboxOAuth2Constants.REQUIRED_SCOPES.getValue());
         // expect a contact state with no relay
         final String expectedAuthorize = authorizeBase + stateValue;
 
         // expect buildStateString call
-        expect(handler.buildStateString("&", "", "contact", "")).andReturn(stateValue);
+        expect(handler.buildStateString("&", "", "noop", "")).andReturn(stateValue);
 
         // expect buildAuthorize call
-        expect(handler.buildAuthorizeUri(OutlookOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(),
-            null, "contact")).andReturn(authorizeBase);
+        expect(handler.buildAuthorizeUri(DropboxOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(),
+            null, "noop")).andReturn(authorizeBase);
 
         replay(handler);
 
@@ -175,7 +173,7 @@ public class OutlookOAuth2HandlerTest {
     }
 
     /**
-     * Test method for {@link OutlookOAuth2Handler#authenticate}<br>
+     * Test method for {@link DropboxOAuth2Handler#authenticate}<br>
      * Validates that the authenticate method calls sync datasource.
      *
      * @throws Exception If there are issues testing
@@ -183,40 +181,41 @@ public class OutlookOAuth2HandlerTest {
     @Test
     public void testAuthenticate() throws Exception {
         final String username = "test-user@localhost";
-        final String refreshToken = "refresh-token";
+        final String accessToken = "access-token";
         final AuthToken mockAuthToken = EasyMock.createMock(AuthToken.class);
         final OAuthInfo mockOAuthInfo = EasyMock.createMock(OAuthInfo.class);
         final ZMailbox mockZMailbox = EasyMock.createMock(ZMailbox.class);
         final JsonNode mockCredentials = EasyMock.createMock(JsonNode.class);
+        final Map<String, Object> customAttrs = new HashMap<String, Object>();
 
         expect(mockOAuthInfo.getAccount()).andReturn(null);
         handler.loadClientConfig(null, mockOAuthInfo);
         EasyMock.expectLastCall();
         expect(mockOAuthInfo.getClientId()).andReturn(clientId);
         expect(mockOAuthInfo.getClientSecret()).andReturn(clientSecret);
+        expect(handler.getDatasourceCustomAttrs(anyObject())).andReturn(customAttrs);
         expect(handler.getZimbraMailbox(anyObject(AuthToken.class), anyObject(Account.class)))
             .andReturn(mockZMailbox);
-        expect(handler.getDatasourceCustomAttrs(anyObject())).andReturn(null);
         expect(handler.getToken(anyObject(OAuthInfo.class), anyObject(String.class)))
             .andReturn(mockCredentials);
         handler.validateTokenResponse(anyObject());
         EasyMock.expectLastCall().once();
-        expect(handler.getStorableToken(mockCredentials)).andReturn(refreshToken);
+        expect(handler.getStorableToken(mockCredentials)).andReturn(accessToken);
         expect(handler.getPrimaryEmail(anyObject(JsonNode.class), anyObject(Account.class)))
             .andReturn(username);
+        mockOAuthInfo.setClientSecret(null);
+        EasyMock.expectLastCall().once();
+        handler.setResponseParams(mockCredentials, mockOAuthInfo);
+        EasyMock.expectLastCall().once();
 
-        mockOAuthInfo.setTokenUrl(matches(OutlookOAuth2Constants.AUTHENTICATE_URI.getValue()));
+        mockOAuthInfo.setTokenUrl(matches(DropboxOAuth2Constants.AUTHENTICATE_URI.getValue()));
         EasyMock.expectLastCall().once();
         expect(mockOAuthInfo.getZmAuthToken()).andReturn(mockAuthToken);
         mockOAuthInfo.setUsername(username);
         EasyMock.expectLastCall().once();
-        mockOAuthInfo.setRefreshToken(refreshToken);
+        mockOAuthInfo.setRefreshToken(accessToken);
         EasyMock.expectLastCall().once();
-        mockDataSource.syncDatasource(mockZMailbox, mockOAuthInfo, null);
-        EasyMock.expectLastCall().once();
-        mockOAuthInfo.setClientSecret(null);
-        EasyMock.expectLastCall().once();
-        handler.setResponseParams(mockCredentials, mockOAuthInfo);
+        mockDataSource.syncDatasource(mockZMailbox, mockOAuthInfo, customAttrs);
         EasyMock.expectLastCall().once();
 
         replay(handler);
@@ -232,6 +231,68 @@ public class OutlookOAuth2HandlerTest {
         verify(mockConfig);
         verify(mockCredentials);
         verify(mockDataSource);
+    }
+
+
+    /**
+     * Test method for {@link DropboxOAuth2Handler#info}<br>
+     * Validates that the info method calls loadClientConfig on oauth info
+     * object.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testInfo() throws Exception {
+        final String clientId = "test";
+        final OAuthInfo mockOAuthInfo = EasyMock.createMock(OAuthInfo.class);
+
+        expect(mockOAuthInfo.getAccount()).andReturn(null);
+        // expect to load the client config for the account
+        handler.loadClientConfig(null, mockOAuthInfo);
+        EasyMock.expectLastCall().once();
+        // expect to retrieve the client id
+        expect(mockOAuthInfo.getClientId()).andReturn(clientId);
+        // expect to remove the client secret
+        mockOAuthInfo.setClientSecret(null);
+        EasyMock.expectLastCall().once();
+        // expect to set the client id in the params map
+        mockOAuthInfo.setParams(Collections.singletonMap("client_id", clientId));
+        EasyMock.expectLastCall().once();
+
+        replay(handler);
+        replay(mockOAuthInfo);
+
+        handler.info(mockOAuthInfo);
+
+        verify(handler);
+        verify(mockOAuthInfo);
+    }
+
+    /**
+     * Test method for {@link DropboxOAuth2Handler#info}<br>
+     * Validates that the info method throws a service exception when missing
+     * config.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test(expected = ServiceException.class)
+    public void testInfoMissingConfig() throws Exception {
+        final OAuthInfo mockOAuthInfo = EasyMock.createMock(OAuthInfo.class);
+
+        expect(mockOAuthInfo.getAccount()).andReturn(null);
+        // expect to load the client config for the account
+        handler.loadClientConfig(null, mockOAuthInfo);
+        EasyMock.expectLastCall().andThrow(ServiceException.NOT_FOUND("missing config"));
+
+        replay(handler);
+        replay(mockOAuthInfo);
+
+        try {
+            handler.info(mockOAuthInfo);
+        } finally {
+            verify(handler);
+            verify(mockOAuthInfo);
+        }
     }
 
 }

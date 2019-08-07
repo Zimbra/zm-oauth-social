@@ -334,6 +334,12 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
         return true;
     }
 
+    @Override
+    public Boolean refresh(OAuthInfo oauthInfo) throws ServiceException {
+        ZimbraLog.extensions.info("Refresh is not supported for: %s", client);
+        throw ServiceException.UNSUPPORTED();
+    }
+
     /**
      * Validates that the response from authenticate has no errors, and contains
      * the requested access information.

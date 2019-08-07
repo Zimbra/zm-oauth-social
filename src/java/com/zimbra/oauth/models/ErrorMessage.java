@@ -1,7 +1,7 @@
 /*
  * ***** BEGIN LICENSE BLOCK *****
  * Zimbra OAuth Social Extension
- * Copyright (C) 2018 Synacor, Inc.
+ * Copyright (C) 2019 Synacor, Inc.
  *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software Foundation,
@@ -19,51 +19,67 @@ package com.zimbra.oauth.models;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * The ResponseObject class.
+ * The ErrorMessage class.
  *
  * @author Zimbra API Team
  * @package com.zimbra.oauth.models
- * @copyright Copyright © 2018
+ * @copyright Copyright © 2019
  */
 @XmlRootElement
-public class ResponseObject<E> {
+public class ErrorMessage {
 
     /**
-     * Data of type.
+     * Error code.
      */
-    protected final E data;
+    protected String code;
 
     /**
-     * Meta instance.
+     * Error message.
      */
-    protected final ResponseMeta _meta;
+    protected String message;
 
     /**
-     * Constructor.
-     *
-     * @param data A data object
+     * @param code The error code
      */
-    public ResponseObject(E data, ResponseMeta meta) {
-        this.data = data;
-        this._meta = meta;
+    public ErrorMessage(String code) {
+        this(code, null);
     }
 
     /**
-     * Get data.
-     *
-     * @return A data object
+     * @param code The error code
+     * @param message The error message
      */
-    public E getData() {
-        return data;
+    public ErrorMessage(String code, String message) {
+        this.code = code;
+        this.message = message;
     }
 
     /**
-     * Get the Meta instance.
-     *
-     * @return The instance of Meta object
+     * @return the code
      */
-    public ResponseMeta get_meta() {
-        return _meta;
+    public String getCode() {
+        return code;
+    }
+
+    /**
+     * @param code the code to set
+     */
+    public void setCode(String code) {
+        this.code = code;
+    }
+
+    /**
+     * @return The error message
+     */
+    public String getMessage() {
+        return message;
+    }
+
+    /**
+     * @param message The error message
+     */
+    public void setMessage(String message) {
+        this.message = message;
     }
 
 }

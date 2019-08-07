@@ -263,7 +263,12 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
             GoogleContactsImport.class.getCanonicalName());
         dataSource.addImportClass(DataSourceType.oauth2caldav.name(),
             CalDavOAuth2DataImport.class.getCanonicalName());
+    }
 
+    @Override
+    public Boolean refresh(OAuthInfo oauthInfo) throws ServiceException {
+        ZimbraLog.extensions.info("Refresh is not supported for: %s", client);
+        throw ServiceException.UNSUPPORTED();
     }
 
     /**

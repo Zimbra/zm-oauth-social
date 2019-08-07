@@ -41,6 +41,15 @@ See the [documentation for api usage].
 
 After a user completes the oauth2 flow, the credentials for their account will be stored as a data source with a configured folder created in the user's root mailbox during authentication. The import is triggered after successful completion of the OAuth flow. An import can also be triggered manually with a `zmsoap` import data request.
 
+**Resources**
+
+| Path | Description | Response Type |
+| ---- | ----------- | ------------- |
+| `/service/extension/oauth2/authorize/{client}` | Initiates the oauth2 flow with a redirect response. | HTTP Redirect |
+| `/service/extension/oauth2/authenticate/{client}` | Callback url for the social service in the oauth2 flow | HTTP Redirect |
+| `/service/extension/oauth2/refresh/{client}/{identifier}` | Acquires and returns a new access token for the identified social account (limited support) | JSON |
+| `/service/extension/oauth2/info/{client}` | Returns info for the specified client | JSON |
+
 ---
 
 ## Configuration

@@ -23,6 +23,7 @@ import java.util.Map;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.lang.StringUtils;
@@ -30,9 +31,11 @@ import org.apache.commons.lang.StringUtils;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.extension.ExtensionHttpHandler;
+import com.zimbra.oauth.models.ResponseObject;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2ErrorConstants;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
+import com.zimbra.oauth.utilities.OAuth2JsonUtilities;
 import com.zimbra.oauth.utilities.OAuth2ResourceUtilities;
 
 /**
@@ -74,6 +77,17 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
                 location = OAuth2ResourceUtilities.authenticate(client, req.getCookies(),
                     getHeaders(req), req.getParameterMap());
                 break;
+            case "refresh":
+                final ResponseObject<? extends Object> refreshResponse = OAuth2ResourceUtilities
+                    .refresh(client, pathParams.get("identifier"), req.getCookies(),
+                        getHeaders(req), req.getParameterMap());
+                sendJsonResponse(resp, refreshResponse);
+                return;
+            case "info":
+                final ResponseObject<? extends Object> infoResponse = OAuth2ResourceUtilities
+                    .info(client, req.getCookies(), getHeaders(req));
+                sendJsonResponse(resp, infoResponse);
+                return;
             default:
                 // missing valid action - bad request
                 resp.sendError(Status.BAD_REQUEST.getStatusCode());
@@ -117,7 +131,9 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
      */
     protected boolean isValidPath(String path) {
         return StringUtils.containsIgnoreCase(path, "authenticate/")
-            || StringUtils.containsIgnoreCase(path, "authorize/");
+            || StringUtils.containsIgnoreCase(path, "authorize/")
+            || StringUtils.containsIgnoreCase(path, "refresh/")
+            || StringUtils.containsIgnoreCase(path, "info/");
     }
 
     /**
@@ -131,14 +147,36 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
         final String[] parts = path.split("/");
         // action
         if (StringUtils.equalsIgnoreCase(parts[2], "authorize")
-            || StringUtils.equalsIgnoreCase(parts[2], "authenticate")) {
+            || StringUtils.equalsIgnoreCase(parts[2], "authenticate")
+            || StringUtils.equalsIgnoreCase(parts[2], "refresh")
+            || StringUtils.equalsIgnoreCase(parts[2], "info")) {
             pathParams.put("action", parts[2]);
         }
         // client
-        if (StringUtils.isNotEmpty(parts[3])) {
+        if (parts.length > 3 && StringUtils.isNotEmpty(parts[3])) {
             pathParams.put("client", parts[3]);
         }
+        // identifier
+        if (parts.length > 4 && StringUtils.isNotEmpty(parts[4])) {
+            pathParams.put("identifier", parts[4]);
+        }
         return pathParams;
+    }
+
+    /**
+     * Sends a response to the client based on the passed in ResponseObject.
+     *
+     * @param resp The output response
+     * @param object The object to send with details
+     * @throws IOException If there are issues writing out
+     * @throws ServiceException If there are json issues
+     */
+    protected void sendJsonResponse(HttpServletResponse resp, ResponseObject<?> object)
+        throws IOException, ServiceException {
+        resp.setStatus(object.get_meta().getStatus());
+        resp.setHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
+            MediaType.APPLICATION_JSON);
+        resp.getWriter().print(OAuth2JsonUtilities.objectToJson(object));
     }
 
 }

@@ -43,6 +43,7 @@ import com.zimbra.cs.mime.ParsedContact;
 import com.zimbra.oauth.handlers.impl.GoogleContactsImport.GoogleContactsUtil;
 import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler.GoogleContactConstants;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.OAuth2JsonUtilities;
 
 /**
  * Test class for {@link GoogleContactsImport}.
@@ -115,7 +116,7 @@ public class GoogleContactsImportTest {
         expect(importer.buildContactsUrl(anyObject(), anyObject(), anyObject()))
             .andReturn(GoogleContactConstants.CONTACTS_URI.getValue());
         final String jsonData = "{\"connections\":[{\"biographies\":[{\"contentType\":\"TEXT_PLAIN\",\"value\":\"lionnsss!\"}],\"emailAddresses\":[{\"value\":\"lionel@example.com\"}],\"etag\":\"fake-etag\",\"names\":[{\"displayName\":\"Lionel Ronkerts\",\"displayNameLastFirst\":\"Ronkerts, Lionel\",\"familyName\":\"Ronkerts\",\"givenName\":\"Lionel\",\"metadata\":{\"primary\":true,\"source\":{\"id\":\"fake-id\",\"type\":\"CONTACT\"}}}],\"organizations\":[{\"name\":\"Synacor\",\"title\":\"Tester\"}],\"photos\":[{\"default\":true,\"metadata\":{\"primary\":true,\"source\":{\"id\":\"fake-id\",\"type\":\"CONTACT\"}},\"url\":\"https://example.com/photo.jpg\"}],\"resourceName\":\"people/fake-people-id\"}],\"totalItems\":9,\"totalPeople\":9}";
-        final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
+        final JsonNode jsonResponse = OAuth2JsonUtilities.stringToJson(jsonData);
         expect(importer.getContactsRequest(anyObject(), anyObject())).andReturn(jsonResponse);
         // expect parse new contacts to be called
         importer.parseNewContacts(anyObject(Set.class), anyObject(JsonNode.class),
@@ -147,7 +148,7 @@ public class GoogleContactsImportTest {
         final Set<String> existingContacts = new HashSet<String>();
         existingContacts.add("people/different-id");
         final String jsonData = "{\"connections\":[{\"biographies\":[{\"contentType\":\"TEXT_PLAIN\",\"value\":\"lionnsss!\"}],\"emailAddresses\":[{\"value\":\"lionel@example.com\"}],\"etag\":\"fake-etag\",\"names\":[{\"displayName\":\"Lionel Ronkerts\",\"displayNameLastFirst\":\"Ronkerts, Lionel\",\"familyName\":\"Ronkerts\",\"givenName\":\"Lionel\",\"metadata\":{\"primary\":true,\"source\":{\"id\":\"fake-id\",\"type\":\"CONTACT\"}}}],\"organizations\":[{\"name\":\"Synacor\",\"title\":\"Tester\"}],\"photos\":[{\"default\":true,\"metadata\":{\"primary\":true,\"source\":{\"id\":\"fake-id\",\"type\":\"CONTACT\"}},\"url\":\"https://example.com/photo.jpg\"}],\"resourceName\":\"people/fake-people-id\"}],\"totalItems\":9,\"totalPeople\":9}";
-        final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
+        final JsonNode jsonResponse = OAuth2JsonUtilities.stringToJson(jsonData);
         final JsonNode jsonContacts = jsonResponse.get("connections");
         final List<ParsedContact> createList = new ArrayList<ParsedContact>();
 
@@ -170,7 +171,7 @@ public class GoogleContactsImportTest {
         final Set<String> existingContacts = new HashSet<String>();
         existingContacts.add("people/fake-people-id");
         final String jsonData = "{\"connections\":[{\"biographies\":[{\"contentType\":\"TEXT_PLAIN\",\"value\":\"lionnsss!\"}],\"emailAddresses\":[{\"value\":\"lionel@example.com\"}],\"etag\":\"fake-etag\",\"names\":[{\"displayName\":\"Lionel Ronkerts\",\"displayNameLastFirst\":\"Ronkerts, Lionel\",\"familyName\":\"Ronkerts\",\"givenName\":\"Lionel\",\"metadata\":{\"primary\":true,\"source\":{\"id\":\"fake-id\",\"type\":\"CONTACT\"}}}],\"organizations\":[{\"name\":\"Synacor\",\"title\":\"Tester\"}],\"photos\":[{\"default\":true,\"metadata\":{\"primary\":true,\"source\":{\"id\":\"fake-id\",\"type\":\"CONTACT\"}},\"url\":\"https://example.com/photo.jpg\"}],\"resourceName\":\"people/fake-people-id\"}],\"totalItems\":9,\"totalPeople\":9}";
-        final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
+        final JsonNode jsonResponse = OAuth2JsonUtilities.stringToJson(jsonData);
         final JsonNode jsonContacts = jsonResponse.get("connections");
         final List<ParsedContact> createList = new ArrayList<ParsedContact>();
 

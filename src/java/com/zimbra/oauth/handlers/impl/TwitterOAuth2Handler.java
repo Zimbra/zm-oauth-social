@@ -339,6 +339,12 @@ public class TwitterOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
     }
 
     @Override
+    public Boolean refresh(OAuthInfo oauthInfo) throws ServiceException {
+        ZimbraLog.extensions.info("Refresh is not supported for: %s", client);
+        throw ServiceException.UNSUPPORTED();
+    }
+
+    @Override
     public List<String> getAuthenticateParamKeys() {
         // code, error, state are default oauth2 keys
         return Arrays.asList("oauth_token", "oauth_verifier", "error", relayKey);
