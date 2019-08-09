@@ -17,14 +17,18 @@
 package com.zimbra.oauth.handlers.impl;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.core.MediaType;
-
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.entity.ContentType;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.message.BasicNameValuePair;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
@@ -186,20 +190,22 @@ public class DropboxOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
     @Override
     protected JsonNode getToken(OAuthInfo authInfo, String basicToken) throws ServiceException {
         final String refreshToken = authInfo.getRefreshToken();
-        final PostMethod request = new PostMethod(authInfo.getTokenUrl());
+        final HttpPost request = new HttpPost(authInfo.getTokenUrl());
+        final List<NameValuePair> params = new ArrayList<NameValuePair>();
         if (!StringUtils.isEmpty(refreshToken)) {
             // set refresh token if we have one
-            request.setParameter("grant_type", "refresh_token");
-            request.setParameter("refresh_token", refreshToken);
+            params.add(new BasicNameValuePair("grant_type", "refresh_token"));
+            params.add(new BasicNameValuePair("refresh_token", refreshToken));
         } else {
             // otherwise use the code
-            request.setParameter("grant_type", "authorization_code");
-            request.setParameter("code", authInfo.getParam("code"));
+            params.add(new BasicNameValuePair("grant_type", "authorization_code"));
+            params.add(new BasicNameValuePair("code", authInfo.getParam("code")));
         }
-        request.setParameter("redirect_uri", authInfo.getClientRedirectUri());
-        request.setRequestHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
+        params.add(new BasicNameValuePair("redirect_uri", authInfo.getClientRedirectUri()));
+        setFormEntity(request, params);
+        request.setHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
             "application/x-www-form-urlencoded");
-        request.setRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
+        request.setHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
             "Basic " + basicToken);
         JsonNode json = null;
         try {
@@ -287,18 +293,18 @@ public class DropboxOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
     protected String getPrimaryEmail(JsonNode credentials, Account account)
         throws ServiceException {
         final String authToken = credentials.get("access_token").asText();
-        final PostMethod request = new PostMethod(DropboxOAuth2Constants.PROFILE_URI.getValue());
-        request.setRequestHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(), "application/json");
-        request.setRequestHeader(OAuth2HttpConstants.HEADER_ACCEPT.getValue(), "application/json");
-        request.setRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
+        final HttpPost request = new HttpPost(DropboxOAuth2Constants.PROFILE_URI.getValue());
+        request.setHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(), "application/json");
+        request.setHeader(OAuth2HttpConstants.HEADER_ACCEPT.getValue(), "application/json");
+        request.setHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
             "Bearer " + authToken);
         final Map<String, String> params = new HashMap<String, String>(1);
         params.put("account_id", credentials.get("account_id").asText());
 
         JsonNode json = null;
         try {
-            request.setRequestEntity(new StringRequestEntity(OAuth2JsonUtilities.objectToJson(params),
-                MediaType.APPLICATION_JSON, OAuth2Constants.ENCODING.getValue()));
+            request.setEntity(new StringEntity(OAuth2JsonUtilities.objectToJson(params),
+                ContentType.create(ContentType.APPLICATION_JSON.getMimeType(), OAuth2Constants.ENCODING.getValue())));
             json = executeRequestForJson(request);
         } catch (final IOException e) {
             ZimbraLog.extensions

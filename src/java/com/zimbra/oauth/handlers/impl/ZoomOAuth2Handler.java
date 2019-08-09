@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.commons.lang.StringUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -235,10 +235,9 @@ public class ZoomOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
     protected String getPrimaryEmail(JsonNode credentials, Account account)
         throws ServiceException {
         final String authToken = credentials.get("access_token").asText();
-        final GetMethod request = new GetMethod(ZoomOAuth2Constants.PROFILE_URI.getValue());
-        request.setRequestHeader(OAuth2HttpConstants.HEADER_ACCEPT.getValue(), "application/json");
-        request.setRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
-            "Bearer " + authToken);
+        final HttpGet request = new HttpGet(ZoomOAuth2Constants.PROFILE_URI.getValue());
+        request.setHeader(OAuth2HttpConstants.HEADER_ACCEPT.getValue(), "application/json");
+        request.setHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), "Bearer " + authToken);
 
         JsonNode json = null;
         try {
