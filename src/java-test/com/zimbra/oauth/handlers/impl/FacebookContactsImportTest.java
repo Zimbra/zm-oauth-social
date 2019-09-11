@@ -38,7 +38,6 @@ import org.junit.runner.RunWith;
 import org.powermock.api.easymock.PowerMock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-import org.powermock.reflect.Whitebox;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
@@ -92,9 +91,7 @@ public class FacebookContactsImportTest {
     importer = PowerMock.createPartialMock(FacebookContactsImport.class,
       new String[] {"refresh", "getExistingContacts", "buildContactsUrl",
         "getContactsRequest", "parseNewContacts"},
-      mockSource);
-
-    Whitebox.setInternalState(importer, "config", mockConfig);
+      mockSource, mockConfig);
 
     PowerMock.mockStatic(FacebookContactsUtil.class);
   }

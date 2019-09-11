@@ -28,7 +28,6 @@ import org.junit.runner.RunWith;
 import org.powermock.api.easymock.PowerMock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-import org.powermock.reflect.Whitebox;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.util.Pair;
@@ -78,9 +77,7 @@ public class YahooContactsImportTest {
     public void setUp() throws Exception {
         mockSource = EasyMock.createMock(DataSource.class);
         importer = PowerMock.createPartialMock(YahooContactsImport.class,
-            new String[] {"refresh", "getContactsRequest"}, mockSource);
-
-        Whitebox.setInternalState(importer, "config", mockConfig);
+            new String[] { "refresh", "getContactsRequest" }, mockSource, mockConfig);
 
         PowerMock.mockStatic(YahooContactsUtil.class);
     }

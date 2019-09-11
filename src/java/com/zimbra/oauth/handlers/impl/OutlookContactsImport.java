@@ -140,6 +140,17 @@ public class OutlookContactsImport implements DataImport {
         }
     }
 
+    /**
+     * Constructor.
+     *
+     * @param datasource The datasource to set
+     * @param config The config
+     */
+    public OutlookContactsImport(DataSource datasource, Configuration config) {
+        this.mDataSource = datasource;
+        this.config = config;
+    }
+
     @Override
     public void test() throws ServiceException {
         // list of contacts to create after parsing outlook responses

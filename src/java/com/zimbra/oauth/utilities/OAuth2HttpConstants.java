@@ -31,6 +31,7 @@ public enum OAuth2HttpConstants {
     HEADER_CONTENT_TYPE("Content-Type"),
     HEADER_ACCEPT("Accept"),
     HEADER_LOCATION("Location"),
+    HEADER_DISABLE_EXTERNAL_REQUESTS("Disable-External-Requests"),
     QUERY_ERROR("error"),
     QUERY_ERROR_MSG("error_msg"),
     COOKIE_AUTH_TOKEN("ZM_AUTH_TOKEN"),

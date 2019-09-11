@@ -39,7 +39,6 @@ import org.powermock.api.easymock.PowerMock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.core.classloader.annotations.SuppressStaticInitializationFor;
 import org.powermock.modules.junit4.PowerMockRunner;
-import org.powermock.reflect.Whitebox;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.util.Pair;
@@ -94,9 +93,7 @@ public class OutlookContactsImportTest {
         importer = PowerMock.createPartialMock(OutlookContactsImport.class,
             new String[] { "refresh", "ensureFolder", "getContactFolders", "getContactsRequest",
                 "getExistingContacts", "parseNewContacts" },
-            mockSource);
-
-        Whitebox.setInternalState(importer, "config", mockConfig);
+            mockSource, mockConfig);
 
         PowerMock.mockStatic(OutlookContactsUtil.class);
     }

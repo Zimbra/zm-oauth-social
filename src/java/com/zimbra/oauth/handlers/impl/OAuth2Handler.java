@@ -47,6 +47,7 @@ import com.zimbra.cs.account.AuthToken;
 import com.zimbra.cs.account.ZimbraAuthToken;
 import com.zimbra.cs.util.AccountUtil;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
+import com.zimbra.oauth.models.GuestRequest;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
@@ -343,6 +344,14 @@ public abstract class OAuth2Handler {
         // only these params will be returned to the client
         oauthInfo.setParams(Collections.singletonMap("client_id", oauthInfo.getClientId()));
         return true;
+    }
+
+    /**
+     * @see IOAuth2Handler#event(GuestRequest)
+     */
+    public Boolean event(GuestRequest request) throws ServiceException {
+        ZimbraLog.extensions.debug("Event is not supported by this client: %s.", client);
+        throw ServiceException.UNSUPPORTED();
     }
 
     /**

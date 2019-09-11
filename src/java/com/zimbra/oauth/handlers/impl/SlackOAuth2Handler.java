@@ -148,7 +148,7 @@ public class SlackOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         /**
          * The scopes required for Slack.
          */
-        REQUIRED_SCOPES("channels:read,channels:write,groups:read,groups:write,im:write,users:read,users:read.email,team:read"),
+        REQUIRED_SCOPES(""),
 
         /**
          * The scope delimiter for Slack.

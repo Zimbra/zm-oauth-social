@@ -21,6 +21,7 @@ import java.util.Map;
 
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.cs.account.Account;
+import com.zimbra.oauth.models.GuestRequest;
 import com.zimbra.oauth.models.OAuthInfo;
 
 /**
@@ -71,6 +72,16 @@ public interface IOAuth2Handler {
      * @throws ServiceException If there are issues in this process
      */
     public Boolean info(OAuthInfo oauthResponse) throws ServiceException;
+
+    /**
+     * Handles events for the client.<br>
+     * This method is not provided with an authorized account before execution.
+     *
+     * @param request Contains client and request info
+     * @return True on success
+     * @throws ServiceException If there are issues in this process
+     */
+    public Boolean event(GuestRequest request) throws ServiceException;
 
     /**
      * Returns a list of keys to expect during authenticate callback.

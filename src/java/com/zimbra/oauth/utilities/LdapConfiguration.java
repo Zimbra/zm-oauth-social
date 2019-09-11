@@ -51,45 +51,46 @@ public class LdapConfiguration extends Configuration {
      *
      */
     @Override
-    public  String getString(String key, String appName, Account account) {
-
+    public String getString(String key, String appName, Account account) {
         return getConfig(key, appName, account);
     }
 
     /**
      * @param oauth related config key
      * @param appName client app name
+     * @param acct the relevant account
      * @return value for the associated key
      */
     public String getConfig(String key, String appName, Account acct) {
 
         String value = null;
         ZimbraLog.extensions.debug("App name is:%s", appName);
-
-       if (key.endsWith(OAuth2ConfigConstants.OAUTH_CLIENT_ID.getValue())) {
-            final String[] registeredOAuth2Clients = loadConfiguration(acct,
-                Provisioning.A_zimbraOAuthConsumerCredentials, appName);
-
-            if (registeredOAuth2Clients != null && registeredOAuth2Clients.length != 0) {
-                // {consumer-id}:{secret}:{consumer-app-name}
-                for (final String consumer : registeredOAuth2Clients) {
-                    final String s[] = consumer.split(":");
-
-                    if (s.length == 3 && s[2].equals(appName)) {
-                        value = s[0];
-                        break;
-                    }
-                }
-            }
+        // determine which credential to acquire when fetching from consumer credentials
+        Integer credentialPosition = null;
+        if (key.endsWith(OAuth2ConfigConstants.OAUTH_CLIENT_ID.getValue())) {
+            credentialPosition = 0;
         } else if (key.endsWith(OAuth2ConfigConstants.OAUTH_CLIENT_SECRET.getValue())) {
+            credentialPosition = 1;
+        } else if (key.endsWith(OAuth2ConfigConstants.OAUTH_VERIFICATION_TOKEN.getValue())) {
+            credentialPosition = 2;
+        }
+
+        if (credentialPosition != null) {
             final String[] registeredOAuth2Clients = loadConfiguration(acct,
                 Provisioning.A_zimbraOAuthConsumerCredentials, appName);
+
             if (registeredOAuth2Clients != null && registeredOAuth2Clients.length != 0) {
-                // {consumer-id}:{secret}:{consumer-app-name}
+                // {consumer-id}:{secret}:[{verification-token}:]{consumer-app-name}
                 for (final String consumer : registeredOAuth2Clients) {
                     final String s[] = consumer.split(":");
-                    if (s.length == 3 && s[2].equals(appName)) {
-                        value = s[1];
+                    // skip this client if the credentials are not
+                    // properly formatted to what the client expects
+                    if (credentialPosition >= (s.length - 1)) {
+                        continue;
+                    }
+                    // ensure the client is correct and return the credential value
+                    if (s.length >= 3 && s[s.length - 1].equals(appName)) {
+                        value = s[credentialPosition];
                         break;
                     }
                 }
