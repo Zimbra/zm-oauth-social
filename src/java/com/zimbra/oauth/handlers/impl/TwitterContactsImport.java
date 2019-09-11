@@ -91,6 +91,17 @@ public class TwitterContactsImport implements DataImport {
         }
     }
 
+    /**
+     * Constructor.
+     *
+     * @param datasource The datasource to set
+     * @param config The config
+     */
+    public TwitterContactsImport(DataSource datasource, Configuration config) {
+        this.mDataSource = datasource;
+        this.config = config;
+    }
+
     @Override
     public void test() throws ServiceException {
         final List<ParsedContact> contactList = new LinkedList<ParsedContact>();

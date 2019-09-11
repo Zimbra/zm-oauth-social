@@ -14,11 +14,16 @@
       <dependency org="commons-lang" name="commons-lang" rev="2.6" />
       <dependency org="org.apache.httpcomponents" name="httpclient" rev="${httpclient.version}" />
       <dependency org="org.apache.httpcomponents" name="httpcore" rev="${httpclient.httpcore.version}" />
+      <dependency org="org.redisson" name="redisson-all" rev="3.10.7" />
       <!-- Local Requirements -->
       <dependency org="zimbra" name="zm-common" rev="latest.integration" />
       <dependency org="zimbra" name="zm-client" rev="latest.integration" />
       <dependency org="zimbra" name="zm-soap" rev="latest.integration" />
       <dependency org="zimbra" name="zm-store" rev="latest.integration" />
+      <!-- Transitive Requirements -->
+      <dependency org="com.fasterxml.jackson.core" name="jackson-core" rev="2.9.2"/>
+      <dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="2.9.2"/>
+      <dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="2.9.2"/>
       <!-- Test Requirements -->
       <dependency org="junit" name="junit" rev="4.8.2" />
       <dependency org="org.powermock" name="powermock-core" rev="1.6.5" />

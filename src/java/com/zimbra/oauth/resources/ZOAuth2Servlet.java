@@ -17,7 +17,9 @@
 package com.zimbra.oauth.resources;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.ServletException;
@@ -48,16 +50,62 @@ import com.zimbra.oauth.utilities.OAuth2ResourceUtilities;
  */
 public class ZOAuth2Servlet extends ExtensionHttpHandler {
 
+    /**
+     * Valid POST actions.
+     */
+    protected final List<String> postActions = Arrays.asList(
+        "event"
+    );
+
+    /**
+     * Valid GET actions.
+     */
+    protected final List<String> getActions = Arrays.asList(
+        "authenticate",
+        "authorize",
+        "info",
+        "refresh"
+    );
+
     @Override
     public String getPath() {
         return OAuth2Constants.DEFAULT_SERVER_PATH.getValue();
     }
 
     @Override
+    public void doPost(HttpServletRequest req, HttpServletResponse resp)
+        throws IOException, ServletException {
+        final String path = StringUtils.removeEndIgnoreCase(req.getPathInfo(), "/");
+        if (!isValidPath(path, postActions)) {
+            // invalid location - not part of this service
+            resp.sendError(Status.BAD_REQUEST.getStatusCode());
+            return;
+        }
+        final Map<String, String> pathParams = parseRequestPath(path);
+        final String client = pathParams.get("client");
+
+        try {
+            final Map<String, Object> body = OAuth2JsonUtilities.streamToMap(req.getInputStream());
+            OAuth2ResourceUtilities.event(client, getHeaders(req), body);
+        } catch (final ServiceException e) {
+            if (StringUtils.equals(ServiceException.PARSE_ERROR, e.getCode())) {
+                ZimbraLog.extensions.errorQuietly(OAuth2ErrorConstants.ERROR_PARAM_MISSING, e);
+            } else if (StringUtils.equals(ServiceException.UNSUPPORTED, e.getCode())) {
+                ZimbraLog.extensions.errorQuietly(OAuth2ErrorConstants.ERROR_INVALID_CLIENT, e);
+            } else {
+                ZimbraLog.extensions
+                    .errorQuietly("An oauth application error while handling event.", e);
+            }
+        }
+        // always respond with Accepted to prevent harvesting for event resource
+        sendAcceptedResponse(resp);
+    }
+
+    @Override
     public void doGet(HttpServletRequest req, HttpServletResponse resp)
         throws IOException, ServletException {
         final String path = StringUtils.removeEndIgnoreCase(req.getPathInfo(), "/");
-        if (!isValidPath(path)) {
+        if (!isValidPath(path, getActions)) {
             // invalid location - not part of this service
             resp.sendError(Status.BAD_REQUEST.getStatusCode());
             return;
@@ -78,13 +126,13 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
                     getHeaders(req), req.getParameterMap());
                 break;
             case "refresh":
-                final ResponseObject<? extends Object> refreshResponse = OAuth2ResourceUtilities
+                final ResponseObject<?> refreshResponse = OAuth2ResourceUtilities
                     .refresh(client, pathParams.get("identifier"), req.getCookies(),
                         getHeaders(req), req.getParameterMap());
                 sendJsonResponse(resp, refreshResponse);
                 return;
             case "info":
-                final ResponseObject<? extends Object> infoResponse = OAuth2ResourceUtilities
+                final ResponseObject<?> infoResponse = OAuth2ResourceUtilities
                     .info(client, req.getCookies(), getHeaders(req));
                 sendJsonResponse(resp, infoResponse);
                 return;
@@ -120,20 +168,27 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
         final Map<String, String> headers = new HashMap<String, String>();
         headers.put(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
             req.getHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue()));
+        final String disableHeader = req
+            .getHeader(OAuth2HttpConstants.HEADER_DISABLE_EXTERNAL_REQUESTS.getValue());
+        if (StringUtils.isNotEmpty(disableHeader)) {
+            headers.put(OAuth2HttpConstants.HEADER_DISABLE_EXTERNAL_REQUESTS.getValue(),
+                disableHeader);
+        }
         return headers;
     }
 
     /**
-     * Determines if the path is one serviced by this extension.
+     * Determines if the method and path is one serviced by this extension.
      *
      * @param path The path to check
+     * @param pathActions Actions to allow
      * @return True if the op is serviceable
      */
-    protected boolean isValidPath(String path) {
-        return StringUtils.containsIgnoreCase(path, "authenticate/")
-            || StringUtils.containsIgnoreCase(path, "authorize/")
-            || StringUtils.containsIgnoreCase(path, "refresh/")
-            || StringUtils.containsIgnoreCase(path, "info/");
+    protected boolean isValidPath(String path, List<String> pathActions) {
+        final String pathTemplate = getPath() + "/%s/";
+        return pathActions.stream()
+            .map(action -> String.format(pathTemplate, action))
+            .anyMatch(path::startsWith);
     }
 
     /**
@@ -146,12 +201,8 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
         final Map<String, String> pathParams = new HashMap<String, String>();
         final String[] parts = path.split("/");
         // action
-        if (StringUtils.equalsIgnoreCase(parts[2], "authorize")
-            || StringUtils.equalsIgnoreCase(parts[2], "authenticate")
-            || StringUtils.equalsIgnoreCase(parts[2], "refresh")
-            || StringUtils.equalsIgnoreCase(parts[2], "info")) {
-            pathParams.put("action", parts[2]);
-        }
+        pathParams.put("action", parts[2]);
+
         // client
         if (parts.length > 3 && StringUtils.isNotEmpty(parts[3])) {
             pathParams.put("client", parts[3]);
@@ -177,6 +228,18 @@ public class ZOAuth2Servlet extends ExtensionHttpHandler {
         resp.setHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
             MediaType.APPLICATION_JSON);
         resp.getWriter().print(OAuth2JsonUtilities.objectToJson(object));
+        resp.flushBuffer();
+    }
+
+    /**
+     * Sends an Accepted response to the client.
+     *
+     * @param resp The output response
+     * @throws IOException If there are issues writing out
+     */
+    protected void sendAcceptedResponse(HttpServletResponse resp) throws IOException {
+        resp.setStatus(Status.ACCEPTED.getStatusCode());
+        resp.flushBuffer();
     }
 
 }

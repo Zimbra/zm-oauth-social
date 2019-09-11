@@ -17,6 +17,8 @@
 package com.zimbra.oauth.utilities;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -90,6 +92,26 @@ public class OAuth2JsonUtilities {
         } catch (final JsonProcessingException e) {
             ZimbraLog.extensions.error("Error writing object as json.", e);
             throw ServiceException.PARSE_ERROR("Error writing output.", e);
+        }
+    }
+
+    /**
+     * Reads an input stream into a map.
+     *
+     * @param stream The stream to read from
+     * @return An instance of Map
+     * @throws ServiceException If there are issues parsing
+     */
+    public static Map<String, Object> streamToMap(InputStream stream) throws ServiceException {
+        if (stream == null) {
+            return null;
+        }
+        try {
+            return mapper.readValue(stream, mapper.getTypeFactory()
+                .constructMapType(Map.class, String.class, Object.class));
+        } catch (final IOException e) {
+            ZimbraLog.extensions.error("Error reading object as json.", e);
+            throw ServiceException.PARSE_ERROR("Error reading input.", e);
         }
     }
 }

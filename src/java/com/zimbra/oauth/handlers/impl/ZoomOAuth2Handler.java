@@ -17,20 +17,34 @@
 package com.zimbra.oauth.handlers.impl;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.http.client.methods.HttpGet;
+import javax.ws.rs.core.Response.Status;
+
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.common.service.ServiceException;
+import com.zimbra.common.util.StringUtil;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
+import com.zimbra.cs.account.Provisioning;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
+import com.zimbra.oauth.models.GuestRequest;
+import com.zimbra.oauth.models.HttpResponseWrapper;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.OAuth2CacheUtilities;
+import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
+import com.zimbra.oauth.utilities.OAuth2JsonUtilities;
+import com.zimbra.oauth.utilities.OAuth2Utilities;
 
 /**
  * The ZoomOAuth2Handler class.<br>
@@ -116,14 +130,24 @@ public class ZoomOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
         AUTHENTICATE_URI("https://zoom.us/oauth/token"),
 
         /**
+         * The compliance endpoint for Zoom.
+         */
+        COMPLIANCE_URI("https://api.zoom.us/oauth/data/compliance"),
+
+        /**
          * The scope required for Zoom.
          */
-        REQUIRED_SCOPES("user:read+meeting:write+webinar:write"),
+        REQUIRED_SCOPES("user:read"),
 
         /**
          * The scope delimiter for Zoom.
          */
         SCOPE_DELIMITER("+"),
+
+        /**
+         * Format for identifier as: `account id-user id`.
+         */
+        IDENTIFIER_TEMPLATE("%s-%s"),
 
         /**
          * The relay key for Zoom.
@@ -183,6 +207,31 @@ public class ZoomOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
         oauthInfo.setParams(params);
     }
 
+    @SuppressWarnings("unchecked")
+    @Override
+    public Boolean event(GuestRequest request) throws ServiceException {
+        final Map<String, Object> body = request.getBody();
+        final Map<String, String> headers = request.getHeaders();
+
+        // fetch the payload
+        final Object rawPayload = body.get("payload");
+        Map<String, String> payload = null;
+        if (rawPayload == null || !(rawPayload instanceof Map)) {
+            ZimbraLog.extensions.warn("invalid oauth deauthorization request: missing payload.");
+            return false;
+        }
+        payload = (Map<String, String>) rawPayload;
+
+        // handle events
+        final String event = (String) body.getOrDefault("event", "");
+        switch (event) {
+        case "app_deauthorized":
+            return deauthorize(headers, payload);
+        default:
+            return false;
+        }
+    }
+
     /**
      * Validates that the token response has no errors, and contains the
      * requested access information.
@@ -221,8 +270,6 @@ public class ZoomOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
         }
 
         // ensure the tokens we requested are present
-        // TODO: update this to require refresh_token when zoom adds support for auto-expiring tokens
-        // see https://api.zoom.com/docs/rotating-and-refreshing-credentials
         if (!response.has("access_token") || !response.has("refresh_token")) {
             throw ServiceException.PARSE_ERROR(
                 "Unexpected response from social service. Missing any of required params: access_token, refresh_token.",
@@ -243,22 +290,219 @@ public class ZoomOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
         try {
             json = executeRequestForJson(request);
         } catch (final IOException e) {
-            ZimbraLog.extensions
-                .errorQuietly("There was an issue acquiring the user's email address.", e);
-            throw ServiceException.FAILURE("There was an issue acquiring the user's email address.",
-                null);
+            ZimbraLog.extensions.errorQuietly("There was an issue acquiring the client's user info.", e);
+            throw ServiceException.FAILURE("There was an issue acquiring the client's user info.", null);
         }
 
-        if (json != null && json.has("email")) {
-            return json.get("email").asText();
+        if (json != null && json.hasNonNull("account_id") && json.hasNonNull("id")) {
+            // build the Zoom user identifier
+            final String zoomAccountId = json.get("account_id").asText();
+            final String zoomUserId = json.get("id").asText();
+            final String identifier = buildPrimaryIdentifier(zoomAccountId, zoomUserId);
+            if (!StringUtils.isEmpty(identifier)) {
+                final String zimbraAccountId = account.getId();
+                ZimbraLog.extensions.debug(
+                    "caching data for accountId: %s userId: %s zimbraAccountId: %s", zoomAccountId,
+                    zoomUserId, zimbraAccountId);
+                // cache Zoom -> Zimbra account mapping
+                OAuth2CacheUtilities.put(buildCacheKey(identifier), zimbraAccountId);
+                return identifier;
+            }
         }
-        // if we couldn't retrieve the handle email, the response from
+
+        // if we couldn't retrieve the handle identifier, the response from
         // downstream is missing data
         // this could be the result of a misconfigured application id/secret
         // (not enough scopes)
         ZimbraLog.extensions.error(
-            "The primary email could not be retrieved from the profile api. Check social app's configured scopes.");
+            "The primary id could not be retrieved from the profile api. Check social app's configured scopes.");
         throw ServiceException.UNSUPPORTED();
     }
 
+    /**
+     * Handles Zoom deauthorize event.
+     *
+     * @param headers The request headers
+     * @param payload The request body in Map form
+     * @return True if data retention in payload is false, and successfully sent data compliance request
+     * @throws ServiceException If there are issues
+     */
+    protected Boolean deauthorize(Map<String, String> headers, Map<String, String> payload)
+        throws ServiceException {
+        final String payloadVerificationToken = headers
+            .get(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue());
+        // ensure authorization header is present
+        if (StringUtils.isEmpty(payloadVerificationToken)) {
+            ZimbraLog.extensions
+                .error("invalid oauth deauthorization request: missing verification token.");
+            return false;
+        }
+        // ensure data retention is false
+        final String dataRetention = payload.get("user_data_retention");
+        if (!StringUtils.equals("false", dataRetention)) {
+            // otherwise we are finished complying with the event
+            return true;
+        }
+
+        final OAuthInfo oauthInfo = new OAuthInfo(Collections.emptyMap());
+
+        // based on the passed in zoom account+user id -> determine the zimbra account
+        if (!loadZimbraAccount(payload.get("account_id"), payload.get("user_id"), oauthInfo)) {
+            return false;
+        }
+
+        final Account account = oauthInfo.getAccount();
+        final String identifier = oauthInfo.getUsername();
+        // check for test header - default to sending if it is not true
+        final Boolean doSendCompliance = !StringUtils.equals("true",
+            headers.get(OAuth2HttpConstants.HEADER_DISABLE_EXTERNAL_REQUESTS.getValue()));
+
+        // validate the request params and verification token
+        if(!isValidEventRequest(account, payload, payloadVerificationToken, oauthInfo)
+            // delete all datasources for the Zoom user
+            || !dataSource.removeDataSources(account, identifier)
+            // send compliance request
+            || (doSendCompliance && !sendDataCompliance(payload, oauthInfo))) {
+            return false;
+        }
+
+        // remove the account mapping from cache
+        OAuth2CacheUtilities.remove(buildCacheKey(identifier));
+
+        return true;
+    }
+
+    /**
+     * Loads the Zimbra account and its app config associated with the accountId and userId.
+     *
+     * @param accountId The Zoom account id
+     * @param userId The Zoom user id
+     * @param oauthInfo The auth info to set the username and account on
+     * @return True if no issues fetching a valid account or its app config
+     * @throws ServiceException If there are issues getting the account or client config
+     */
+    protected boolean loadZimbraAccount(String accountId, String userId, OAuthInfo oauthInfo)
+        throws ServiceException {
+        final String identifier = buildPrimaryIdentifier(accountId, userId);
+        final String cacheMappingKey = buildCacheKey(identifier);
+        final String zimbraAccountId = OAuth2CacheUtilities.get(cacheMappingKey);
+        final Account account = Provisioning.getInstance().getAccountById(zimbraAccountId);
+
+        if (account == null) {
+            // no account mapping found. do nothing since we can't validate the request.
+            // this may happen if:
+            //   * the request is not from zoom
+            //   * the cache instance drops the data for this account
+            ZimbraLog.extensions.warn(
+                "unable to determine zimbra id for oauth deauthorization request. accountId: %s userId: %s",
+                accountId, userId);
+            return false;
+        }
+        oauthInfo.setUsername(identifier);
+        oauthInfo.setAccount(account);
+        // fetch client credentials
+        loadClientConfig(account, oauthInfo);
+        return true;
+    }
+
+    /**
+     * Determines if the request for an event is valid.<br>
+     * Ensures that the verification token is correct, per configuration.<br>
+     * Ensures that the signature payload parameter is present.<br>
+     * Ensures that the client_id is correct, per configuration.
+     *
+     * @param account The located account
+     * @param payload The request payload
+     * @param payloadVerificationToken The request authorization header
+     * @param oauthInfo The client information loaded via the account
+     * @return True if the event request has satisfactory identifying information
+     */
+    protected boolean isValidEventRequest(Account account, Map<String, String> payload,
+        String payloadVerificationToken, OAuthInfo oauthInfo) {
+
+        // verify requests's verification token
+        final String verificationToken = config
+            .getString(OAuth2ConfigConstants.OAUTH_VERIFICATION_TOKEN.getValue(), client, account);
+        if (!StringUtils.equals(verificationToken, payloadVerificationToken)) {
+            ZimbraLog.extensions.warn(
+                "invalid oauth deauthorization verification token.",
+                verificationToken, payloadVerificationToken);
+            return false;
+        }
+
+        // TODO: verify the request matches signature (has not been modified)
+        final String signature = payload.get("signature");
+        if (StringUtils.isEmpty(signature)) {
+            ZimbraLog.extensions
+                .warn("invalid oauth deauthorization request: missing payload signature.");
+            return false;
+        }
+
+        // ensure this account uses the client id specified in the request
+        final String accountClientId = oauthInfo.getClientId();
+        final String payloadClientId = payload.get("client_id");
+        if (!StringUtil.equal(accountClientId, payloadClientId)) {
+            ZimbraLog.extensions.warn(
+                "incorrect deauthorization client id. expected: %s actual: %s", accountClientId,
+                payloadClientId);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Sends a data compliance request to Zoom.
+     *
+     * @param payload The event payload
+     * @param oauthInfo The auth info associated with the Zimbra user
+     * @return True if the response is OK
+     */
+    protected boolean sendDataCompliance(Map<String, String> payload, OAuthInfo oauthInfo) {
+        final String accountClientId = oauthInfo.getClientId();
+        final String basicToken = OAuth2Utilities.encodeBasicHeader(
+            accountClientId, oauthInfo.getClientSecret());
+        final Map<String, Object> params = new HashMap<String, Object>();
+        final HttpPost request = new HttpPost(ZoomOAuth2Constants.COMPLIANCE_URI.getValue());
+        request.setHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(), "application/json");
+        request.setHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), "Bearer " + basicToken);
+        params.put("client_id", accountClientId);
+        params.put("user_id", payload.get("user_id"));
+        params.put("account_id", payload.get("account_id"));
+        params.put("deauthorization_event_received", payload);
+        params.put("compliance_completed", true);
+
+        try {
+            final String json = OAuth2JsonUtilities.objectToJson(params);
+            request.setEntity(new StringEntity(json, ContentType.APPLICATION_JSON));
+            final HttpResponseWrapper response = OAuth2Utilities.executeRequestRaw(request);
+            return Status.OK.getStatusCode() == response.getResponse().getStatusLine().getStatusCode();
+        } catch (final ServiceException | IOException e) {
+            ZimbraLog.extensions
+                .errorQuietly("There was an issue sending a compliance request to Zoom.", e);
+            return false;
+        }
+    }
+
+    /**
+     * Builds a primary identifier for a Zoom user.
+     *
+     * @param accountId The Zoom account id
+     * @param userId The Zoom user id
+     * @return A primary identifier for a Zoom user
+     */
+    protected String buildPrimaryIdentifier(String accountId, String userId) {
+        return String.format(ZoomOAuth2Constants.IDENTIFIER_TEMPLATE.getValue(), accountId, userId);
+    }
+
+    /**
+     * Builds a prefixed cache key.
+     *
+     * @param identifier The Zoom account identifier
+     * @return A prefixed key for use in cache
+     */
+    protected String buildCacheKey(String identifier) {
+        // zm_oauth_social_zoom_{accountId-userId}
+        return String.format("zm_oauth_social_%s_%s", client, identifier);
+    }
 }

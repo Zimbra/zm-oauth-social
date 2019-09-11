@@ -35,7 +35,6 @@ import org.junit.runner.RunWith;
 import org.powermock.api.easymock.PowerMock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-import org.powermock.reflect.Whitebox;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.cs.account.DataSource;
@@ -87,9 +86,7 @@ public class GoogleContactsImportTest {
         mockSource = EasyMock.createMock(DataSource.class);
         importer = PowerMock.createPartialMock(GoogleContactsImport.class, new String[] { "refresh",
             "buildContactsUrl", "getContactsRequest", "getExistingContacts", "parseNewContacts" },
-            mockSource);
-
-        Whitebox.setInternalState(importer, "config", mockConfig);
+            mockSource, mockConfig);
 
         PowerMock.mockStatic(GoogleContactsUtil.class);
     }

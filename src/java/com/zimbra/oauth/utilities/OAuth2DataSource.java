@@ -18,6 +18,7 @@ package com.zimbra.oauth.utilities;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
@@ -30,6 +31,7 @@ import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.soap.Element;
 import com.zimbra.common.soap.MailConstants;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.DataSource;
 import com.zimbra.cs.account.Provisioning;
 import com.zimbra.oauth.models.OAuthInfo;
@@ -295,5 +297,46 @@ public class OAuth2DataSource {
             throw ServiceException.FAILURE("Invalid type received", null);
         }
         return view;
+    }
+
+    /**
+     * Removes datasources relevant to the specified identifier.<br>
+     * Note: this method does not delete the associated folder.
+     *
+     * @param account The target account
+     * @param identifier The identifier to delete datasources for
+     * @return True if there are no issues removing relevant datasources
+     */
+    public boolean removeDataSources(Account account, String identifier) {
+        try {
+            final Provisioning prov = Provisioning.getInstance();
+            final List<DataSource> datasources = prov.getAllDataSources(account);
+            for (final DataSource source : datasources) {
+                // find the relevant datasources for this identifier + client, and purge
+                if (isDataSourceRelevant(source, identifier)) {
+                    prov.deleteDataSource(account, source.getId());
+                }
+            }
+        } catch (final ServiceException e) {
+            ZimbraLog.extensions.errorQuietly("error deleting specified account's oauth datasources", e);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Determines if a datasource is oauth relevant for a given identifier and client.
+     *
+     * @param datasource The datasource to check
+     * @param identifier The identifier to delete datasources for
+     * @return True if the datasource is any oauth2 datasource for the identifier and client
+     */
+    protected boolean isDataSourceRelevant(DataSource datasource, String identifier) {
+        final String dsName = datasource.getName();
+        // should have a refresh token
+        return datasource.getOauthRefreshToken() != null
+            // all 'type' are relevant for format: {identifier}-{type}-{client}
+            && StringUtils.startsWith(dsName, identifier)
+            && StringUtils.endsWith(dsName, client);
     }
 }

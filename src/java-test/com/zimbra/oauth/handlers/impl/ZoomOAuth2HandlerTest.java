@@ -17,6 +17,7 @@
 package com.zimbra.oauth.handlers.impl;
 
 import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.matches;
 import static org.easymock.EasyMock.replay;
@@ -25,6 +26,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.net.URLEncoder;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -43,8 +45,10 @@ import com.zimbra.client.ZMailbox;
 import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.AuthToken;
 import com.zimbra.oauth.handlers.impl.ZoomOAuth2Handler.ZoomOAuth2Constants;
+import com.zimbra.oauth.models.GuestRequest;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.OAuth2CacheUtilities;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2DataSource;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
@@ -54,7 +58,7 @@ import com.zimbra.oauth.utilities.OAuth2HttpConstants;
  */
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ OAuth2DataSource.class, ZoomOAuth2Handler.class, ZMailbox.class })
-@SuppressStaticInitializationFor("com.zimbra.client.ZMailbox")
+@SuppressStaticInitializationFor({"com.zimbra.client.ZMailbox", "com.zimbra.oauth.utilities.OAuth2CacheUtilities"})
 public class ZoomOAuth2HandlerTest {
 
     /**
@@ -95,7 +99,7 @@ public class ZoomOAuth2HandlerTest {
     @Before
     public void setUp() throws Exception {
         handler = PowerMock.createPartialMockForAllMethodsExcept(ZoomOAuth2Handler.class,
-            "authorize", "authenticate", "refresh");
+            "authorize", "authenticate", "refresh", "event", "deauthorize");
         Whitebox.setInternalState(handler, "config", mockConfig);
         Whitebox.setInternalState(handler, "relayKey", ZoomOAuth2Constants.RELAY_KEY.getValue());
         Whitebox.setInternalState(handler, "typeKey",
@@ -106,6 +110,8 @@ public class ZoomOAuth2HandlerTest {
             ZoomOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue());
         Whitebox.setInternalState(handler, "client", ZoomOAuth2Constants.CLIENT_NAME.getValue());
         Whitebox.setInternalState(handler, "dataSource", mockDataSource);
+
+        PowerMock.mockStatic(OAuth2CacheUtilities.class);
     }
 
     /**
@@ -296,5 +302,147 @@ public class ZoomOAuth2HandlerTest {
         verify(mockDataSource);
     }
 
+    /**
+     * Test method for {@link ZoomOAuth2Handler#event}<br>
+     * Validates that the event method calls deauthorize.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testEvent() throws Exception {
+        final Map<String, String> headers = new HashMap<String, String>();
+        final Map<String, Object> body = new HashMap<String, Object>();
+        final Map<String, String> payload = new HashMap<String, String>();
+        body.put("event", "app_deauthorized");
+        body.put("payload", payload);
+        GuestRequest request = new GuestRequest(headers, body);
+
+        ZoomOAuth2Handler eventHandler = PowerMock
+            .createPartialMockForAllMethodsExcept(ZoomOAuth2Handler.class, "event");
+        // expect event to call deauthorize
+        expect(eventHandler.deauthorize(headers, payload)).andReturn(true);
+
+        replay(eventHandler);
+
+        eventHandler.event(request);
+
+        verify(eventHandler);
+    }
+
+    /**
+     * Test method for {@link ZoomOAuth2Handler#deauthorize}<br>
+     * Validates that the deauthorize method calls remove datasources and send compliance.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testDeauthorize() throws Exception {
+        final Account mockAccount = null;
+        final OAuthInfo mockOAuthInfo = EasyMock.createMock(OAuthInfo.class);
+        final String verificationToken = "auth-token";
+        final String accountId = "account-id";
+        final String userId = "user-id";
+        final String identifier = accountId + "-" + userId;
+        final String cacheKey = "prefix_" + identifier;
+        final Map<String, String> headers = new HashMap<String, String>();
+        headers.put(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), verificationToken);
+        final Map<String, String> payload = new HashMap<String, String>();
+        payload.put("account_id", accountId);
+        payload.put("user_id", userId);
+        payload.put("user_data_retention", "false");
+
+        // expect to create an auth info container
+        PowerMock.expectNew(OAuthInfo.class, Collections.emptyMap()).andReturn(mockOAuthInfo);
+        // expect to load the zimbra account
+        expect(handler.loadZimbraAccount(matches(accountId), matches(userId),
+            anyObject(OAuthInfo.class))).andReturn(true);
+        // expect to fetch the loaded info
+        expect(mockOAuthInfo.getUsername()).andReturn(identifier);
+        expect(mockOAuthInfo.getAccount()).andReturn(mockAccount);
+        // expect to validate the request
+        expect(handler.isValidEventRequest(anyObject(Account.class), eq(payload),
+            matches(verificationToken), anyObject(OAuthInfo.class))).andReturn(true);
+        // expect to remove relevant datasources
+        expect(mockDataSource.removeDataSources(anyObject(Account.class), matches(identifier)))
+            .andReturn(true);
+        // expect to send a compliance request
+        expect(handler.sendDataCompliance(eq(payload), anyObject(OAuthInfo.class))).andReturn(true);
+        // expect to build a cache key
+        expect(handler.buildCacheKey(identifier)).andReturn(cacheKey);
+        // expect to remove the cache value
+        expect(OAuth2CacheUtilities.remove(cacheKey)).andReturn(null);
+
+        replay(handler);
+        PowerMock.replay(OAuth2CacheUtilities.class);
+        PowerMock.replay(OAuthInfo.class);
+        replay(mockOAuthInfo);
+        replay(mockDataSource);
+
+        assertEquals(true, handler.deauthorize(headers, payload));
+
+        verify(handler);
+        PowerMock.verify(OAuth2CacheUtilities.class);
+        PowerMock.verify(OAuthInfo.class);
+        verify(mockOAuthInfo);
+        verify(mockDataSource);
+    }
+
+    /**
+     * Test method for {@link ZoomOAuth2Handler#deauthorize}<br>
+     * Validates that the deauthorize method calls remove datasources but not
+     * send compliance when the Disable-External-Requests header is present.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testDeauthorizeDisableExternalRequests() throws Exception {
+        final Account mockAccount = null;
+        final OAuthInfo mockOAuthInfo = EasyMock.createMock(OAuthInfo.class);
+        final String verificationToken = "auth-token";
+        final String accountId = "account-id";
+        final String userId = "user-id";
+        final String identifier = accountId + "-" + userId;
+        final String cacheKey = "prefix_" + identifier;
+        final Map<String, String> headers = new HashMap<String, String>();
+        headers.put(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), verificationToken);
+        headers.put(OAuth2HttpConstants.HEADER_DISABLE_EXTERNAL_REQUESTS.getValue(), "true");
+        final Map<String, String> payload = new HashMap<String, String>();
+        payload.put("account_id", accountId);
+        payload.put("user_id", userId);
+        payload.put("user_data_retention", "false");
+
+        // expect to create an auth info container
+        PowerMock.expectNew(OAuthInfo.class, Collections.emptyMap()).andReturn(mockOAuthInfo);
+        // expect to load the zimbra account
+        expect(handler.loadZimbraAccount(matches(accountId), matches(userId),
+            anyObject(OAuthInfo.class))).andReturn(true);
+        // expect to fetch the loaded info
+        expect(mockOAuthInfo.getUsername()).andReturn(identifier);
+        expect(mockOAuthInfo.getAccount()).andReturn(mockAccount);
+        // expect to validate the request
+        expect(handler.isValidEventRequest(anyObject(Account.class), eq(payload),
+            matches(verificationToken), anyObject(OAuthInfo.class))).andReturn(true);
+        // expect to remove relevant datasources
+        expect(mockDataSource.removeDataSources(anyObject(Account.class), matches(identifier)))
+            .andReturn(true);
+        // expect to build a cache key
+        expect(handler.buildCacheKey(identifier)).andReturn(cacheKey);
+        // expect to remove the cache value
+        expect(OAuth2CacheUtilities.remove(cacheKey)).andReturn(null);
+
+        replay(handler);
+        PowerMock.replay(OAuth2CacheUtilities.class);
+        PowerMock.replay(OAuthInfo.class);
+        replay(mockOAuthInfo);
+        replay(mockDataSource);
+
+        assertEquals(true, handler.deauthorize(headers, payload));
+
+        verify(handler);
+        PowerMock.verify(OAuth2CacheUtilities.class);
+        PowerMock.verify(OAuthInfo.class);
+        verify(mockOAuthInfo);
+        verify(mockDataSource);
+    }
 
 }

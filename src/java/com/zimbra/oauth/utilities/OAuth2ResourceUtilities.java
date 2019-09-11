@@ -49,6 +49,7 @@ import com.zimbra.cs.service.util.JWTUtil;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.managers.ClassManager;
 import com.zimbra.oauth.models.ErrorMessage;
+import com.zimbra.oauth.models.GuestRequest;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.models.ResponseMeta;
 import com.zimbra.oauth.models.ResponseObject;
@@ -225,7 +226,8 @@ public class OAuth2ResourceUtilities {
             account = getAccount(authToken);
         } catch (final ServiceException e) {
             return new ResponseObject<ErrorMessage>(
-                new ErrorMessage(OAuth2ErrorConstants.ERROR_INVALID_ZM_AUTH_CODE_MSG.getValue()),
+                new ErrorMessage(OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue(),
+                    OAuth2ErrorConstants.ERROR_INVALID_ZM_AUTH_CODE_MSG.getValue()),
                 new ResponseMeta(Status.UNAUTHORIZED.getStatusCode()));
         }
         // get handler to validate the request client
@@ -265,7 +267,7 @@ public class OAuth2ResourceUtilities {
      * @param headers Request headers required for authenticate
      * @return A response object containing the json res and http status
      */
-    public static ResponseObject<? extends Object> info(String client, Cookie[] cookies,
+    public static ResponseObject<?> info(String client, Cookie[] cookies,
         Map<String, String> headers) {
         AuthToken authToken = null;
         Account account = null;
@@ -281,7 +283,8 @@ public class OAuth2ResourceUtilities {
             account = getAccount(authToken);
         } catch (final ServiceException e) {
             return new ResponseObject<ErrorMessage>(
-                new ErrorMessage(OAuth2ErrorConstants.ERROR_INVALID_ZM_AUTH_CODE_MSG.getValue()),
+                new ErrorMessage(OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue(),
+                    OAuth2ErrorConstants.ERROR_INVALID_ZM_AUTH_CODE_MSG.getValue()),
                 new ResponseMeta(Status.UNAUTHORIZED.getStatusCode()));
         }
         // get handler to validate the request client
@@ -306,6 +309,20 @@ public class OAuth2ResourceUtilities {
 
         return new ResponseObject<Map<String, String>>(oauthResponse.getParams(),
             new ResponseMeta(Status.OK.getStatusCode()));
+    }
+
+    /**
+     * Performs an event request as a guest (no specific request authorization).
+     *
+     * @param client The client the event is for
+     * @param headers The request headers
+     * @param body The request body in map format
+     * @throws ServiceException If there are issues handling the event
+     */
+    public static void event(String client, Map<String, String> headers,
+        Map<String, Object> body) throws ServiceException {
+        final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
+        oauth2Handler.event(new GuestRequest(headers, body));
     }
 
     /**

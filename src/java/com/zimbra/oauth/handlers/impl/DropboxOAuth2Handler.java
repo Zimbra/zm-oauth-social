@@ -22,11 +22,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.core.MediaType;
 import org.apache.commons.lang.StringUtils;
-import org.apache.http.entity.ContentType;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.message.BasicNameValuePair;
 
@@ -127,7 +126,7 @@ public class DropboxOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         /**
          * The scope required for Dropbox.
          */
-        REQUIRED_SCOPES("user:read+meeting:write+webinar:write"),
+        REQUIRED_SCOPES(""),
 
         /**
          * The scope delimiter for Dropbox.
@@ -279,8 +278,6 @@ public class DropboxOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         }
 
         // ensure the tokens we requested are present
-        // TODO: update this to require refresh_token when dropbox adds support for auto-expiring tokens
-        // see https://api.dropbox.com/docs/rotating-and-refreshing-credentials
         if (!response.has("access_token") || !response.has("account_id")) {
             throw ServiceException.PARSE_ERROR(
                 "Unexpected response from social service. Missing any of required params: access_token, account_id.",
