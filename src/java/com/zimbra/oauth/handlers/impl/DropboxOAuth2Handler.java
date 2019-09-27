@@ -254,7 +254,6 @@ public class DropboxOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
      */
     @Override
     protected void validateTokenResponse(JsonNode response) throws ServiceException {
-        ZimbraLog.extensions.error(response);
         // check for errors
         if (response.has("error")) {
             final String error = response.get("error").asText();
