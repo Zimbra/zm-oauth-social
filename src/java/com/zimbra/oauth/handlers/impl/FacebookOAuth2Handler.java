@@ -19,8 +19,8 @@ package com.zimbra.oauth.handlers.impl;
 
 import java.io.IOException;
 
-import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.client.methods.HttpGet;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.client.ZMailbox;
@@ -452,7 +452,7 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
             authToken);
 
         try {
-            final GetMethod request = new GetMethod(url);
+            final HttpGet request = new HttpGet(url);
             json = executeRequestForJson(request);
         } catch (final IOException e) {
             ZimbraLog.extensions.warnQuietly("There was an issue acquiring the account details.",

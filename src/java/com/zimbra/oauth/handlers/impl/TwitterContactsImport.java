@@ -30,8 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.URIBuilder;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -173,8 +173,8 @@ public class TwitterContactsImport implements DataImport {
      */
     protected JsonNode getContactsRequest(String url, String authorizationHeader)
         throws ServiceException, IOException {
-        final GetMethod get = new GetMethod(url);
-        get.addRequestHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
+        final HttpGet get = new HttpGet(url);
+        get.addHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authorizationHeader);
         ZimbraLog.extensions.debug("Fetching contacts for import.");
         return OAuth2Handler.executeRequestForJson(get);
     }
