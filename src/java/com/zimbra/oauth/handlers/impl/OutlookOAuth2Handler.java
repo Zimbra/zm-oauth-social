@@ -241,12 +241,6 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
             OutlookContactsImport.class.getCanonicalName());
     }
 
-    @Override
-    public Boolean refresh(OAuthInfo oauthInfo) throws ServiceException {
-        ZimbraLog.extensions.info("Refresh is not supported for: %s", client);
-        throw ServiceException.UNSUPPORTED();
-    }
-
     /**
      * Validates that the token response has no errors, and contains the
      * requested access information.
