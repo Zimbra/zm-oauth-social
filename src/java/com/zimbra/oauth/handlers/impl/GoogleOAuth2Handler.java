@@ -265,12 +265,6 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
             CalDavOAuth2DataImport.class.getCanonicalName());
     }
 
-    @Override
-    public Boolean refresh(OAuthInfo oauthInfo) throws ServiceException {
-        ZimbraLog.extensions.info("Refresh is not supported for: %s", client);
-        throw ServiceException.UNSUPPORTED();
-    }
-
     /**
      * Validates that the token response has no errors, and contains the
      * requested access information.
