@@ -23,6 +23,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -363,9 +364,12 @@ public abstract class OAuth2Handler {
      * @param oauthInfo The oauthInfo to set the response params on
      */
     protected void setResponseParams(JsonNode tokenResponse, OAuthInfo oauthInfo) {
-        // clear the params map so individual clients must
-        // set params if they need them in response redirect
-        oauthInfo.setParams(Collections.emptyMap());
+        final Map<String, String> params = new HashMap<String, String>();
+        if ("noop".equalsIgnoreCase(oauthInfo.getParam("type"))) {
+            params.put("access_token", tokenResponse.get("access_token").asText());
+            params.put("email", oauthInfo.getUsername());
+        }
+        oauthInfo.setParams(params);
     }
 
     /**
