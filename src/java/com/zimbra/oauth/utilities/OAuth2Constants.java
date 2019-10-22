@@ -29,6 +29,7 @@ public enum OAuth2Constants {
     API_NAME("zm-oauth-social"),
     ENCODING("utf-8"),
     DEFAULT_SERVER_PATH("/oauth2"),
+    PROXY_SERVER_PATH("/oauth2-proxy"),
 
     DEFAULT_SUCCESS_REDIRECT("/"),
     DEFAULT_HOST_URI_TEMPLATE("https://%s:443"),
