@@ -209,7 +209,7 @@ public class OAuth2ProxyUtilities {
             } else {
                 ZimbraLog.extensions.info("unsupported request method: " + reqMethod);
                 sendError(resp, HttpServletResponse.SC_METHOD_NOT_ALLOWED,
-                    OAuth2ErrorConstants.ERROR_INVALID_PROXY_PATH.getValue());
+                    OAuth2ErrorConstants.ERROR_INVALID_PROXY_TARGET.getValue());
                 return;
             }
 
