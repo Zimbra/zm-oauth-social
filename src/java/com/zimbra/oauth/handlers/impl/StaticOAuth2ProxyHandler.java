@@ -16,7 +16,6 @@
  */
 package com.zimbra.oauth.handlers.impl;
 
-import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +24,6 @@ import com.google.common.collect.ImmutableMap;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
-import com.zimbra.oauth.handlers.IOAuth2ProxyHandler;
 import com.zimbra.oauth.utilities.LdapConfiguration;
 import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
@@ -39,9 +37,8 @@ import com.zimbra.oauth.utilities.OAuth2Utilities;
  * @package com.zimbra.oauth.handlers.impl
  * @copyright Copyright © 2019
  */
-public abstract class StaticOAuth2ProxyHandler implements IOAuth2ProxyHandler {
+public abstract class StaticOAuth2ProxyHandler {
 
-    @Override
     public Map<String, String> headers(Map<String, String> params, Account account) throws ServiceException {
         final String client = params.get("client");
         final String credentialsString = LdapConfiguration.getFirstConfig(
@@ -61,11 +58,6 @@ public abstract class StaticOAuth2ProxyHandler implements IOAuth2ProxyHandler {
         throw ServiceException.PERM_DENIED("No valid credentials found for the client.");
     }
 
-    @Override
-    public abstract boolean isProxyRequestAllowed(String client, String method,
-        Map<String, String> extraHeaders, String target, InputStream body, Account account);
-
-    @Override
     public List<String> getHeadersParamKeys() {
         return ImmutableList.of("target");
     }
