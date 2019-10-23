@@ -51,6 +51,38 @@ import com.zimbra.oauth.utilities.OAuth2Utilities;
  */
 public class StaticJiraOAuth2ProxyHandler extends StaticOAuth2ProxyHandler implements IOAuth2ProxyHandler {
 
+
+    /**
+     * Contains oauth2 constants used in this implementation.
+     */
+    protected enum StaticJiraOAuth2ProxyHandlerConstants {
+
+        /**
+         * The issue API uri template.
+         */
+        ISSUE_URI_TEMPLATE("%s/rest/api/3/issue");
+
+        /**
+         * The value of this enum.
+         */
+        private final String constant;
+
+        /**
+         * @return The enum value
+         */
+        public String getValue() {
+            return constant;
+        }
+
+        /**
+         * @param constant The enum value to set
+         */
+        private StaticJiraOAuth2ProxyHandlerConstants(String constant) {
+            this.constant = constant;
+        }
+
+    }
+
     /**
      * Allowed target proxy path for static jira.
      */
@@ -71,13 +103,13 @@ public class StaticJiraOAuth2ProxyHandler extends StaticOAuth2ProxyHandler imple
         final String requestPath = builder.getPath();
         final String projectId = StringUtils.substringAfterLast(client, "-");
         Matcher issueMatcher;
-        return requestPath == null
+        return requestPath != null
             // validate host
             && OAuth2ProxyUtilities.isAllowedTargetHost(builder.getHost(), account)
             // validate path
             && allowedTargetPaths.containsKey(method)
             && (issueMatcher = allowedTargetPaths.get(method).matcher(requestPath)).matches()
-            // only allow creates on the project associated with the credentials
+            // only allow requests on the project associated with the credentials
             && isAllowedTargetProject(projectId,
                 getIssueApi(target, issueMatcher.group(1)),
                 issueMatcher.groupCount() >= 2 ? issueMatcher.group(2) : null,
@@ -85,7 +117,8 @@ public class StaticJiraOAuth2ProxyHandler extends StaticOAuth2ProxyHandler imple
     }
 
     /**
-     * Determines if the request references the allowed project for the credentials.
+     * Determines if the request references the allowed project for the credentials.<br>
+     * Returns false if the allowedProjectId is empty or null.
      *
      * @param allowedProjectId The allowed project id
      * @param issueApi The issue api url
@@ -96,16 +129,19 @@ public class StaticJiraOAuth2ProxyHandler extends StaticOAuth2ProxyHandler imple
      */
     protected boolean isAllowedTargetProject(String allowedProjectId,
         String issueApi, String issueId, String authHeader, InputStream bodyStream) {
+        if (StringUtils.isEmpty(allowedProjectId)) {
+            return false;
+        }
         if (issueId != null) {
             // validate add attachment issue's project id
             final String issueProjectId = getProjectIdFromIssue(issueApi, issueId, authHeader);
-            return StringUtils.isNotEmpty(issueProjectId) && issueProjectId == allowedProjectId;
+            return allowedProjectId.equals(issueProjectId);
         }
         try {
             // validate create issue project
             final Map<String, Object> requestBody = OAuth2JsonUtilities.streamToMap(bodyStream);
             final String projectIdParam = getProjectIdFromBody(requestBody);
-            return StringUtils.equals(allowedProjectId, projectIdParam);
+            return allowedProjectId.equals(projectIdParam);
         } catch (ClassCastException | ServiceException e) {
             ZimbraLog.extensions.warnQuietly(
                 "Unable to determine if create jira issue request targets allowed project.", e);
@@ -136,7 +172,8 @@ public class StaticJiraOAuth2ProxyHandler extends StaticOAuth2ProxyHandler imple
     }
 
     protected String getIssueApi(String target, String issuePath) {
-        return StringUtils.substringBefore(target, issuePath) + issuePath;
+        return String.format(StaticJiraOAuth2ProxyHandlerConstants.ISSUE_URI_TEMPLATE.getValue(),
+            StringUtils.substringBefore(target, issuePath));
     }
 
     @SuppressWarnings("unchecked")

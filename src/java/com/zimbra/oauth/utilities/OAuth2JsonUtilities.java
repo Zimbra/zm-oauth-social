@@ -18,6 +18,7 @@ package com.zimbra.oauth.utilities;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
@@ -104,7 +105,7 @@ public class OAuth2JsonUtilities {
      */
     public static Map<String, Object> streamToMap(InputStream stream) throws ServiceException {
         if (stream == null) {
-            return null;
+            return Collections.emptyMap();
         }
         try {
             return mapper.readValue(stream, mapper.getTypeFactory()
@@ -124,7 +125,7 @@ public class OAuth2JsonUtilities {
      */
     public static Map<String, Object> stringToMap(String jsonString) throws ServiceException {
         if (jsonString == null) {
-            return null;
+            return Collections.emptyMap();
         }
         try {
             return mapper.readValue(jsonString, mapper.getTypeFactory()
