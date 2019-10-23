@@ -41,6 +41,7 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -147,6 +148,15 @@ public class OAuth2ProxyUtilities {
         }
     }
 
+    protected static HttpEntity buildEntity(byte[] body, String contentType) {
+        if (StringUtils.startsWith(contentType, MediaType.MULTIPART_FORM_DATA)) {
+            return MultipartEntityBuilder.create()
+                .addBinaryBody("file", body)
+                .build();
+        }
+        return new ByteArrayEntity(body, ContentType.create(contentType));
+    }
+
     public static void doProxy(HttpServletRequest req, HttpServletResponse resp, byte[] body) throws IOException {
         final String target = req.getParameter(TARGET_PARAM);
         if (target == null) {
@@ -166,15 +176,13 @@ public class OAuth2ProxyUtilities {
             } else if (reqMethod.equalsIgnoreCase("POST")) {
                 final HttpPost post = new HttpPost(target);
                 if (body != null) {
-                    post.setEntity(
-                        new ByteArrayEntity(body, ContentType.create(req.getContentType())));
+                    post.setEntity(buildEntity(body, req.getContentType()));
                 }
                 method = post;
             } else if (reqMethod.equalsIgnoreCase("PUT")) {
                 final HttpPut put = new HttpPut(target);
                 if (body != null) {
-                    put.setEntity(
-                        new ByteArrayEntity(body, ContentType.create(req.getContentType())));
+                    put.setEntity(buildEntity(body, req.getContentType()));
                 }
                 method = put;
             } else if (reqMethod.equalsIgnoreCase("DELETE")) {
