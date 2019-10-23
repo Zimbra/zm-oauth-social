@@ -379,6 +379,7 @@ public class OAuth2ResourceUtilities {
                 new ResponseMeta(Status.UNAUTHORIZED.getStatusCode()));
         }
         // validate the proxy request
+        ZimbraLog.extensions.debug("Checking if oauth proxy request is allowed.");
         if (!oauth2ProxyHandler.isProxyRequestAllowed(client, method, extraHeaders,
             params.get("target"), body, account)) {
             return new ResponseObject<ErrorMessage>(

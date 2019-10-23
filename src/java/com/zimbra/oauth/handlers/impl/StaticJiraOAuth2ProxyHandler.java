@@ -133,12 +133,14 @@ public class StaticJiraOAuth2ProxyHandler extends StaticOAuth2ProxyHandler imple
         if (issueId != null) {
             // validate add attachment issue's project id
             final String issueProjectId = getProjectIdFromIssue(issueApi, issueId, authHeader);
+            ZimbraLog.extensions.debug("Jira issue project id: %s", issueProjectId);
             return allowedProjectId.equals(issueProjectId);
         }
         try {
             // validate create issue project
             final Map<String, Object> requestBody = OAuth2JsonUtilities.bytesToMap(body);
             final String projectIdParam = getProjectIdFromBody(requestBody);
+            ZimbraLog.extensions.debug("Jira project id: %s", projectIdParam);
             return allowedProjectId.equals(projectIdParam);
         } catch (ClassCastException | ServiceException e) {
             ZimbraLog.extensions.warnQuietly(
@@ -155,7 +157,7 @@ public class StaticJiraOAuth2ProxyHandler extends StaticOAuth2ProxyHandler imple
             // return nothing if not a json response
             final String contentType = res.getResponse()
                 .getFirstHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue()).getValue();
-            if (!MediaType.APPLICATION_JSON.equals(contentType)) {
+            if (!StringUtils.startsWithIgnoreCase(contentType, MediaType.APPLICATION_JSON)) {
                 ZimbraLog.extensions
                     .warn("Invalid response type when fetching issue project id: %s", contentType);
                 return null;
