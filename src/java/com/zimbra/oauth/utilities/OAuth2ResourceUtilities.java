@@ -16,7 +16,6 @@
  */
 package com.zimbra.oauth.utilities;
 
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -341,7 +340,7 @@ public class OAuth2ResourceUtilities {
      * @return A response object containing the json res and http status
      */
     public static ResponseObject<?> headers(String method, String client, Cookie[] cookies,
-        Map<String, String> headers, Map<String, String[]> queryParams, InputStream body) {
+        Map<String, String> headers, Map<String, String[]> queryParams, byte[] body) {
         Account account = null;
         // auth the requesting Zimbra user
         try {

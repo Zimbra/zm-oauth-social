@@ -16,7 +16,6 @@
  */
 package com.zimbra.oauth.handlers;
 
-import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
@@ -53,7 +52,7 @@ public interface IOAuth2ProxyHandler {
      * @return True if the specified request is allowed
      */
     public boolean isProxyRequestAllowed(String client, String method,
-        Map<String, String> extraHeaders, String target, InputStream body, Account account);
+        Map<String, String> extraHeaders, String target, byte[] body, Account account);
 
     /**
      * @return A list of keys expected by headers method

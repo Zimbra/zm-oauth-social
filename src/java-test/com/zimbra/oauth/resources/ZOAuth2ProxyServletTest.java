@@ -45,6 +45,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import com.google.common.collect.ImmutableMap;
+import com.zimbra.common.util.ByteUtil;
 import com.zimbra.oauth.models.ErrorMessage;
 import com.zimbra.oauth.models.HttpProxyServletRequest;
 import com.zimbra.oauth.models.ResponseMeta;
@@ -60,7 +61,7 @@ import com.zimbra.oauth.utilities.OAuth2ResourceUtilities;
  * Test class for {@link ZOAuth2Servlet}.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ OAuth2JsonUtilities.class, OAuth2ProxyUtilities.class, OAuth2ResourceUtilities.class, ZOAuth2ProxyServlet.class })
+@PrepareForTest({ ByteUtil.class, OAuth2JsonUtilities.class, OAuth2ProxyUtilities.class, OAuth2ResourceUtilities.class, ZOAuth2ProxyServlet.class })
 public class ZOAuth2ProxyServletTest {
 
     /**
@@ -90,6 +91,7 @@ public class ZOAuth2ProxyServletTest {
      */
     @Before
     public void setUp() throws Exception {
+        PowerMock.mockStatic(ByteUtil.class);
         PowerMock.mockStatic(OAuth2JsonUtilities.class);
         PowerMock.mockStatic(OAuth2ProxyUtilities.class);
         PowerMock.mockStatic(OAuth2ResourceUtilities.class);
@@ -134,11 +136,12 @@ public class ZOAuth2ProxyServletTest {
         expect(mockRequest.getInputStream()).andReturn(mockStream);
         // expect to call event handler
         OAuth2ResourceUtilities.headers(matches(method), matches(client), eq(cookies),
-            eq(headers), eq(params), eq(mockStream));
+            eq(headers), eq(params), anyObject(byte[].class));
         PowerMock.expectLastCall().andReturn(new ResponseObject<Map<String, String>>(extraHeaders,
             new ResponseMeta(Status.OK.getStatusCode())));
         // expect to proxy service the request
-        OAuth2ProxyUtilities.doProxy(anyObject(HttpProxyServletRequest.class), eq(mockResponse));
+        OAuth2ProxyUtilities.doProxy(anyObject(HttpProxyServletRequest.class), eq(mockResponse),
+            anyObject(byte[].class));
         EasyMock.expectLastCall();
 
         replay(mockRequest);
@@ -193,7 +196,7 @@ public class ZOAuth2ProxyServletTest {
         expect(mockRequest.getInputStream()).andReturn(mockStream);
         // expect to call event handler
         OAuth2ResourceUtilities.headers(matches(method), matches(client), eq(cookies),
-            eq(headers), eq(params), eq(mockStream));
+            eq(headers), eq(params), anyObject(byte[].class));
         PowerMock.expectLastCall().andReturn(expectedResponse);
         // expect to send an error
         mockResponse.setStatus(Status.UNAUTHORIZED.getStatusCode());
@@ -258,7 +261,7 @@ public class ZOAuth2ProxyServletTest {
         expect(mockRequest.getInputStream()).andReturn(mockStream);
         // expect to call event handler
         OAuth2ResourceUtilities.headers(matches(method), matches(client), eq(cookies),
-            eq(headers), eq(params), eq(mockStream));
+            eq(headers), eq(params), anyObject(byte[].class));
         PowerMock.expectLastCall().andReturn(expectedResponse);
         // expect to send an error
         mockResponse.setStatus(Status.UNAUTHORIZED.getStatusCode());
