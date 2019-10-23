@@ -96,6 +96,7 @@ public class ZOAuth2ProxyServlet extends ExtensionHttpHandler {
             pathParams.get("client"), req.getCookies(), getHeaders(req), req.getParameterMap(),
             body);
 
+        ZimbraLog.extensions.debug("Beginning oauth proxy.");
         // handle errors if any
         if (Status.OK.getStatusCode() != headersRes.get_meta().getStatus()) {
             try {
