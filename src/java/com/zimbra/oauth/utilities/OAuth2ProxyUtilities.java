@@ -16,7 +16,6 @@
  */
 package com.zimbra.oauth.utilities;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Enumeration;
@@ -134,29 +133,6 @@ public class OAuth2ProxyUtilities {
             || header.equals("transfer-encoding"));
     }
 
-    protected static byte[] copyPostedData(HttpServletRequest req) throws IOException {
-        int size = req.getContentLength();
-        if (req.getMethod().equalsIgnoreCase("GET") || size <= 0) {
-            return null;
-        }
-        final InputStream is = req.getInputStream();
-        ByteArrayOutputStream baos = null;
-        try {
-            if (size < 0) {
-                size = 0;
-            }
-            baos = new ByteArrayOutputStream(size);
-            final byte[] buffer = new byte[8192];
-            int num;
-            while ((num = is.read(buffer)) != -1) {
-                baos.write(buffer, 0, num);
-            }
-            return baos.toByteArray();
-        } finally {
-            ByteUtil.closeStream(baos);
-        }
-    }
-
     protected static void sendError(HttpServletResponse resp, int statusCode, String code) throws IOException {
         resp.setStatus(statusCode);
         resp.setHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
@@ -171,10 +147,7 @@ public class OAuth2ProxyUtilities {
         }
     }
 
-    public static void doProxy(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        // get the posted body before the server read and parse them.
-        final byte[] body = copyPostedData(req);
-
+    public static void doProxy(HttpServletRequest req, HttpServletResponse resp, byte[] body) throws IOException {
         final String target = req.getParameter(TARGET_PARAM);
         if (target == null) {
             sendError(resp, HttpServletResponse.SC_BAD_REQUEST,

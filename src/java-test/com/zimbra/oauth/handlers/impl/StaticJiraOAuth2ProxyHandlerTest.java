@@ -24,14 +24,12 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.message.BasicHeader;
@@ -105,7 +103,7 @@ public class StaticJiraOAuth2ProxyHandlerTest {
             .of(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authHeader);
         final String host = "zimbra.test";
         final String target = String.format("https://%s/rest/api/3/issue/", host);
-        final InputStream body = IOUtils.toInputStream(buildRequestBodyJson(projectId));
+        final byte[] body = buildRequestBodyJson(projectId).getBytes();
 
         expect(OAuth2ProxyUtilities.isAllowedTargetHost(matches(host), anyObject(Account.class)))
             .andReturn(true);
@@ -134,7 +132,7 @@ public class StaticJiraOAuth2ProxyHandlerTest {
             .of(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authHeader);
         final String host = "zimbra.test";
         final String target = String.format("https://%s/rest/api/3/issue/", host);
-        final InputStream body = IOUtils.toInputStream(buildRequestBodyJson(forbiddenProjectId));
+        final byte[] body = buildRequestBodyJson(forbiddenProjectId).getBytes();
 
         expect(OAuth2ProxyUtilities.isAllowedTargetHost(matches(host), anyObject(Account.class)))
             .andReturn(true);
@@ -164,7 +162,7 @@ public class StaticJiraOAuth2ProxyHandlerTest {
             .of(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authHeader);
         final String host = "zimbra.test";
         final String target = String.format("https://%s/rest/api/3/issue/", host);
-        final InputStream body = IOUtils.toInputStream(buildRequestBodyJson(noProjectId));
+        final byte[] body = buildRequestBodyJson(noProjectId).getBytes();
 
         expect(OAuth2ProxyUtilities.isAllowedTargetHost(matches(host), anyObject(Account.class)))
             .andReturn(true);
@@ -193,7 +191,7 @@ public class StaticJiraOAuth2ProxyHandlerTest {
             .of(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authHeader);
         final String host = "zimbra.test";
         final String target = String.format("https://%s/rest/api/3/issue/", host);
-        final InputStream body = null;
+        final byte[] body = null;
 
         expect(OAuth2ProxyUtilities.isAllowedTargetHost(matches(host), anyObject(Account.class)))
             .andReturn(true);
@@ -222,7 +220,7 @@ public class StaticJiraOAuth2ProxyHandlerTest {
             .of(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authHeader);
         final String host = "zimbra.test";
         final String target = String.format("https://%s/rest/api/3/issue/", host);
-        final InputStream body = IOUtils.toInputStream(buildRequestBodyJson(projectId));
+        final byte[] body = buildRequestBodyJson(projectId).getBytes();
 
         expect(OAuth2ProxyUtilities.isAllowedTargetHost(matches(host), anyObject(Account.class)))
             .andReturn(false);
@@ -251,7 +249,7 @@ public class StaticJiraOAuth2ProxyHandlerTest {
             .of(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authHeader);
         final String host = "zimbra.test";
         final String target = String.format("https://%s/rest/api/2/forbidden/path/", host);
-        final InputStream body = IOUtils.toInputStream(buildRequestBodyJson(projectId));
+        final byte[] body = buildRequestBodyJson(projectId).getBytes();
 
         expect(OAuth2ProxyUtilities.isAllowedTargetHost(matches(host), anyObject(Account.class)))
             .andReturn(true);
@@ -280,7 +278,7 @@ public class StaticJiraOAuth2ProxyHandlerTest {
             .of(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authHeader);
         final String host = "zimbra.test";
         final String target = String.format("https://%s/rest/api/3/issue/", host);
-        final InputStream body = IOUtils.toInputStream(buildRequestBodyJson(projectId));
+        final byte[] body = buildRequestBodyJson(projectId).getBytes();
 
         expect(OAuth2ProxyUtilities.isAllowedTargetHost(matches(host), anyObject(Account.class)))
             .andReturn(true);
@@ -312,7 +310,7 @@ public class StaticJiraOAuth2ProxyHandlerTest {
         final String target = String.format("https://%s/rest/api/3/issue/%s/attachments", host,
             issueId);
         final String jsonBody = buildRequestBodyJson(projectId);
-        final InputStream body = IOUtils.toInputStream(jsonBody);
+        final byte[] body = jsonBody.getBytes();
         final HttpResponseWrapper mockResponseWrapper = EasyMock
             .createMock(HttpResponseWrapper.class);
         final HttpResponse mockHttpResponse = EasyMock.createMock(HttpResponse.class);
@@ -359,7 +357,7 @@ public class StaticJiraOAuth2ProxyHandlerTest {
         final String target = String.format("https://%s/rest/api/3/issue/%s/attachments", host,
             issueId);
         final String jsonBody = buildRequestBodyJson(projectId);
-        final InputStream body = IOUtils.toInputStream(jsonBody);
+        final byte[] body = jsonBody.getBytes();
 
         expect(OAuth2ProxyUtilities.isAllowedTargetHost(matches(host), anyObject(Account.class)))
             .andReturn(true);

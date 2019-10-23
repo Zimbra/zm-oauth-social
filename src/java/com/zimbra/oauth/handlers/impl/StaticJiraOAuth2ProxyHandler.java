@@ -17,7 +17,6 @@
 package com.zimbra.oauth.handlers.impl;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.Map;
@@ -91,7 +90,7 @@ public class StaticJiraOAuth2ProxyHandler extends StaticOAuth2ProxyHandler imple
 
     @Override
     public boolean isProxyRequestAllowed(String client, String method,
-        Map<String, String> extraHeaders, String target, InputStream body, Account account) {
+        Map<String, String> extraHeaders, String target, byte[] body, Account account) {
         URIBuilder builder;
         try {
             builder = new URIBuilder(target);
@@ -123,11 +122,11 @@ public class StaticJiraOAuth2ProxyHandler extends StaticOAuth2ProxyHandler imple
      * @param issueApi The issue api url
      * @param issueId The request path issueId
      * @param authHeader Authorization header for jira requests
-     * @param bodyStream The request body
+     * @param body The request body
      * @return True if the request targets the allowed project
      */
     protected boolean isAllowedTargetProject(String allowedProjectId,
-        String issueApi, String issueId, String authHeader, InputStream bodyStream) {
+        String issueApi, String issueId, String authHeader, byte[] body) {
         if (StringUtils.isEmpty(allowedProjectId)) {
             return false;
         }
@@ -138,7 +137,7 @@ public class StaticJiraOAuth2ProxyHandler extends StaticOAuth2ProxyHandler imple
         }
         try {
             // validate create issue project
-            final Map<String, Object> requestBody = OAuth2JsonUtilities.streamToMap(bodyStream);
+            final Map<String, Object> requestBody = OAuth2JsonUtilities.bytesToMap(body);
             final String projectIdParam = getProjectIdFromBody(requestBody);
             return allowedProjectId.equals(projectIdParam);
         } catch (ClassCastException | ServiceException e) {

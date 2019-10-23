@@ -30,6 +30,7 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.commons.lang.StringUtils;
 
 import com.zimbra.common.service.ServiceException;
+import com.zimbra.common.util.ByteUtil;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.extension.ExtensionHttpHandler;
 import com.zimbra.oauth.models.HttpProxyServletRequest;
@@ -89,11 +90,11 @@ public class ZOAuth2ProxyServlet extends ExtensionHttpHandler {
         throws IOException, ServletException {
         final String path = StringUtils.removeEndIgnoreCase(req.getPathInfo(), "/");
         final Map<String, String> pathParams = parseRequestPath(path);
-
+        final byte[] body = ByteUtil.getContent(req.getInputStream(), -1);
         // determine authorization + extra headers for client
         final ResponseObject<?> headersRes = OAuth2ResourceUtilities.headers(req.getMethod(),
             pathParams.get("client"), req.getCookies(), getHeaders(req), req.getParameterMap(),
-            req.getInputStream());
+            body);
 
         // handle errors if any
         if (Status.OK.getStatusCode() != headersRes.get_meta().getStatus()) {
@@ -107,7 +108,7 @@ public class ZOAuth2ProxyServlet extends ExtensionHttpHandler {
         }
 
         // forward to proxy utilities for resp resolution
-        OAuth2ProxyUtilities.doProxy(wrapWithHeaders(req, headersRes.getData()), resp);
+        OAuth2ProxyUtilities.doProxy(wrapWithHeaders(req, headersRes.getData()), resp, body);
     }
 
     /**
