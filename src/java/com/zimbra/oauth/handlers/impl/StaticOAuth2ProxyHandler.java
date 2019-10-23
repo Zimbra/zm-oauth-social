@@ -62,8 +62,8 @@ public abstract class StaticOAuth2ProxyHandler implements IOAuth2ProxyHandler {
     }
 
     @Override
-    public abstract boolean isProxyRequestAllowed(String client, String method, String path,
-        InputStream body);
+    public abstract boolean isProxyRequestAllowed(String client, String method,
+        Map<String, String> extraHeaders, String target, InputStream body, Account account);
 
     @Override
     public List<String> getHeadersParamKeys() {

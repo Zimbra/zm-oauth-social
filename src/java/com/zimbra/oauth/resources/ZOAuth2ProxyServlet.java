@@ -29,16 +29,15 @@ import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.lang.StringUtils;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.extension.ExtensionHttpHandler;
-import com.zimbra.cs.zimlet.ProxyServlet;
 import com.zimbra.oauth.models.HttpProxyServletRequest;
 import com.zimbra.oauth.models.ResponseObject;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
 import com.zimbra.oauth.utilities.OAuth2JsonUtilities;
+import com.zimbra.oauth.utilities.OAuth2ProxyUtilities;
 import com.zimbra.oauth.utilities.OAuth2ResourceUtilities;
 
 /**
@@ -50,20 +49,6 @@ import com.zimbra.oauth.utilities.OAuth2ResourceUtilities;
  * @copyright Copyright © 2019
  */
 public class ZOAuth2ProxyServlet extends ExtensionHttpHandler {
-
-    /**
-     * ProxyServlet to forward requests to.
-     */
-    protected final ProxyServlet proxyServlet;
-
-    public ZOAuth2ProxyServlet() {
-        this.proxyServlet = new ProxyServlet();
-    }
-
-    @VisibleForTesting
-    public ZOAuth2ProxyServlet(ProxyServlet proxyServlet) {
-        this.proxyServlet = proxyServlet;
-    }
 
     @Override
     public String getPath() {
@@ -121,8 +106,8 @@ public class ZOAuth2ProxyServlet extends ExtensionHttpHandler {
             return;
         }
 
-        // forward to proxy servlet
-        proxyServlet.service(wrapWithHeaders(req, headersRes.getData()), resp);
+        // forward to proxy utilities for resp resolution
+        OAuth2ProxyUtilities.doProxy(wrapWithHeaders(req, headersRes.getData()), resp);
     }
 
     /**
