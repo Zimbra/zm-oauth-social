@@ -114,4 +114,24 @@ public class OAuth2JsonUtilities {
             throw ServiceException.PARSE_ERROR("Error reading input.", e);
         }
     }
+
+    /**
+     * Reads a string into a map.
+     *
+     * @param stream The string to read from
+     * @return An instance of Map
+     * @throws ServiceException If there are issues parsing
+     */
+    public static Map<String, Object> stringToMap(String jsonString) throws ServiceException {
+        if (jsonString == null) {
+            return null;
+        }
+        try {
+            return mapper.readValue(jsonString, mapper.getTypeFactory()
+                .constructMapType(Map.class, String.class, Object.class));
+        } catch (final IOException e) {
+            ZimbraLog.extensions.error("Error reading object as json.", e);
+            throw ServiceException.PARSE_ERROR("Error reading input.", e);
+        }
+    }
 }

@@ -129,4 +129,33 @@ public class ClassManagerTest {
         fail("Expected exception to be thrown for bad client name.");
     }
 
+    /**
+     * Test method for {@link ClassManager#getHandler}<br>
+     * Validates that a client handler is created and cached.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testGetProxyHandler() throws Exception {
+        assertNotNull(ClassManager.getProxyHandler("static-basic-jira-zx"));
+        assertNotNull(ClassManager.getProxyHandler("static-basic-jira-ufb"));
+        assertNotNull(ClassManager.getProxyHandler("static-basic-jira-10005"));
+    }
+
+    /**
+     * Test method for {@link ClassManager#getPrefix}<br>
+     * Validates that the client is retrieved without suffix data.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testGetPrefix() {
+        assertEquals("static-basic-jira", ClassManager.getPrefix("static-basic-jira-ufb"));
+        assertEquals("static-basic-jira", ClassManager.getPrefix("static-basic-jira-10005"));
+        assertEquals("static-basic-jira", ClassManager.getPrefix("static-basic-jira-10501"));
+        assertEquals("static-basic-jira", ClassManager.getPrefix("static-basic-jira-ufb-10501"));
+        assertEquals("static-basic-jira", ClassManager.getPrefix("static-basic-jira-zx"));
+        assertEquals("static-basic-jira", ClassManager.getPrefix("static-basic-jira"));
+        assertEquals("basic-jira", ClassManager.getPrefix("basic-jira"));
+    }
 }
