@@ -46,11 +46,14 @@ public interface IOAuth2ProxyHandler {
     /**
      * @param client The request client (may contain relevant data for path comparison)
      * @param method The request method
-     * @param path The path to check
+     * @param extraHeaders Contains authorization header
+     * @param target The target to check
      * @param body The request body
-     * @return True if the specified request is allowed (does not need to validate origin)
+     * @param account The account to acquire configuration by access level
+     * @return True if the specified request is allowed
      */
-    public boolean isProxyRequestAllowed(String client, String method, String path, InputStream body);
+    public boolean isProxyRequestAllowed(String client, String method,
+        Map<String, String> extraHeaders, String target, InputStream body, Account account);
 
     /**
      * @return A list of keys expected by headers method

@@ -45,7 +45,6 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import com.google.common.collect.ImmutableMap;
-import com.zimbra.cs.zimlet.ProxyServlet;
 import com.zimbra.oauth.models.ErrorMessage;
 import com.zimbra.oauth.models.HttpProxyServletRequest;
 import com.zimbra.oauth.models.ResponseMeta;
@@ -54,24 +53,20 @@ import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2ErrorConstants;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
 import com.zimbra.oauth.utilities.OAuth2JsonUtilities;
+import com.zimbra.oauth.utilities.OAuth2ProxyUtilities;
 import com.zimbra.oauth.utilities.OAuth2ResourceUtilities;
 
 /**
  * Test class for {@link ZOAuth2Servlet}.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ OAuth2JsonUtilities.class, OAuth2ResourceUtilities.class, ProxyServlet.class, ZOAuth2ProxyServlet.class })
+@PrepareForTest({ OAuth2JsonUtilities.class, OAuth2ProxyUtilities.class, OAuth2ResourceUtilities.class, ZOAuth2ProxyServlet.class })
 public class ZOAuth2ProxyServletTest {
 
     /**
      * Mock servlet.
      */
-    protected ZOAuth2ProxyServlet servlet;
-
-    /**
-     * Mock proxy servlet.
-     */
-    protected ProxyServlet mockProxyServlet = EasyMock.createMock(ProxyServlet.class);
+    protected ZOAuth2ProxyServlet servlet = new ZOAuth2ProxyServlet();
 
     /**
      * Mock request for testing.
@@ -96,8 +91,8 @@ public class ZOAuth2ProxyServletTest {
     @Before
     public void setUp() throws Exception {
         PowerMock.mockStatic(OAuth2JsonUtilities.class);
+        PowerMock.mockStatic(OAuth2ProxyUtilities.class);
         PowerMock.mockStatic(OAuth2ResourceUtilities.class);
-        servlet = new ZOAuth2ProxyServlet(mockProxyServlet);
     }
 
     /**
@@ -143,11 +138,10 @@ public class ZOAuth2ProxyServletTest {
         PowerMock.expectLastCall().andReturn(new ResponseObject<Map<String, String>>(extraHeaders,
             new ResponseMeta(Status.OK.getStatusCode())));
         // expect to proxy service the request
-        mockProxyServlet.service(anyObject(HttpProxyServletRequest.class), eq(mockResponse));
+        OAuth2ProxyUtilities.doProxy(anyObject(HttpProxyServletRequest.class), eq(mockResponse));
         EasyMock.expectLastCall();
 
         replay(mockRequest);
-        replay(mockProxyServlet);
         PowerMock.replay(OAuth2JsonUtilities.class);
         PowerMock.replay(OAuth2ResourceUtilities.class);
         PowerMock.replay(mockResponse);
@@ -155,7 +149,6 @@ public class ZOAuth2ProxyServletTest {
         servlet.doProxy(mockRequest, mockResponse);
 
         verify(mockRequest);
-        verify(mockProxyServlet);
         PowerMock.verify(OAuth2JsonUtilities.class);
         PowerMock.verify(OAuth2ResourceUtilities.class);
         PowerMock.verify(mockResponse);
@@ -215,7 +208,6 @@ public class ZOAuth2ProxyServletTest {
         PowerMock.expectLastCall().once();
 
         replay(mockRequest);
-        replay(mockProxyServlet);
         PowerMock.replay(OAuth2JsonUtilities.class);
         PowerMock.replay(OAuth2ResourceUtilities.class);
         PowerMock.replay(mockResponse);
@@ -223,7 +215,6 @@ public class ZOAuth2ProxyServletTest {
         servlet.doProxy(mockRequest, mockResponse);
 
         verify(mockRequest);
-        verify(mockProxyServlet);
         PowerMock.verify(OAuth2JsonUtilities.class);
         PowerMock.verify(OAuth2ResourceUtilities.class);
         PowerMock.verify(mockResponse);
@@ -282,7 +273,6 @@ public class ZOAuth2ProxyServletTest {
         PowerMock.expectLastCall().once();
 
         replay(mockRequest);
-        replay(mockProxyServlet);
         PowerMock.replay(OAuth2JsonUtilities.class);
         PowerMock.replay(OAuth2ResourceUtilities.class);
         PowerMock.replay(mockResponse);
@@ -290,7 +280,6 @@ public class ZOAuth2ProxyServletTest {
         servlet.doProxy(mockRequest, mockResponse);
 
         verify(mockRequest);
-        verify(mockProxyServlet);
         PowerMock.verify(OAuth2JsonUtilities.class);
         PowerMock.verify(OAuth2ResourceUtilities.class);
         PowerMock.verify(mockResponse);

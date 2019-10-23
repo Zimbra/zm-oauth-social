@@ -41,7 +41,8 @@ public enum OAuth2ErrorConstants {
     ERROR_CONFIGURATION_MISSING("missing_configuration"),
     ERROR_CONFIGURATION_MISSING_MSG("OAuth is not properly configured for this client."),
     ERROR_INVALID_PROXY_PATH("invalid_proxy_path"),
-    ERROR_INVALID_PROXY_CLIENT("invalid_proxy_client");
+    ERROR_INVALID_PROXY_CLIENT("invalid_proxy_client"),
+    ERROR_INVALID_PROXY_RESPONSE("invalid_proxy_response");
 
     /**
      * The value of this enum.

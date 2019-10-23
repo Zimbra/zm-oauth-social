@@ -40,8 +40,6 @@ public class ResponseMeta {
     protected int status;
 
     /**
-     * Constructor.
-     *
      * @param status The status to set
      */
     public ResponseMeta(int status) {
