@@ -51,7 +51,6 @@ import com.zimbra.oauth.utilities.OAuth2Utilities;
  */
 public class StaticJiraOAuth2ProxyHandler extends StaticOAuth2ProxyHandler implements IOAuth2ProxyHandler {
 
-
     /**
      * Contains oauth2 constants used in this implementation.
      */
@@ -151,7 +150,7 @@ public class StaticJiraOAuth2ProxyHandler extends StaticOAuth2ProxyHandler imple
 
     protected String getProjectIdFromIssue(String issueApi, String issueId, String authHeader) {
         final HttpGet request = new HttpGet(issueApi + "/" + issueId);
-        request.addHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authHeader);
+        request.setHeader(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authHeader);
         try {
             final HttpResponseWrapper res = OAuth2Utilities.executeRequestRaw(request);
             // return nothing if not a json response

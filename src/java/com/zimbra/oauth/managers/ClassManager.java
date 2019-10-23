@@ -50,7 +50,8 @@ public class ClassManager {
         .synchronizedMap(new HashMap<String, IOAuth2Handler>());
 
     /**
-     * Map of predefined proxy handler instances by client name.
+     * Map of predefined proxy handler instances by client name.<br>
+     * This may eventually need to be loaded by configuration.
      */
     protected static final Map<String, IOAuth2ProxyHandler> staticProxyHandlersMap = ImmutableMap.of(
         "static-basic-jira", new StaticJiraOAuth2ProxyHandler()
