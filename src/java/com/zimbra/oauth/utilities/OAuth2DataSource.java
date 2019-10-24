@@ -105,7 +105,7 @@ public class OAuth2DataSource {
         }
         try {
             // create target folder, fetch if it exists
-            ZimbraLog.extensions.debug("Creating oauth datasource folder: % in parentId: %s", folderName, parentId);
+            ZimbraLog.extensions.debug("Creating oauth datasource folder: %s in parentId: %s", folderName, parentId);
             final Element req = mailbox.newRequestElement(MailConstants.CREATE_FOLDER_REQUEST);
             final Element folderEl = req.addUniqueElement(MailConstants.E_FOLDER);
             folderEl.addAttribute(MailConstants.A_NAME, folderName);
