@@ -39,7 +39,10 @@ public enum OAuth2ErrorConstants {
     ERROR_REFRESH_UNSUPPORTED("refresh_unsupported"),
     ERROR_REFRESH_UNSUPPORTED_MSG("Refresh is not supported for this client."),
     ERROR_CONFIGURATION_MISSING("missing_configuration"),
-    ERROR_CONFIGURATION_MISSING_MSG("OAuth is not properly configured for this client.");
+    ERROR_CONFIGURATION_MISSING_MSG("OAuth is not properly configured for this client."),
+    ERROR_INVALID_PROXY_TARGET("invalid_proxy_target"),
+    ERROR_INVALID_PROXY_CLIENT("invalid_proxy_client"),
+    ERROR_INVALID_PROXY_RESPONSE("invalid_proxy_response");
 
     /**
      * The value of this enum.

@@ -47,6 +47,7 @@ import com.zimbra.cs.account.ZimbraJWToken;
 import com.zimbra.cs.service.AuthProvider;
 import com.zimbra.cs.service.util.JWTUtil;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
+import com.zimbra.oauth.handlers.IOAuth2ProxyHandler;
 import com.zimbra.oauth.managers.ClassManager;
 import com.zimbra.oauth.models.ErrorMessage;
 import com.zimbra.oauth.models.GuestRequest;
@@ -323,6 +324,71 @@ public class OAuth2ResourceUtilities {
         Map<String, Object> body) throws ServiceException {
         final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
         oauth2Handler.event(new GuestRequest(headers, body));
+    }
+
+    /**
+     * Fetches proxy headers for specific client.<br>
+     * Handles client manager acquisition, input organization, and error handling for the
+     * headers call.
+     *
+     * @param method The request method
+     * @param client The client to fetch headers for
+     * @param cookies Request cookies
+     * @param headers Request headers required for fetching the token
+     * @param queryParams Map of query params
+     * @param body Request body
+     * @return A response object containing the json res and http status
+     */
+    public static ResponseObject<?> headers(String method, String client, Cookie[] cookies,
+        Map<String, String> headers, Map<String, String[]> queryParams, byte[] body) {
+        Account account = null;
+        // auth the requesting Zimbra user
+        try {
+            account = getAccount(getAuthToken(cookies, headers, null));
+        } catch (final ServiceException e) {
+            return new ResponseObject<ErrorMessage>(
+                new ErrorMessage(OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue(),
+                    OAuth2ErrorConstants.ERROR_INVALID_ZM_AUTH_CODE_MSG.getValue()),
+                new ResponseMeta(Status.UNAUTHORIZED.getStatusCode()));
+        }
+        // validate the specified client
+        IOAuth2ProxyHandler oauth2ProxyHandler = null;
+        try {
+            oauth2ProxyHandler = ClassManager.getProxyHandler(client);
+        } catch (final ServiceException e) {
+            return new ResponseObject<ErrorMessage>(
+                new ErrorMessage(OAuth2ErrorConstants.ERROR_INVALID_PROXY_CLIENT.getValue()),
+                new ResponseMeta(Status.BAD_REQUEST.getStatusCode()));
+        }
+        final Map<String, String> params = getParams(oauth2ProxyHandler.getHeadersParamKeys(),
+            queryParams);
+        // add client to query params so handler can reference if needed
+        params.put("client", client);
+        Map<String, String> extraHeaders = Collections.emptyMap();
+        try {
+            // fetch the proxy headers. should have at least one for authorization
+            extraHeaders = oauth2ProxyHandler.headers(params, account);
+            if (extraHeaders == null || extraHeaders.size() < 1) {
+                throw ServiceException.PERM_DENIED(
+                    String.format("Proxy headers not found for client %s.", client));
+            }
+        } catch (final ServiceException e) {
+            return new ResponseObject<ErrorMessage>(
+                new ErrorMessage(OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue(),
+                    e.getMessage()),
+                new ResponseMeta(Status.UNAUTHORIZED.getStatusCode()));
+        }
+        // validate the proxy request
+        ZimbraLog.extensions.debug("Checking if oauth proxy request is allowed.");
+        if (!oauth2ProxyHandler.isProxyRequestAllowed(client, method, extraHeaders,
+            params.get("target"), body, account)) {
+            return new ResponseObject<ErrorMessage>(
+                new ErrorMessage(OAuth2ErrorConstants.ERROR_INVALID_PROXY_TARGET.getValue()),
+                new ResponseMeta(Status.BAD_REQUEST.getStatusCode()));
+        }
+
+        return new ResponseObject<Map<String, String>>(extraHeaders,
+            new ResponseMeta(Status.OK.getStatusCode()));
     }
 
     /**

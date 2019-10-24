@@ -16,8 +16,12 @@
  */
 package com.zimbra.oauth.utilities;
 
+import java.util.Arrays;
+import java.util.Map;
+
 import org.apache.commons.lang.StringUtils;
 
+import com.google.common.collect.ImmutableMap;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
@@ -30,7 +34,6 @@ import com.zimbra.cs.account.Provisioning;
  * @copyright Copyright © 2018
  */
 public class LdapConfiguration extends Configuration {
-
 
     /**
      * @param appName
@@ -137,6 +140,27 @@ public class LdapConfiguration extends Configuration {
             ZimbraLog.extensions.trace("Requested : %s  and value is: %s ", key, value);
         }
         return value;
+    }
+
+    /**
+     * Retrieve first instance of specified configuration for the client.<br>
+     * Client is not validated against LC handlers.
+     *
+     * @param key The config key
+     * @param appName The client
+     * @param account The account to search by
+     * @return The first instance of the configuration
+     */
+    public static String getFirstConfig(String key, String appName, Account account) {
+        final String[] registeredOAuth2Clients = loadConfiguration(account, key, appName);
+        String rawConfig = null;
+        if (registeredOAuth2Clients != null) {
+            rawConfig = Arrays.stream(registeredOAuth2Clients)
+                .filter(c -> StringUtils.endsWith(c, appName))
+                .findFirst()
+                .orElse(null);
+        }
+        return rawConfig;
     }
 
     /**
