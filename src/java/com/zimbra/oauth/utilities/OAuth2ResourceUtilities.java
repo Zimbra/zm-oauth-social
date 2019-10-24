@@ -638,7 +638,7 @@ public class OAuth2ResourceUtilities {
                 }
                 try {
                     account = AuthProvider.validateAuthToken(Provisioning.getInstance(),
-                        authToken, false);
+                        authToken, true);
                 } catch (final ServiceException e) {
                     throw ServiceException.PERM_DENIED(HttpServletResponse.SC_UNAUTHORIZED + ": "
                         + L10nUtil.getMessage(MsgKey.errMustAuthenticate));
