@@ -23,7 +23,9 @@ import static org.easymock.EasyMock.matches;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.net.URLEncoder;
 import java.util.Collections;
@@ -41,6 +43,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import org.powermock.reflect.Whitebox;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.ImmutableMap;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.AuthToken;
@@ -52,6 +55,7 @@ import com.zimbra.oauth.utilities.OAuth2CacheUtilities;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2DataSource;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
+import com.zimbra.oauth.utilities.OAuth2JsonUtilities;
 
 /**
  * Test class for {@link ZoomOAuth2Handler}.
@@ -267,7 +271,7 @@ public class ZoomOAuth2HandlerTest {
             .andReturn(mockZMailbox);
         expect(handler.getToken(anyObject(OAuthInfo.class), anyObject(String.class)))
             .andReturn(mockCredentials);
-        handler.validateTokenResponse(anyObject());
+        handler.validateRefreshTokenResponse(anyObject());
         EasyMock.expectLastCall().once();
         expect(handler.getStorableToken(mockCredentials)).andReturn(refreshToken);
         expect(handler.getPrimaryEmail(anyObject(JsonNode.class), anyObject(Account.class)))
@@ -280,6 +284,7 @@ public class ZoomOAuth2HandlerTest {
         EasyMock.expectLastCall().once();
         mockOAuthInfo.setRefreshToken(refreshToken);
         EasyMock.expectLastCall().times(2);
+        expect(handler.isStorableTokenRefreshed(refreshToken, mockCredentials)).andReturn(true);
         mockDataSource.syncDatasource(mockZMailbox, mockOAuthInfo, customAttrs);
         EasyMock.expectLastCall().once();
         mockOAuthInfo.setClientSecret(null);
@@ -315,9 +320,9 @@ public class ZoomOAuth2HandlerTest {
         final Map<String, String> payload = new HashMap<String, String>();
         body.put("event", "app_deauthorized");
         body.put("payload", payload);
-        GuestRequest request = new GuestRequest(headers, body);
+        final GuestRequest request = new GuestRequest(headers, body);
 
-        ZoomOAuth2Handler eventHandler = PowerMock
+        final ZoomOAuth2Handler eventHandler = PowerMock
             .createPartialMockForAllMethodsExcept(ZoomOAuth2Handler.class, "event");
         // expect event to call deauthorize
         expect(eventHandler.deauthorize(headers, payload)).andReturn(true);
@@ -443,6 +448,44 @@ public class ZoomOAuth2HandlerTest {
         PowerMock.verify(OAuthInfo.class);
         verify(mockOAuthInfo);
         verify(mockDataSource);
+    }
+
+    /**
+     * Test method for {@link ZoomOAuth2Handler#isStorableTokenRefreshed}<br>
+     * Validates that the method determines if the stored token has changed.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testIsStorableTokenRefreshed() throws Exception {
+        final ZoomOAuth2Handler zoomHandler = PowerMock.createPartialMockForAllMethodsExcept(
+            ZoomOAuth2Handler.class, "getStorableToken", "isStorableTokenRefreshed");
+        final JsonNode credentials = OAuth2JsonUtilities
+            .stringToJson(OAuth2JsonUtilities.objectToJson(
+                ImmutableMap.of("refresh_token", "new-token", "access_token", "some-token")));
+
+        assertTrue(zoomHandler.isStorableTokenRefreshed("stored", credentials));
+        assertTrue(zoomHandler.isStorableTokenRefreshed("stored2345", credentials));
+        assertTrue(zoomHandler.isStorableTokenRefreshed("new-token2345", credentials));
+        assertFalse(zoomHandler.isStorableTokenRefreshed("new-token", credentials));
+    }
+
+    /**
+     * Test method for {@link ZoomOAuth2Handler#isStorableTokenRefreshed}<br>
+     * Validates that the method does not return true if there is no refresh token.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testIsStorableTokenRefreshedNoRefreshToken() throws Exception {
+        final ZoomOAuth2Handler zoomHandler = PowerMock.createPartialMockForAllMethodsExcept(
+            ZoomOAuth2Handler.class, "getStorableToken", "isStorableTokenRefreshed");
+        final JsonNode credentials = OAuth2JsonUtilities
+            .stringToJson(OAuth2JsonUtilities.objectToJson(
+                ImmutableMap.of("access_token", "some-token")));
+
+        assertFalse(zoomHandler.isStorableTokenRefreshed("stored", credentials));
+        assertFalse(zoomHandler.isStorableTokenRefreshed("new-token", credentials));
     }
 
 }

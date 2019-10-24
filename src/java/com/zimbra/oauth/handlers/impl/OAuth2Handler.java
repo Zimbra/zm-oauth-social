@@ -139,8 +139,21 @@ public abstract class OAuth2Handler {
     protected abstract void validateTokenResponse(JsonNode response) throws ServiceException;
 
     /**
+     * This method should be overridden if the implementing client
+     * expects a different token response on refresh.
+     *
+     * @see #validateTokenResponse(JsonNode)
+     */
+    protected void validateRefreshTokenResponse(JsonNode response)
+        throws ServiceException {
+        // validate as regular token response by default
+        validateTokenResponse(response);
+    }
+
+    /**
      * This method should be overridden if the implementing client cannot use the
      * standard getTokenRequest implementation.
+     *
      * @see OAuth2Handler#getTokenRequest(OAuthInfo, String)
      */
     protected JsonNode getToken(OAuthInfo authInfo, String basicToken) throws ServiceException {
@@ -317,15 +330,18 @@ public abstract class OAuth2Handler {
         // request credentials from social service
         final JsonNode credentials = getToken(oauthInfo, basicToken);
         // ensure the response contains the necessary credentials
-        validateTokenResponse(credentials);
+        validateRefreshTokenResponse(credentials);
         // determine account associated with credentials
         final String username = getPrimaryEmail(credentials, account);
         ZimbraLog.extensions.trace("Refresh performed for: %s", username);
 
-        // update the refresh token in case it has changed (some of them change on every use)
         oauthInfo.setUsername(username);
-        oauthInfo.setRefreshToken(getStorableToken(credentials));
-        dataSource.syncDatasource(mailbox, oauthInfo, getDatasourceCustomAttrs(oauthInfo));
+        // update the refresh token if it has changed (some of them change on every use)
+        if (isStorableTokenRefreshed(refreshToken, credentials)) {
+            oauthInfo.setRefreshToken(getStorableToken(credentials));
+            ZimbraLog.extensions.debug("Updating oauth datasource with a new token");
+            dataSource.syncDatasource(mailbox, oauthInfo, getDatasourceCustomAttrs(oauthInfo));
+        }
 
         oauthInfo.setClientSecret(null);
         // allow clients to set response params
@@ -380,7 +396,24 @@ public abstract class OAuth2Handler {
      * @return The token to store
      */
     protected String getStorableToken(JsonNode credentials) {
-        return credentials.get("refresh_token").asText();
+        return credentials.hasNonNull("refresh_token")
+            ? credentials.get("refresh_token").asText()
+            : null;
+    }
+
+    /**
+     * Determines if the datasource needs to be updated on refresh.<br>
+     * This method should be overridden if the implementing client has different refresh criteria.
+     *
+     * @param storedToken The current refresh token
+     * @param credentials The token response
+     * @return True if the refresh token needs to be updated
+     */
+    protected boolean isStorableTokenRefreshed(String storedToken, JsonNode credentials) {
+        final String newToken = getStorableToken(credentials);
+        // some clients won't return a refreshToken on refresh
+        // so check that the new token both exists and is new
+        return newToken != null && !"null".equals(newToken) && !newToken.equals(storedToken);
     }
 
     /**
