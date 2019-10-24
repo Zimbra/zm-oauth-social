@@ -281,6 +281,16 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
      */
     @Override
     protected void validateTokenResponse(JsonNode response) throws ServiceException {
+        validateRefreshTokenResponse(response);
+        // expect a refresh token on regular token responses
+        if (!response.has("refresh_token")) {
+            throw ServiceException.PARSE_ERROR(
+                "Unexpected response from social service. Missing refresh_token", null);
+        }
+    }
+
+    @Override
+    protected void validateRefreshTokenResponse(JsonNode response) throws ServiceException {
         // check for errors
         if (response.has("error")) {
             final String error = response.get("error").asText();
@@ -319,10 +329,10 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         }
 
         // ensure the tokens we requested are present
-        if (!response.has("access_token") || !response.has("refresh_token")) {
-            throw ServiceException.PARSE_ERROR("Unexpected response from social service.", null);
+        if (!response.has("access_token")) {
+            throw ServiceException
+                .PARSE_ERROR("Unexpected response from social service. Missing access_token", null);
         }
-
     }
 
     @Override
