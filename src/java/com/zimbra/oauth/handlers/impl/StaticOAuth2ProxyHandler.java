@@ -51,7 +51,9 @@ public abstract class StaticOAuth2ProxyHandler {
             final String[] credentials = credentialsString.split(":");
             if (credentials.length == 3) {
                 return ImmutableMap.of(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
-                    buildAuthorizationHeader(credentials, client));
+                    buildAuthorizationHeader(credentials, client),
+                    OAuth2HttpConstants.HEADER_USER_AGENT.getValue(),
+                    OAuth2HttpConstants.PROXY_USER_AGENT.getValue());
             }
         }
         ZimbraLog.extensions.debug("No valid credentials found for the client %s.", client);
