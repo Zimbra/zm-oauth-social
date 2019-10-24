@@ -45,6 +45,7 @@ public class OAuth2Extension implements ZimbraExtension {
     @Override
     public void init() throws ExtensionException, ServiceException {
         ExtensionDispatcherServlet.register(this, new ZOAuth2Servlet());
+        ExtensionDispatcherServlet.register(this, new ZOAuth2ProxyServlet());
     }
 
 }

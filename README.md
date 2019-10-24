@@ -49,6 +49,8 @@ After a user completes the oauth2 flow, the credentials for their account will b
 | `/service/extension/oauth2/authenticate/{client}` | Callback url for the social service in the oauth2 flow | HTTP Redirect |
 | `/service/extension/oauth2/refresh/{client}/{identifier}` | Acquires and returns a new access token for the identified social account (limited support) | JSON |
 | `/service/extension/oauth2/info/{client}` | Returns info for the specified client | JSON |
+| `/service/extension/oauth2/event/{client}` | This is currently only used by Zoom for deauthorization | 202 Accepted |
+| `/service/extension/oauth2-proxy/{client}?target={target}` | Similar to the Zimlet ProxyServlet, attaches configured Authorization header for the specified client. | Varies, JSON on error |
 
 ---
 
