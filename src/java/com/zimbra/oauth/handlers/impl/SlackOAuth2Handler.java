@@ -26,6 +26,7 @@ import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
+import com.zimbra.oauth.handlers.IOAuth2ProxyHandler;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 
@@ -37,7 +38,7 @@ import com.zimbra.oauth.utilities.Configuration;
  * @package com.zimbra.oauth.handlers.impl
  * @copyright Copyright © 2019
  */
-public class SlackOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
+public class SlackOAuth2Handler extends OAuth2Handler implements IOAuth2Handler, IOAuth2ProxyHandler {
 
     private final String ERROR_TEMPLATE = "%s | Slack error code: %s";
 
