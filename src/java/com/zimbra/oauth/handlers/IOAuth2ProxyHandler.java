@@ -21,6 +21,7 @@ import java.util.Map;
 
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.cs.account.Account;
+import com.zimbra.oauth.models.OAuthInfo;
 
 /**
  * The IOAuth2ProxyHandler class.<br>
@@ -35,12 +36,11 @@ public interface IOAuth2ProxyHandler {
     /**
      * Returns a map of headers to set before proxying a request.
      *
-     * @param params request params
-     * @param account The account to acquire configuration by access level
+     * @param oauthInfo Contains info to determine which headers are needed
      * @return Map of headers to set before proxying
      * @throws ServiceException If there are issues determining the endpoint
      */
-    public Map<String, String> headers(Map<String, String> params, Account account) throws ServiceException;
+    public Map<String, String> headers(OAuthInfo oauthInfo) throws ServiceException;
 
     /**
      * @param client The request client (may contain relevant data for path comparison)
