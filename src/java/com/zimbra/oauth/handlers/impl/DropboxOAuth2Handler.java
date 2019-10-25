@@ -34,6 +34,7 @@ import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
+import com.zimbra.oauth.handlers.IOAuth2ProxyHandler;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2Constants;
@@ -48,7 +49,7 @@ import com.zimbra.oauth.utilities.OAuth2JsonUtilities;
  * @package com.zimbra.oauth.handlers.impl
  * @copyright Copyright © 2019
  */
-public class DropboxOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
+public class DropboxOAuth2Handler extends OAuth2Handler implements IOAuth2Handler, IOAuth2ProxyHandler {
 
     private final String ERROR_TEMPLATE = "%s | Dropbox error code: %s | Reason: %s";
 
