@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableMap;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
+import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.LdapConfiguration;
 import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
@@ -39,9 +40,9 @@ import com.zimbra.oauth.utilities.OAuth2Utilities;
  */
 public abstract class StaticOAuth2ProxyHandler {
 
-    public Map<String, String> headers(Map<String, String> params, Account account) throws ServiceException {
-        final String client = params.get("client");
-        final String[] credentials = getCredentials(client, account);
+    public Map<String, String> headers(OAuthInfo oauthInfo) throws ServiceException {
+        final String client = oauthInfo.getParam("client");
+        final String[] credentials = getCredentials(client, oauthInfo.getAccount());
         return ImmutableMap.of(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
             buildAuthorizationHeader(credentials, client),
             OAuth2HttpConstants.HEADER_USER_AGENT.getValue(),
