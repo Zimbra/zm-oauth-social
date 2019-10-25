@@ -373,7 +373,7 @@ public class ZoomOAuth2HandlerTest {
         // expect to send a compliance request
         expect(handler.sendDataCompliance(eq(payload), anyObject(OAuthInfo.class))).andReturn(true);
         // expect to build a cache key
-        expect(handler.buildCacheKey(identifier)).andReturn(cacheKey);
+        expect(handler.buildRootCacheKey(identifier)).andReturn(cacheKey);
         // expect to remove the cache value
         expect(OAuth2CacheUtilities.remove(cacheKey)).andReturn(null);
 
@@ -431,7 +431,7 @@ public class ZoomOAuth2HandlerTest {
         expect(mockDataSource.removeDataSources(anyObject(Account.class), matches(identifier)))
             .andReturn(true);
         // expect to build a cache key
-        expect(handler.buildCacheKey(identifier)).andReturn(cacheKey);
+        expect(handler.buildRootCacheKey(identifier)).andReturn(cacheKey);
         // expect to remove the cache value
         expect(OAuth2CacheUtilities.remove(cacheKey)).andReturn(null);
 

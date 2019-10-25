@@ -16,10 +16,12 @@
  */
 package com.zimbra.oauth.utilities;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -233,6 +235,33 @@ public class OAuth2DataSource {
         return refreshToken;
     }
 
+    public Map<String, String> getRefreshTokens(Account account, String identifier, String type) throws ServiceException {
+        final List<DataSource> datasources = new ArrayList<DataSource>();
+        try {
+            ZimbraLog.extensions.debug("Fetching datasources to find refresh token.");
+            datasources.addAll(account.getAllDataSources().stream()
+                .filter(s -> isDataSourceRelevant(s, identifier, type))
+                .collect(Collectors.toList()));
+        } catch (final ServiceException e) {
+            ZimbraLog.extensions.errorQuietly("Unable to retrieve datasources.", e);
+            throw ServiceException.FAILURE("Unable to retrieve token data.", e);
+        }
+        if (datasources.size() < 1) {
+            ZimbraLog.extensions.debug("No token found for: %s %s.", identifier, client);
+            throw ServiceException
+                .PERM_DENIED(String.format("No token found for: %s %s.", identifier, client));
+        }
+        final Map<String, String> tokens = new HashMap<String, String>();
+        for (final DataSource source : datasources) {
+            tokens.put(getIdentifier(source.getName(), type), source.getOauthRefreshToken());
+        }
+        return tokens;
+    }
+
+    protected String getIdentifier(String sourceName, String type) {
+        return StringUtils.substringBeforeLast(sourceName, String.format("%s-%s", type, client));
+    }
+
     /**
      * Adds an import class to the mapping.
      *
@@ -301,10 +330,11 @@ public class OAuth2DataSource {
 
     /**
      * Removes datasources relevant to the specified identifier.<br>
+     * Null identifier will remove all datasources for the client.<br>
      * Note: this method does not delete the associated folder.
      *
      * @param account The target account
-     * @param identifier The identifier to delete datasources for
+     * @param identifier The identifier to delete datasources for (optional)
      * @return True if there are no issues removing relevant datasources
      */
     public boolean removeDataSources(Account account, String identifier) {
@@ -325,18 +355,27 @@ public class OAuth2DataSource {
     }
 
     /**
-     * Determines if a datasource is oauth relevant for a given identifier and client.
-     *
-     * @param datasource The datasource to check
-     * @param identifier The identifier to delete datasources for
-     * @return True if the datasource is any oauth2 datasource for the identifier and client
+     * @see #isDataSourceRelevant(DataSource, String, String)
      */
     protected boolean isDataSourceRelevant(DataSource datasource, String identifier) {
+        return isDataSourceRelevant(datasource, identifier, null);
+    }
+
+    /**
+     * Determines if a datasource is oauth relevant for a given identifier, type, and client.<br>
+     * Null identifier, or client will not be used to determine relevance.
+     *
+     * @param datasource The datasource to check
+     * @param identifier The identifier to delete datasources for (optional)
+     * @return True if the datasource is any oauth2 datasource for the identifier and client
+     */
+    protected boolean isDataSourceRelevant(DataSource datasource, String identifier, String type) {
         final String dsName = datasource.getName();
         // should have a refresh token
         return datasource.getOauthRefreshToken() != null
-            // all 'type' are relevant for format: {identifier}-{type}-{client}
-            && StringUtils.startsWith(dsName, identifier)
+            // format: {identifier}-{type}-{client}
+            && (identifier == null || StringUtils.startsWith(dsName, identifier))
+            && (type == null || StringUtils.endsWith(dsName, String.format("%s-%s", type, client)))
             && StringUtils.endsWith(dsName, client);
     }
 }
