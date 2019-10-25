@@ -41,19 +41,25 @@ public abstract class StaticOAuth2ProxyHandler {
 
     public Map<String, String> headers(Map<String, String> params, Account account) throws ServiceException {
         final String client = params.get("client");
+        final String[] credentials = getCredentials(client, account);
+        return ImmutableMap.of(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
+            buildAuthorizationHeader(credentials, client),
+            OAuth2HttpConstants.HEADER_USER_AGENT.getValue(),
+            OAuth2HttpConstants.PROXY_USER_AGENT.getValue());
+    }
+
+    protected String[] getCredentials(String client, Account account) throws ServiceException {
         final String credentialsString = LdapConfiguration.getFirstConfig(
             OAuth2ConfigConstants.OAUTH_STATIC_CREDENTIALS.getValue(), client, account);
-        // credentials may vary in 3 parts:
+        // credentials may vary in 3+ parts:
         // {account}:{apiToken}:{client}
+        // {account}:{apiToken}:{misc-data}[:...]:{client}
         // :{bearer token}:{client}
         // . . .
         if (credentialsString != null) {
             final String[] credentials = credentialsString.split(":");
-            if (credentials.length == 3) {
-                return ImmutableMap.of(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
-                    buildAuthorizationHeader(credentials, client),
-                    OAuth2HttpConstants.HEADER_USER_AGENT.getValue(),
-                    OAuth2HttpConstants.PROXY_USER_AGENT.getValue());
+            if (credentials.length >= 3) {
+                return credentials;
             }
         }
         ZimbraLog.extensions.debug("No valid credentials found for the client %s.", client);
