@@ -18,7 +18,9 @@ package com.zimbra.oauth.handlers.impl;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -99,7 +101,7 @@ public class StaticJiraOAuth2ProxyHandler extends StaticOAuth2ProxyHandler imple
             return false;
         }
         final String requestPath = builder.getPath();
-        final String projectId = StringUtils.substringAfterLast(client, "-");
+        final List<String> allowedProjectIds = getAllowedProjectIds(client, account);
         Matcher issueMatcher;
         return requestPath != null
             // validate host
@@ -107,41 +109,62 @@ public class StaticJiraOAuth2ProxyHandler extends StaticOAuth2ProxyHandler imple
             // validate path
             && allowedTargetPaths.containsKey(method)
             && (issueMatcher = allowedTargetPaths.get(method).matcher(requestPath)).matches()
-            // only allow requests on the project associated with the credentials
-            && isAllowedTargetProject(projectId,
+            // only allow requests on the projects associated with the credentials
+            && isAllowedTargetProject(allowedProjectIds,
                 getIssueApi(target, issueMatcher.group(1)),
                 issueMatcher.groupCount() >= 2 ? issueMatcher.group(2) : null,
                 extraHeaders.get(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue()), body);
     }
 
     /**
-     * Determines if the request references the allowed project for the credentials.<br>
-     * Returns false if the allowedProjectId is empty or null.
+     * Load the allowed project ids from config.
      *
-     * @param allowedProjectId The allowed project id
+     * @param client The client to load config for
+     * @param account The account to use as context
+     * @return A list of allowed project ids
+     */
+    protected List<String> getAllowedProjectIds(String client, Account account) {
+        try {
+            final String[] credentials = getCredentials(client, account);
+            // there is no misc-data if the length is not at least 4
+            if (credentials.length >= 4 && StringUtils.isNotEmpty(credentials[2])) {
+                // third slot contains the misc-data
+                return Arrays.asList(credentials[2].split(","));
+            }
+        } catch (final ServiceException e) {
+            // don't error
+        }
+        return Collections.emptyList();
+    }
+
+    /**
+     * Determines if the request references an allowed project for the credentials.<br>
+     * Returns false if the allowedProjectIds is empty.
+     *
+     * @param allowedProjectIds The allowed project ids
      * @param issueApi The issue api url
      * @param issueId The request path issueId
      * @param authHeader Authorization header for jira requests
      * @param body The request body
      * @return True if the request targets the allowed project
      */
-    protected boolean isAllowedTargetProject(String allowedProjectId,
+    protected boolean isAllowedTargetProject(List<String> allowedProjectIds,
         String issueApi, String issueId, String authHeader, byte[] body) {
-        if (StringUtils.isEmpty(allowedProjectId)) {
+        if (allowedProjectIds.isEmpty()) {
             return false;
         }
         if (issueId != null) {
             // validate add attachment issue's project id
             final String issueProjectId = getProjectIdFromIssue(issueApi, issueId, authHeader);
             ZimbraLog.extensions.debug("Jira issue project id: %s", issueProjectId);
-            return allowedProjectId.equals(issueProjectId);
+            return allowedProjectIds.contains(issueProjectId);
         }
         try {
             // validate create issue project
             final Map<String, Object> requestBody = OAuth2JsonUtilities.bytesToMap(body);
             final String projectIdParam = getProjectIdFromBody(requestBody);
             ZimbraLog.extensions.debug("Jira project id: %s", projectIdParam);
-            return allowedProjectId.equals(projectIdParam);
+            return allowedProjectIds.contains(projectIdParam);
         } catch (ClassCastException | ServiceException e) {
             ZimbraLog.extensions.warnQuietly(
                 "Unable to determine if create jira issue request targets allowed project.", e);
