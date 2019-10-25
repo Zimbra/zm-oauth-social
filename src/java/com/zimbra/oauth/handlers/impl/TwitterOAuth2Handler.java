@@ -560,6 +560,11 @@ public class TwitterOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
             ));
     }
 
+    @Override
+    protected boolean isRefreshable() {
+        return false;
+    }
+
     /**
      * Builder for Twitter authorization headers.<br>
      * For ease of generating the auth header with varying request types.
