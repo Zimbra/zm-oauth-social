@@ -378,10 +378,15 @@ public class OAuth2ResourceUtilities {
                     String.format("Proxy headers not found for client %s.", client));
             }
         } catch (final ServiceException e) {
+            String code = OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue();
+            int status = Status.UNAUTHORIZED.getStatusCode();
+            if (ServiceException.INVALID_REQUEST.equals(e.getCode())) {
+                code = OAuth2ErrorConstants.ERROR_PARAM_MISSING.getValue();
+                status = Status.BAD_REQUEST.getStatusCode();
+            }
             return new ResponseObject<ErrorMessage>(
-                new ErrorMessage(OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue(),
-                    e.getMessage()),
-                new ResponseMeta(Status.UNAUTHORIZED.getStatusCode()));
+                new ErrorMessage(code, e.getMessage()),
+                new ResponseMeta(status));
         }
         // validate the proxy request
         ZimbraLog.extensions.debug("Checking if oauth proxy request is allowed.");

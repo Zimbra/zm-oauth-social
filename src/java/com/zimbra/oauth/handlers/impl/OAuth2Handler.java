@@ -18,6 +18,7 @@ package com.zimbra.oauth.handlers.impl;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.message.BasicNameValuePair;
 
 import com.auth0.jwt.JWT;
@@ -39,6 +41,8 @@ import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.client.ZMailbox.Options;
 import com.zimbra.common.service.ServiceException;
@@ -48,15 +52,18 @@ import com.zimbra.cs.account.AuthToken;
 import com.zimbra.cs.account.ZimbraAuthToken;
 import com.zimbra.cs.util.AccountUtil;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
+import com.zimbra.oauth.handlers.IOAuth2ProxyHandler;
 import com.zimbra.oauth.models.GuestRequest;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.OAuth2CacheUtilities;
 import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2DataSource;
 import com.zimbra.oauth.utilities.OAuth2ErrorConstants;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
 import com.zimbra.oauth.utilities.OAuth2JsonUtilities;
+import com.zimbra.oauth.utilities.OAuth2ProxyUtilities;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
 
 /**
@@ -116,6 +123,11 @@ public abstract class OAuth2Handler {
     protected final Configuration config;
 
     /**
+     * Implementation token lifetime in cache.
+     */
+    protected long tokenCacheLifetime;
+
+    /**
      * Constructor.
      *
      * @param config A configuration object
@@ -127,6 +139,7 @@ public abstract class OAuth2Handler {
         this.config = config;
         typeKey = OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue();
         dataSource = OAuth2DataSource.createDataSource(client, clientHost);
+        tokenCacheLifetime = Long.valueOf(OAuth2Constants.TOKEN_CACHE_LIFETIME.getValue());
     }
 
     /**
@@ -372,6 +385,127 @@ public abstract class OAuth2Handler {
     }
 
     /**
+     * @see IOAuth2ProxyHandler#headers(OAuthInfo)
+     */
+    public Map<String, String> headers(OAuthInfo oauthInfo) throws ServiceException {
+        final String accessToken = findIdentifierThenGetAccessToken(oauthInfo);
+        return ImmutableMap.of(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
+            String.format("Bearer %s", accessToken),
+            OAuth2HttpConstants.HEADER_USER_AGENT.getValue(),
+            OAuth2HttpConstants.PROXY_USER_AGENT.getValue());
+    }
+
+    /**
+     * @see IOAuth2ProxyHandler#isProxyRequestAllowed(String, String, Map, String, byte[], Account)
+     */
+    public boolean isProxyRequestAllowed(String client, String method,
+        Map<String, String> extraHeaders, String target, byte[] body, Account account) {
+        URIBuilder builder;
+        try {
+            builder = new URIBuilder(target);
+        } catch (final URISyntaxException e) {
+            ZimbraLog.extensions.warn("Unable to parse proxy target: %s", target);
+            return false;
+        }
+        return OAuth2ProxyUtilities.isAllowedTargetHost(builder.getHost(), account);
+    }
+
+    protected String findIdentifierThenGetAccessToken(OAuthInfo oauthInfo) throws ServiceException {
+        final Account account = oauthInfo.getAccount();
+        String identifier = oauthInfo.getParam("identifier");
+        final String type = OAuth2Constants.DEFAULT_PROXY_TYPE.getValue();
+        Map<String, String> tokens = null;
+
+        if (StringUtils.isEmpty(identifier)) {
+            // fetch the storable token from datasource
+            tokens = dataSource.getRefreshTokens(account, identifier, type);
+            // ensure there is only one if no identifier was specified
+            // datasource fetch will error if less than one was found
+            if (tokens.size() > 1) {
+                ZimbraLog.extensions.debug(
+                    "Multiple tokens found but no identifier specified for client: %s.", client);
+                throw ServiceException.INVALID_REQUEST(String.format(
+                    "Multiple tokens found but no identifier specified for client: %s.", client),
+                    null);
+            }
+            // we're done if it doesn't need refreshing
+            if (!isRefreshable()) {
+                return tokens.values().iterator().next();
+            }
+            identifier = tokens.keySet().iterator().next();
+        }
+
+        return getAccessToken(oauthInfo, tokens);
+    }
+
+    protected String getAccessToken(OAuthInfo oauthInfo, Map<String, String> tokens)
+        throws ServiceException {
+        final Account account = oauthInfo.getAccount();
+        final String identifier = oauthInfo.getParam("identifier");
+        final String type = OAuth2Constants.DEFAULT_PROXY_TYPE.getValue();
+        final String cacheKey = buildAccessTokenCacheKey(account.getId(), identifier);
+        // check cache
+        String accessToken = null;
+        if (isRefreshable()) {
+            accessToken = OAuth2CacheUtilities.get(cacheKey);
+            if (!StringUtils.isEmpty(accessToken)) {
+                return accessToken;
+            }
+        }
+
+        // lazy fetch stored tokens if identifier was specified but token wasn't in cache
+        if (tokens == null) {
+            tokens = dataSource.getRefreshTokens(account, identifier, type);
+            if (!isRefreshable()) {
+                return tokens.values().iterator().next();
+            }
+        }
+
+        oauthInfo.setUsername(identifier);
+        final Map<String, String> params = new HashMap<String, String>();
+        params.put(typeKey, type);
+        oauthInfo.setParams(params);
+        refresh(oauthInfo);
+        accessToken = oauthInfo.getParam("access_token");
+
+        // cache the access token
+        OAuth2CacheUtilities.put(cacheKey, accessToken, tokenCacheLifetime);
+
+        return accessToken;
+    }
+
+    /**
+     * This method should be overridden if the implementing client does not store a refresh token.
+     *
+     * @return True if this implementation stores a refresh token
+     */
+    protected boolean isRefreshable() {
+        return true;
+    }
+
+    /**
+     * Builds a prefixed cache key.
+     *
+     * @param identifier The external account identifier
+     * @return A prefixed key for use in cache
+     */
+    protected String buildRootCacheKey(String identifier) {
+        // zm_oauth_social_zoom_{accountId-userId}
+        return String.format("zm_oauth_social_%s_%s", client, identifier);
+    }
+
+    /**
+     * Builds a prefixed access token cache key.
+     *
+     * @param identifier The external account identifier
+     * @return A Zimbra account prefixed access token key for use in cache
+     */
+    protected String buildAccessTokenCacheKey(String accountId, String identifier) {
+        return OAuth2CacheUtilities.buildAccountKey(accountId,
+            String.format("%s_access_token", buildRootCacheKey(identifier)));
+    }
+
+    /**
      * Sets response parameters to return to the resource for use in redirect.<br>
      * This method should be overridden if the implementing client returns
      * different parameters.
@@ -491,8 +625,14 @@ public abstract class OAuth2Handler {
      * @see IOAuth2Handler#getAuthenticateParamKeys()
      */
     public List<String> getAuthorizeParamKeys() {
-        // code, error, state are default oauth2 keys
         return Arrays.asList(relayKey, typeKey);
+    }
+
+    /**
+     * @see IOAuth2ProxyHandler#getHeadersParamKeys()
+     */
+    public List<String> getHeadersParamKeys() {
+        return ImmutableList.of("identifier", "target");
     }
 
     /**
