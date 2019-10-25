@@ -304,4 +304,9 @@ public class SlackOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         return String.format(SlackOAuth2Constants.IDENTIFIER_TEMPLATE.getValue(), teamId, userId);
     }
 
+    @Override
+    protected boolean isRefreshable() {
+        return false;
+    }
+
 }

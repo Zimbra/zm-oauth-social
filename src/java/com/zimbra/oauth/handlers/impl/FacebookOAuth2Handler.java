@@ -482,4 +482,10 @@ public class FacebookOAuth2Handler extends OAuth2Handler implements IOAuth2Handl
             .error("The user id could not be retrieved from the social service api.");
         throw ServiceException.UNSUPPORTED();
     }
+
+    @Override
+    protected boolean isRefreshable() {
+        return false;
+    }
+
 }

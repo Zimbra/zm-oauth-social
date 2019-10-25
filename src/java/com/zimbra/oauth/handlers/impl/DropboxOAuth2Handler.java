@@ -321,4 +321,9 @@ public class DropboxOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         throw ServiceException.UNSUPPORTED();
     }
 
+    @Override
+    protected boolean isRefreshable() {
+        return false;
+    }
+
 }
