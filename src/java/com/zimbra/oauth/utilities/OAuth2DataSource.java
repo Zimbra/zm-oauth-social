@@ -310,7 +310,7 @@ public class OAuth2DataSource {
             this.type = type;
             this.client = StringUtils.substringAfterLast(name, String.format("-%s-", type));
             this.identifier = StringUtils.substringBeforeLast(name,
-                String.format("%s-%s", type, client));
+                String.format("-%s-%s", type, client));
         }
 
         private DataSourceMetaData(String accountId, String identifier, String type, String client) {
