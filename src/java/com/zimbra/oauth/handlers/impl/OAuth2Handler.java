@@ -60,6 +60,7 @@ import com.zimbra.oauth.utilities.OAuth2CacheUtilities;
 import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2DataSource;
+import com.zimbra.oauth.utilities.OAuth2DataSource.DataSourceMetaData;
 import com.zimbra.oauth.utilities.OAuth2ErrorConstants;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
 import com.zimbra.oauth.utilities.OAuth2JsonUtilities;
@@ -123,7 +124,7 @@ public abstract class OAuth2Handler {
     protected final Configuration config;
 
     /**
-     * Implementation token lifetime in cache.
+     * Implementation token lifetime in cache (seconds).
      */
     protected long tokenCacheLifetime;
 
@@ -325,17 +326,20 @@ public abstract class OAuth2Handler {
         loadClientConfig(account, oauthInfo);
 
         final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken(), account);
-        // set the refresh token
-        final String refreshToken = dataSource.getRefreshToken(mailbox, identifier, type);
+        String refreshToken = oauthInfo.getRefreshToken();
+        // fetch the refresh token if it isn't set already
         if (StringUtils.isEmpty(refreshToken)) {
-            ZimbraLog.extensions.debug("No refresh token found for identifier: %s, and type: %s.",
-                identifier, type);
-            throw ServiceException.INVALID_REQUEST(
-                String.format("No refresh token found for identifier: %s, and type: %s.",
-                    identifier, type),
-                null);
+            refreshToken = dataSource.getRefreshToken(mailbox, identifier, type);
+            if (StringUtils.isEmpty(refreshToken)) {
+                ZimbraLog.extensions.debug("No refresh token found for identifier: %s, and type: %s.",
+                    identifier, type);
+                throw ServiceException.INVALID_REQUEST(
+                    String.format("No refresh token found for identifier: %s, and type: %s.",
+                        identifier, type),
+                    null);
+            }
+            oauthInfo.setRefreshToken(refreshToken);
         }
-        oauthInfo.setRefreshToken(refreshToken);
 
         final String basicToken = OAuth2Utilities.encodeBasicHeader(
             oauthInfo.getClientId(), oauthInfo.getClientSecret());
@@ -345,17 +349,20 @@ public abstract class OAuth2Handler {
         // ensure the response contains the necessary credentials
         validateRefreshTokenResponse(credentials);
         // determine account associated with credentials
-        final String username = getPrimaryEmail(credentials, account);
+        String username = oauthInfo.getUsername();
+        if (StringUtils.isEmpty(username)) {
+            username = getPrimaryEmail(credentials, account);
+            oauthInfo.setUsername(username);
+        }
         ZimbraLog.extensions.trace("Refresh performed for: %s", username);
 
-        oauthInfo.setUsername(username);
         // update the refresh token if it has changed (some of them change on every use)
         if (isStorableTokenRefreshed(refreshToken, credentials)) {
             oauthInfo.setRefreshToken(getStorableToken(credentials));
             ZimbraLog.extensions.debug("Updating oauth datasource with a new token");
             dataSource.syncDatasource(mailbox, oauthInfo, getDatasourceCustomAttrs(oauthInfo));
         }
-
+        oauthInfo.setAccessToken(getUseableToken(credentials));
         oauthInfo.setClientSecret(null);
         // allow clients to set response params
         setResponseParams(credentials, oauthInfo);
@@ -388,9 +395,9 @@ public abstract class OAuth2Handler {
      * @see IOAuth2ProxyHandler#headers(OAuthInfo)
      */
     public Map<String, String> headers(OAuthInfo oauthInfo) throws ServiceException {
-        final String accessToken = findIdentifierThenGetAccessToken(oauthInfo);
+        final String accessToken = findStoredAccessToken(oauthInfo);
         return ImmutableMap.of(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
-            String.format("Bearer %s", accessToken),
+            buildAuthorizationHeader(accessToken),
             OAuth2HttpConstants.HEADER_USER_AGENT.getValue(),
             OAuth2HttpConstants.PROXY_USER_AGENT.getValue());
     }
@@ -410,65 +417,69 @@ public abstract class OAuth2Handler {
         return OAuth2ProxyUtilities.isAllowedTargetHost(builder.getHost(), account);
     }
 
-    protected String findIdentifierThenGetAccessToken(OAuthInfo oauthInfo) throws ServiceException {
+    /**
+     * Attempts to find an access token if no identifier is provided or the client
+     * stores non-refreshable tokens. Fetches token from cache or full refresh otherwise.
+     *
+     * @param oauthInfo May or may not contain an identifier to validate against datasources
+     * @return An access token either newly refreshed, or from cache
+     * @throws ServiceException If there are issues
+     */
+    protected String findStoredAccessToken(OAuthInfo oauthInfo) throws ServiceException {
         final Account account = oauthInfo.getAccount();
         String identifier = oauthInfo.getParam("identifier");
         final String type = OAuth2Constants.DEFAULT_PROXY_TYPE.getValue();
-        Map<String, String> tokens = null;
 
-        if (StringUtils.isEmpty(identifier)) {
-            // fetch the storable token from datasource
-            tokens = dataSource.getRefreshTokens(account, identifier, type);
+        // find the identifier if none specified or find the access token if non refreshable
+        if (StringUtils.isEmpty(identifier) || !isRefreshable()) {
+            final Map<String, String> tokens = dataSource.getRefreshTokens(account, identifier, type);
             // ensure there is only one if no identifier was specified
-            // datasource fetch will error if less than one was found
-            if (tokens.size() > 1) {
-                ZimbraLog.extensions.debug(
-                    "Multiple tokens found but no identifier specified for client: %s.", client);
-                throw ServiceException.INVALID_REQUEST(String.format(
-                    "Multiple tokens found but no identifier specified for client: %s.", client),
-                    null);
-            }
-            // we're done if it doesn't need refreshing
-            if (!isRefreshable()) {
-                return tokens.values().iterator().next();
+            final int tokensFound = tokens.size();
+            if (tokensFound != 1) {
+                final String message = String.format(
+                    "%d tokens found for identifier: %s type: %s client: %s", tokensFound,
+                    identifier, type, client);
+                ZimbraLog.extensions.debug(message);
+                throw ServiceException.INVALID_REQUEST(message, null);
             }
             identifier = tokens.keySet().iterator().next();
+            // we're done if the token is not refreshable
+            if (!isRefreshable()) {
+                return tokens.get(identifier);
+            }
+            oauthInfo.setRefreshToken(tokens.get(identifier));
         }
-
-        return getAccessToken(oauthInfo, tokens);
+        // identifier was found or specified, client is non refreshable
+        oauthInfo.setUsername(identifier);
+        return findAndCacheStoredRefreshableAccessToken(oauthInfo);
     }
 
-    protected String getAccessToken(OAuthInfo oauthInfo, Map<String, String> tokens)
+    /**
+     * Fetches access token from cache, refreshes/caches if it's missing.
+     *
+     * @param oauthInfo Must contain zm auth token, zimbra account, username (identifier)
+     * @return An access token either newly refreshed, or from cache
+     * @throws ServiceException If there are issues
+     * @see #refresh(OAuthInfo)
+     */
+    protected String findAndCacheStoredRefreshableAccessToken(OAuthInfo oauthInfo)
         throws ServiceException {
         final Account account = oauthInfo.getAccount();
-        final String identifier = oauthInfo.getParam("identifier");
+        final String identifier = oauthInfo.getUsername();
         final String type = OAuth2Constants.DEFAULT_PROXY_TYPE.getValue();
-        final String cacheKey = buildAccessTokenCacheKey(account.getId(), identifier);
+        final String cacheKey = DataSourceMetaData.buildTokenCacheKey(account.getId(), client,
+            identifier);
         // check cache
-        String accessToken = null;
-        if (isRefreshable()) {
-            accessToken = OAuth2CacheUtilities.get(cacheKey);
-            if (!StringUtils.isEmpty(accessToken)) {
-                return accessToken;
-            }
+        String accessToken = OAuth2CacheUtilities.get(cacheKey);
+        if (!StringUtils.isEmpty(accessToken)) {
+            return accessToken;
         }
 
-        // lazy fetch stored tokens if identifier was specified but token wasn't in cache
-        if (tokens == null) {
-            tokens = dataSource.getRefreshTokens(account, identifier, type);
-            if (!isRefreshable()) {
-                return tokens.values().iterator().next();
-            }
-        }
-
-        oauthInfo.setUsername(identifier);
-        final Map<String, String> params = new HashMap<String, String>();
-        params.put(typeKey, type);
-        oauthInfo.setParams(params);
+        oauthInfo.setParams(ImmutableMap.of(typeKey, type));
         refresh(oauthInfo);
-        accessToken = oauthInfo.getParam("access_token");
+        accessToken = oauthInfo.getAccessToken();
 
-        // cache the access token
+        // cache the access token (this may clobber if many requests are refreshing)
         OAuth2CacheUtilities.put(cacheKey, accessToken, tokenCacheLifetime);
 
         return accessToken;
@@ -481,28 +492,6 @@ public abstract class OAuth2Handler {
      */
     protected boolean isRefreshable() {
         return true;
-    }
-
-    /**
-     * Builds a prefixed cache key.
-     *
-     * @param identifier The external account identifier
-     * @return A prefixed key for use in cache
-     */
-    protected String buildRootCacheKey(String identifier) {
-        // zm_oauth_social_zoom_{accountId-userId}
-        return String.format("zm_oauth_social_%s_%s", client, identifier);
-    }
-
-    /**
-     * Builds a prefixed access token cache key.
-     *
-     * @param identifier The external account identifier
-     * @return A Zimbra account prefixed access token key for use in cache
-     */
-    protected String buildAccessTokenCacheKey(String accountId, String identifier) {
-        return OAuth2CacheUtilities.buildAccountKey(accountId,
-            String.format("%s_access_token", buildRootCacheKey(identifier)));
     }
 
     /**
@@ -533,6 +522,28 @@ public abstract class OAuth2Handler {
         return credentials.hasNonNull("refresh_token")
             ? credentials.get("refresh_token").asText()
             : null;
+    }
+
+    /**
+     * This method should be overridden if the implementing client uses a different parameter.
+     *
+     * @param credentials The validated getToken response to retrieve token from
+     * @return The token that may be used in requests to client services
+     */
+    protected String getUseableToken(JsonNode credentials) {
+        return credentials.hasNonNull("access_token")
+            ? credentials.get("access_token").asText()
+            : null;
+    }
+
+    /**
+     * This method should be overridden if the implementing client uses a different auth header.
+     *
+     * @param accessToken The stored or refreshed token depending on implementation
+     * @return An authorization header that may be used in requests to client services
+     */
+    protected String buildAuthorizationHeader(String accessToken) {
+        return String.format("Bearer %s", accessToken);
     }
 
     /**
@@ -677,7 +688,7 @@ public abstract class OAuth2Handler {
             throw ServiceException.INVALID_REQUEST("Missing type param in authorize request.", null);
         } else {
             //validate if type is valid
-            OAuth2DataSource.getDataSourceTypeForOAuth2(type);
+            DataSourceMetaData.getDataSourceType(type);
         }
     }
 

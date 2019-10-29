@@ -28,7 +28,7 @@ import com.zimbra.cs.account.Provisioning;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
-import com.zimbra.oauth.utilities.OAuth2DataSource;
+import com.zimbra.oauth.utilities.OAuth2DataSource.DataSourceMetaData;
 import com.zimbra.soap.admin.type.DataSourceType;
 
 /**
@@ -339,7 +339,7 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
     protected Map<String, Object> getDatasourceCustomAttrs(OAuthInfo oauthInfo) throws ServiceException {
         final String type = oauthInfo.getParam("type");
         final Map<String, Object> dsAttrs = new HashMap<String, Object>();
-        if (DataSourceType.oauth2caldav == OAuth2DataSource.getDataSourceTypeForOAuth2(type)) {
+        if (DataSourceType.oauth2caldav == DataSourceMetaData.getDataSourceType(type)) {
             final String[] dsAttrArr = new String[] {GoogleCaldavConstants.DS_ATTR_VAL.getValue()};
             dsAttrs.put(Provisioning.A_zimbraDataSourcePort, GoogleCaldavConstants.DS_PORT.getValue());
             dsAttrs.put(Provisioning.A_zimbraDataSourceConnectionType, GoogleCaldavConstants.DS_CONNECTION_TYPE.getValue());

@@ -54,6 +54,7 @@ import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2CacheUtilities;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2DataSource;
+import com.zimbra.oauth.utilities.OAuth2DataSource.DataSourceMetaData;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
 import com.zimbra.oauth.utilities.OAuth2JsonUtilities;
 
@@ -61,7 +62,7 @@ import com.zimbra.oauth.utilities.OAuth2JsonUtilities;
  * Test class for {@link ZoomOAuth2Handler}.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ OAuth2DataSource.class, ZoomOAuth2Handler.class, ZMailbox.class })
+@PrepareForTest({ DataSourceMetaData.class, OAuth2DataSource.class, ZoomOAuth2Handler.class, ZMailbox.class })
 @SuppressStaticInitializationFor({"com.zimbra.client.ZMailbox", "com.zimbra.oauth.utilities.OAuth2CacheUtilities"})
 public class ZoomOAuth2HandlerTest {
 
@@ -116,6 +117,7 @@ public class ZoomOAuth2HandlerTest {
         Whitebox.setInternalState(handler, "dataSource", mockDataSource);
 
         PowerMock.mockStatic(OAuth2CacheUtilities.class);
+        PowerMock.mockStatic(DataSourceMetaData.class);
     }
 
     /**
@@ -250,6 +252,7 @@ public class ZoomOAuth2HandlerTest {
     @Test
     public void testRefresh() throws Exception {
         final String username = "test-user@localhost";
+        final String accessToken = "access-token";
         final String refreshToken = "refresh-token";
         final String type = "noop";
         final AuthToken mockAuthToken = EasyMock.createMock(AuthToken.class);
@@ -280,10 +283,16 @@ public class ZoomOAuth2HandlerTest {
         mockOAuthInfo.setTokenUrl(matches(ZoomOAuth2Constants.AUTHENTICATE_URI.getValue()));
         EasyMock.expectLastCall().once();
         expect(mockOAuthInfo.getZmAuthToken()).andReturn(mockAuthToken);
+        expect(mockOAuthInfo.getRefreshToken()).andReturn(null);
+        expect(mockOAuthInfo.getUsername()).andReturn(null);
         mockOAuthInfo.setUsername(username);
         EasyMock.expectLastCall().once();
         mockOAuthInfo.setRefreshToken(refreshToken);
         EasyMock.expectLastCall().times(2);
+        // expect to get a useable token and set it
+        expect(handler.getUseableToken(mockCredentials)).andReturn(accessToken);
+        mockOAuthInfo.setAccessToken(accessToken);
+        EasyMock.expectLastCall().once();
         expect(handler.isStorableTokenRefreshed(refreshToken, mockCredentials)).andReturn(true);
         mockDataSource.syncDatasource(mockZMailbox, mockOAuthInfo, customAttrs);
         EasyMock.expectLastCall().once();
@@ -373,13 +382,14 @@ public class ZoomOAuth2HandlerTest {
         // expect to send a compliance request
         expect(handler.sendDataCompliance(eq(payload), anyObject(OAuthInfo.class))).andReturn(true);
         // expect to build a cache key
-        expect(handler.buildRootCacheKey(identifier)).andReturn(cacheKey);
+        expect(DataSourceMetaData.buildRootCacheKey(handler.client, identifier)).andReturn(cacheKey);
         // expect to remove the cache value
         expect(OAuth2CacheUtilities.remove(cacheKey)).andReturn(null);
 
         replay(handler);
         PowerMock.replay(OAuth2CacheUtilities.class);
         PowerMock.replay(OAuthInfo.class);
+        PowerMock.replay(DataSourceMetaData.class);
         replay(mockOAuthInfo);
         replay(mockDataSource);
 
@@ -388,6 +398,7 @@ public class ZoomOAuth2HandlerTest {
         verify(handler);
         PowerMock.verify(OAuth2CacheUtilities.class);
         PowerMock.verify(OAuthInfo.class);
+        PowerMock.verify(DataSourceMetaData.class);
         verify(mockOAuthInfo);
         verify(mockDataSource);
     }
@@ -431,13 +442,14 @@ public class ZoomOAuth2HandlerTest {
         expect(mockDataSource.removeDataSources(anyObject(Account.class), matches(identifier)))
             .andReturn(true);
         // expect to build a cache key
-        expect(handler.buildRootCacheKey(identifier)).andReturn(cacheKey);
+        expect(DataSourceMetaData.buildRootCacheKey(handler.client, identifier)).andReturn(cacheKey);
         // expect to remove the cache value
         expect(OAuth2CacheUtilities.remove(cacheKey)).andReturn(null);
 
         replay(handler);
         PowerMock.replay(OAuth2CacheUtilities.class);
         PowerMock.replay(OAuthInfo.class);
+        PowerMock.replay(DataSourceMetaData.class);
         replay(mockOAuthInfo);
         replay(mockDataSource);
 
@@ -446,6 +458,7 @@ public class ZoomOAuth2HandlerTest {
         verify(handler);
         PowerMock.verify(OAuth2CacheUtilities.class);
         PowerMock.verify(OAuthInfo.class);
+        PowerMock.verify(DataSourceMetaData.class);
         verify(mockOAuthInfo);
         verify(mockDataSource);
     }
