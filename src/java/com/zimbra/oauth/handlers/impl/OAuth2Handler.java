@@ -362,7 +362,7 @@ public abstract class OAuth2Handler {
             ZimbraLog.extensions.debug("Updating oauth datasource with a new token");
             dataSource.syncDatasource(mailbox, oauthInfo, getDatasourceCustomAttrs(oauthInfo));
         }
-        oauthInfo.setAccessToken(getUseableToken(credentials));
+        oauthInfo.setAccessToken(getUsableToken(credentials));
         oauthInfo.setClientSecret(null);
         // allow clients to set response params
         setResponseParams(credentials, oauthInfo);
@@ -472,6 +472,7 @@ public abstract class OAuth2Handler {
         // check cache
         String accessToken = OAuth2CacheUtilities.get(cacheKey);
         if (!StringUtils.isEmpty(accessToken)) {
+            ZimbraLog.extensions.debug("Using cached access token for oauth proxy.");
             return accessToken;
         }
 
@@ -530,7 +531,7 @@ public abstract class OAuth2Handler {
      * @param credentials The validated getToken response to retrieve token from
      * @return The token that may be used in requests to client services
      */
-    protected String getUseableToken(JsonNode credentials) {
+    protected String getUsableToken(JsonNode credentials) {
         return credentials.hasNonNull("access_token")
             ? credentials.get("access_token").asText()
             : null;

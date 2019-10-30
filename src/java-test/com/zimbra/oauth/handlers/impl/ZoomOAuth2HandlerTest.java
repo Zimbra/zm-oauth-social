@@ -290,7 +290,7 @@ public class ZoomOAuth2HandlerTest {
         mockOAuthInfo.setRefreshToken(refreshToken);
         EasyMock.expectLastCall().times(2);
         // expect to get a useable token and set it
-        expect(handler.getUseableToken(mockCredentials)).andReturn(accessToken);
+        expect(handler.getUsableToken(mockCredentials)).andReturn(accessToken);
         mockOAuthInfo.setAccessToken(accessToken);
         EasyMock.expectLastCall().once();
         expect(handler.isStorableTokenRefreshed(refreshToken, mockCredentials)).andReturn(true);
