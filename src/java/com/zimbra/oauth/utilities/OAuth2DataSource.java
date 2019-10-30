@@ -379,7 +379,7 @@ public class OAuth2DataSource {
         }
 
         public static String buildTokenCacheKey(String accountId, String client, String identifier) {
-            // zm_oauth_social_{client}_{identifier}_access_token
+            // {account_prefix}zm_oauth_social_{client}_{identifier}_access_token
             return OAuth2CacheUtilities.buildAccountKey(accountId,
                 String.format("%s_access_token", buildRootCacheKey(client, identifier)));
         }
