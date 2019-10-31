@@ -32,6 +32,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.ws.rs.HttpMethod;
+
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,6 +47,7 @@ import org.powermock.reflect.Whitebox;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableMap;
 import com.zimbra.client.ZMailbox;
+import com.zimbra.common.service.ServiceException;
 import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.AuthToken;
 import com.zimbra.oauth.handlers.impl.ZoomOAuth2Handler.ZoomOAuth2Constants;
@@ -57,12 +60,13 @@ import com.zimbra.oauth.utilities.OAuth2DataSource;
 import com.zimbra.oauth.utilities.OAuth2DataSource.DataSourceMetaData;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
 import com.zimbra.oauth.utilities.OAuth2JsonUtilities;
+import com.zimbra.oauth.utilities.OAuth2ProxyUtilities;
 
 /**
  * Test class for {@link ZoomOAuth2Handler}.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ DataSourceMetaData.class, OAuth2DataSource.class, ZoomOAuth2Handler.class, ZMailbox.class })
+@PrepareForTest({ DataSourceMetaData.class, OAuth2DataSource.class, OAuth2ProxyUtilities.class, ZoomOAuth2Handler.class, ZMailbox.class })
 @SuppressStaticInitializationFor({"com.zimbra.client.ZMailbox", "com.zimbra.oauth.utilities.OAuth2CacheUtilities"})
 public class ZoomOAuth2HandlerTest {
 
@@ -103,8 +107,17 @@ public class ZoomOAuth2HandlerTest {
      */
     @Before
     public void setUp() throws Exception {
-        handler = PowerMock.createPartialMockForAllMethodsExcept(ZoomOAuth2Handler.class,
-            "authorize", "authenticate", "refresh", "event", "deauthorize");
+        handler = setupHandler("authorize", "authenticate", "refresh", "event", "deauthorize", "headers",
+            "findStoredAccessToken", "findAndCacheStoredRefreshableAccessToken");
+
+        PowerMock.mockStatic(OAuth2CacheUtilities.class);
+        PowerMock.mockStatic(OAuth2ProxyUtilities.class);
+        PowerMock.mockStatic(DataSourceMetaData.class);
+    }
+
+    protected ZoomOAuth2Handler setupHandler(String... allowMethods) {
+        final ZoomOAuth2Handler handler = PowerMock.createPartialMockForAllMethodsExcept(ZoomOAuth2Handler.class,
+            allowMethods);
         Whitebox.setInternalState(handler, "config", mockConfig);
         Whitebox.setInternalState(handler, "relayKey", ZoomOAuth2Constants.RELAY_KEY.getValue());
         Whitebox.setInternalState(handler, "typeKey",
@@ -115,9 +128,9 @@ public class ZoomOAuth2HandlerTest {
             ZoomOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue());
         Whitebox.setInternalState(handler, "client", ZoomOAuth2Constants.CLIENT_NAME.getValue());
         Whitebox.setInternalState(handler, "dataSource", mockDataSource);
-
-        PowerMock.mockStatic(OAuth2CacheUtilities.class);
-        PowerMock.mockStatic(DataSourceMetaData.class);
+        Whitebox.setInternalState(handler, "tokenCacheLifetime",
+            Long.valueOf(OAuth2Constants.TOKEN_CACHE_LIFETIME.getValue()));
+        return handler;
     }
 
     /**
@@ -501,4 +514,465 @@ public class ZoomOAuth2HandlerTest {
         assertFalse(zoomHandler.isStorableTokenRefreshed("new-token", credentials));
     }
 
+    /**
+     * Test method for {@link ZoomOAuth2Handler#isProxyRequestAllowed}<br>
+     * Validates that the method returns true with a valid target host.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testIsProxyRequestAllowed() throws Exception {
+        final ZoomOAuth2Handler zoomHandler = PowerMock.createPartialMockForAllMethodsExcept(
+            ZoomOAuth2Handler.class, "isProxyRequestAllowed");
+        final Map<String, String> extraHeaders = ImmutableMap
+            .of(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), "Bearer some-token");
+
+        expect(OAuth2ProxyUtilities.isAllowedTargetHost(matches("zoom.us"), anyObject(Account.class)))
+            .andReturn(true);
+
+        PowerMock.replay(OAuth2ProxyUtilities.class);
+
+        assertTrue(zoomHandler.isProxyRequestAllowed(handler.client, HttpMethod.POST, extraHeaders,
+            "https://zoom.us/", null, null));
+
+        PowerMock.verify(OAuth2ProxyUtilities.class);
+    }
+
+    /**
+     * Test method for {@link ZoomOAuth2Handler#isProxyRequestAllowed}<br>
+     * Validates that the method returns false with a blocked target host.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testIsProxyRequestAllowedBlockedHost() throws Exception {
+        final ZoomOAuth2Handler zoomHandler = PowerMock.createPartialMockForAllMethodsExcept(
+            ZoomOAuth2Handler.class, "isProxyRequestAllowed");
+        final Map<String, String> extraHeaders = ImmutableMap
+            .of(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), "Bearer some-token");
+
+        expect(OAuth2ProxyUtilities.isAllowedTargetHost(anyObject(String.class), anyObject(Account.class)))
+            .andReturn(false);
+
+        PowerMock.replay(OAuth2ProxyUtilities.class);
+
+        assertFalse(zoomHandler.isProxyRequestAllowed(handler.client, HttpMethod.POST, extraHeaders,
+            "https://blocked.example.test/", null, null));
+
+        PowerMock.verify(OAuth2ProxyUtilities.class);
+    }
+
+    /**
+     * Test method for {@link ZoomOAuth2Handler#headers}<br>
+     * Validates that the headers method fetches the auth header
+     * when identifier is specified and token is not refreshable.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testHeadersWithIdentifierNonRefreshable() throws Exception {
+        final String identifier = "test-user@localhost";
+        final String accessToken = "access-token";
+        final String authHeader = String.format("Bearer %s", accessToken);
+        final Map<String, String> tokens = ImmutableMap.of(identifier, accessToken);
+        final String type = "noop";
+        final OAuthInfo oauthInfo = new OAuthInfo(ImmutableMap.of("identifier", identifier));
+        oauthInfo.setClientId(clientId);
+        oauthInfo.setClientSecret(clientSecret);
+
+        // expect to fetch refresh tokens
+        expect(mockDataSource.getRefreshTokens(null, identifier, type)).andReturn(tokens);
+        expect(handler.isRefreshable()).andReturn(false).times(2);
+        // expect to build the auth header
+        expect(handler.buildAuthorizationHeader(accessToken)).andReturn(authHeader);
+
+        replay(handler);
+        replay(mockConfig);
+        replay(mockDataSource);
+
+        final Map<String, String> headers = handler.headers(oauthInfo);
+        assertNotNull(headers);
+        // expect to find the auth header
+        assertEquals(authHeader, headers.get(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue()));
+        // expect to find the user agent header
+        assertEquals(OAuth2HttpConstants.PROXY_USER_AGENT.getValue(),
+            headers.get(OAuth2HttpConstants.HEADER_USER_AGENT.getValue()));
+
+        verify(handler);
+        verify(mockConfig);
+        verify(mockDataSource);
+    }
+
+    /**
+     * Test method for {@link ZoomOAuth2Handler#headers}<br>
+     * Validates that the headers method fetches the auth header
+     * when identifier is not specified and token is not refreshable.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testHeadersNoIdentifierNonRefreshable() throws Exception {
+        final String identifier = "test-user@localhost";
+        final String accessToken = "access-token";
+        final String authHeader = String.format("Bearer %s", accessToken);
+        final Map<String, String> tokens = ImmutableMap.of(identifier, accessToken);
+        final String type = "noop";
+        final OAuthInfo oauthInfo = new OAuthInfo(Collections.emptyMap());
+        oauthInfo.setClientId(clientId);
+        oauthInfo.setClientSecret(clientSecret);
+
+        // expect to fetch refresh tokens
+        expect(mockDataSource.getRefreshTokens(null, null, type)).andReturn(tokens);
+        expect(handler.isRefreshable()).andReturn(false);
+        // expect to build the auth header
+        expect(handler.buildAuthorizationHeader(accessToken)).andReturn(authHeader);
+
+        replay(handler);
+        replay(mockConfig);
+        replay(mockDataSource);
+
+        final Map<String, String> headers = handler.headers(oauthInfo);
+        assertNotNull(headers);
+        // expect to find the auth header
+        assertEquals(authHeader, headers.get(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue()));
+        // expect to find the user agent header
+        assertEquals(OAuth2HttpConstants.PROXY_USER_AGENT.getValue(),
+            headers.get(OAuth2HttpConstants.HEADER_USER_AGENT.getValue()));
+
+        verify(handler);
+        verify(mockConfig);
+        verify(mockDataSource);
+    }
+
+    /**
+     * Test method for {@link ZoomOAuth2Handler#headers}<br>
+     * Validates that the headers method fetches the auth header
+     * when identifier is not specified and token is in cache.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testHeadersNoIdentifierRefreshableFromCache() throws Exception {
+        final String identifier = "test-user@localhost";
+        final String accessToken = "access-token";
+        final String authHeader = String.format("Bearer %s", accessToken);
+        final String refreshToken = "refresh-token";
+        final String accountId = "account-id";
+        final Map<String, String> tokens = ImmutableMap.of(identifier, refreshToken);
+        final String type = "noop";
+        final AuthToken mockZmAuthToken = EasyMock.createMock(AuthToken.class);
+        final OAuthInfo oauthInfo = new OAuthInfo(Collections.emptyMap());
+        oauthInfo.setClientId(clientId);
+        oauthInfo.setClientSecret(clientSecret);
+        oauthInfo.setZmAuthToken(mockZmAuthToken);
+        final String cacheKey = "cache-key";
+
+        // expect to fetch refresh tokens
+        expect(mockDataSource.getRefreshTokens(null, null, type)).andReturn(tokens);
+        // expect to check if the client is refreshable
+        expect(handler.isRefreshable()).andReturn(true);
+        // expect to fetch the account id
+        expect(mockZmAuthToken.getAccountId()).andReturn(accountId);
+        // expect to build a cache key
+        expect(DataSourceMetaData.buildTokenCacheKey(accountId, handler.client, identifier)).andReturn(cacheKey);
+        // expect to fetch the access token from cache
+        expect(OAuth2CacheUtilities.get(cacheKey)).andReturn(accessToken);
+        // expect to build the auth header
+        expect(handler.buildAuthorizationHeader(accessToken)).andReturn(authHeader);
+
+        PowerMock.replay(DataSourceMetaData.class);
+        PowerMock.replay(OAuth2CacheUtilities.class);
+        replay(handler);
+        replay(mockConfig);
+        replay(mockDataSource);
+        replay(mockZmAuthToken);
+
+        final Map<String, String> headers = handler.headers(oauthInfo);
+        assertNotNull(headers);
+        // expect to find the auth header
+        assertEquals(authHeader, headers.get(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue()));
+        // expect to find the user agent header
+        assertEquals(OAuth2HttpConstants.PROXY_USER_AGENT.getValue(),
+            headers.get(OAuth2HttpConstants.HEADER_USER_AGENT.getValue()));
+
+        PowerMock.verify(DataSourceMetaData.class);
+        PowerMock.verify(OAuth2CacheUtilities.class);
+        verify(handler);
+        verify(mockConfig);
+        verify(mockDataSource);
+        verify(mockZmAuthToken);
+    }
+
+    /**
+     * Test method for {@link ZoomOAuth2Handler#headers}<br>
+     * Validates that the headers method fetches the auth header
+     * when identifier is not specified and token is not in cache.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testHeadersNoIdentifierRefreshable() throws Exception {
+        final String identifier = "test-user@localhost";
+        final String accessToken = "access-token";
+        final String authHeader = String.format("Bearer %s", accessToken);
+        final String refreshToken = "refresh-token";
+        final String accountId = "account-id";
+        final Map<String, String> tokens = ImmutableMap.of(identifier, refreshToken);
+        final String type = "noop";
+        final AuthToken mockZmAuthToken = EasyMock.createMock(AuthToken.class);
+        final OAuthInfo oauthInfo = new OAuthInfo(Collections.emptyMap());
+        oauthInfo.setClientId(clientId);
+        oauthInfo.setClientSecret(clientSecret);
+        oauthInfo.setZmAuthToken(mockZmAuthToken);
+        oauthInfo.setAccessToken(accessToken);
+        final String cacheKey = "cache-key";
+        final ZoomOAuth2Handler handler = setupHandler("headers", "findStoredAccessToken",
+            "findAndCacheStoredRefreshableAccessToken");
+
+        // expect to fetch refresh tokens
+        expect(mockDataSource.getRefreshTokens(null, null, type)).andReturn(tokens);
+        // expect to check if the client is refreshable
+        expect(handler.isRefreshable()).andReturn(true);
+        // expect to fetch the account id
+        expect(mockZmAuthToken.getAccountId()).andReturn(accountId);
+        // expect to build a cache key
+        expect(DataSourceMetaData.buildTokenCacheKey(accountId, handler.client, identifier))
+            .andReturn(cacheKey);
+        // expect to fail to fetch the access token from cache
+        expect(OAuth2CacheUtilities.get(cacheKey)).andReturn(null);
+        // expect to call refresh
+        expect(handler.refresh(anyObject(OAuthInfo.class))).andReturn(true);
+        // expect to cache the access token
+        expect(OAuth2CacheUtilities.put(cacheKey, accessToken, handler.tokenCacheLifetime))
+            .andReturn(accessToken);
+        // expect to build the auth header
+        expect(handler.buildAuthorizationHeader(accessToken)).andReturn(authHeader);
+
+        PowerMock.replay(DataSourceMetaData.class);
+        PowerMock.replay(OAuth2CacheUtilities.class);
+        replay(handler);
+        replay(mockConfig);
+        replay(mockDataSource);
+        replay(mockZmAuthToken);
+
+        final Map<String, String> headers = handler.headers(oauthInfo);
+        assertNotNull(headers);
+        // expect to find the auth header
+        assertEquals(authHeader, headers.get(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue()));
+        // expect to find the user agent header
+        assertEquals(OAuth2HttpConstants.PROXY_USER_AGENT.getValue(),
+            headers.get(OAuth2HttpConstants.HEADER_USER_AGENT.getValue()));
+
+        PowerMock.verify(DataSourceMetaData.class);
+        PowerMock.verify(OAuth2CacheUtilities.class);
+        verify(handler);
+        verify(mockConfig);
+        verify(mockDataSource);
+        verify(mockZmAuthToken);
+    }
+
+    /**
+     * Test method for {@link ZoomOAuth2Handler#headers}<br>
+     * Validates that the headers method fetches the auth header
+     * when identifier is specified and token is in cache.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testHeadersWithIdentifierRefreshable() throws Exception {
+        final String identifier = "test-user@localhost";
+        final String accessToken = "access-token";
+        final String authHeader = String.format("Bearer %s", accessToken);
+        final String accountId = "account-id";
+        final AuthToken mockZmAuthToken = EasyMock.createMock(AuthToken.class);
+        final OAuthInfo oauthInfo = new OAuthInfo(ImmutableMap.of("identifier", identifier));
+        oauthInfo.setClientId(clientId);
+        oauthInfo.setClientSecret(clientSecret);
+        oauthInfo.setZmAuthToken(mockZmAuthToken);
+        oauthInfo.setAccessToken(accessToken);
+        final String cacheKey = "cache-key";
+        final ZoomOAuth2Handler handler = setupHandler("headers", "findStoredAccessToken",
+            "findAndCacheStoredRefreshableAccessToken");
+
+        // expect to check if the client is refreshable
+        expect(handler.isRefreshable()).andReturn(true);
+        // expect to fetch the account id
+        expect(mockZmAuthToken.getAccountId()).andReturn(accountId);
+        // expect to build a cache key
+        expect(DataSourceMetaData.buildTokenCacheKey(accountId, handler.client, identifier))
+            .andReturn(cacheKey);
+        // expect to fail to fetch the access token from cache
+        expect(OAuth2CacheUtilities.get(cacheKey)).andReturn(null);
+        // expect to call refresh
+        expect(handler.refresh(anyObject(OAuthInfo.class))).andReturn(true);
+        // expect to cache the access token
+        expect(OAuth2CacheUtilities.put(cacheKey, accessToken, handler.tokenCacheLifetime))
+            .andReturn(accessToken);
+        // expect to build the auth header
+        expect(handler.buildAuthorizationHeader(accessToken)).andReturn(authHeader);
+
+        PowerMock.replay(DataSourceMetaData.class);
+        PowerMock.replay(OAuth2CacheUtilities.class);
+        replay(handler);
+        replay(mockConfig);
+        replay(mockDataSource);
+        replay(mockZmAuthToken);
+
+        final Map<String, String> headers = handler.headers(oauthInfo);
+        assertNotNull(headers);
+        // expect to find the auth header
+        assertEquals(authHeader, headers.get(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue()));
+        // expect to find the user agent header
+        assertEquals(OAuth2HttpConstants.PROXY_USER_AGENT.getValue(),
+            headers.get(OAuth2HttpConstants.HEADER_USER_AGENT.getValue()));
+
+        PowerMock.verify(DataSourceMetaData.class);
+        PowerMock.verify(OAuth2CacheUtilities.class);
+        verify(handler);
+        verify(mockConfig);
+        verify(mockDataSource);
+        verify(mockZmAuthToken);
+    }
+
+    /**
+     * Test method for {@link ZoomOAuth2Handler#headers}<br>
+     * Validates that the headers method fetches the auth header
+     * when identifier is specified but token is not in cache.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testHeadersWithIdentifierRefreshableFromCache() throws Exception {
+        final String identifier = "test-user@localhost";
+        final String accessToken = "access-token";
+        final String authHeader = String.format("Bearer %s", accessToken);
+        final String accountId = "account-id";
+        final AuthToken mockZmAuthToken = EasyMock.createMock(AuthToken.class);
+        final OAuthInfo oauthInfo = new OAuthInfo(ImmutableMap.of("identifier", identifier));
+        oauthInfo.setClientId(clientId);
+        oauthInfo.setClientSecret(clientSecret);
+        oauthInfo.setZmAuthToken(mockZmAuthToken);
+        oauthInfo.setAccessToken(accessToken);
+        final String cacheKey = "cache-key";
+        final ZoomOAuth2Handler handler = setupHandler("headers", "findStoredAccessToken",
+            "findAndCacheStoredRefreshableAccessToken");
+
+        // expect to check if the client is refreshable
+        expect(handler.isRefreshable()).andReturn(true);
+        // expect to fetch the account id
+        expect(mockZmAuthToken.getAccountId()).andReturn(accountId);
+        // expect to build a cache key
+        expect(DataSourceMetaData.buildTokenCacheKey(accountId, handler.client, identifier))
+            .andReturn(cacheKey);
+        // expect to fetch the access token from cache
+        expect(OAuth2CacheUtilities.get(cacheKey)).andReturn(accessToken);
+        // expect to build the auth header
+        expect(handler.buildAuthorizationHeader(accessToken)).andReturn(authHeader);
+
+        PowerMock.replay(DataSourceMetaData.class);
+        PowerMock.replay(OAuth2CacheUtilities.class);
+        replay(handler);
+        replay(mockConfig);
+        replay(mockDataSource);
+        replay(mockZmAuthToken);
+
+        final Map<String, String> headers = handler.headers(oauthInfo);
+        assertNotNull(headers);
+        // expect to find the auth header
+        assertEquals(authHeader, headers.get(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue()));
+        // expect to find the user agent header
+        assertEquals(OAuth2HttpConstants.PROXY_USER_AGENT.getValue(),
+            headers.get(OAuth2HttpConstants.HEADER_USER_AGENT.getValue()));
+
+        PowerMock.verify(DataSourceMetaData.class);
+        PowerMock.verify(OAuth2CacheUtilities.class);
+        verify(handler);
+        verify(mockConfig);
+        verify(mockDataSource);
+        verify(mockZmAuthToken);
+    }
+
+    /**
+     * Test method for {@link ZoomOAuth2Handler#headers}<br>
+     * Validates that the headers method throws an exception
+     * if no auth is found when identifier is specified.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test(expected=ServiceException.class)
+    public void testHeadersWithIdentifierNoAuthFound() throws Exception {
+        final String identifier = "test-user@localhost";
+        final String type = "noop";
+        final OAuthInfo oauthInfo = new OAuthInfo(ImmutableMap.of("identifier", identifier));
+        oauthInfo.setClientId(clientId);
+        oauthInfo.setClientSecret(clientSecret);
+
+        // expect to fetch refresh tokens
+        expect(mockDataSource.getRefreshTokens(null, identifier, type)).andReturn(Collections.emptyMap());
+        expect(handler.isRefreshable()).andReturn(false);
+
+        replay(handler);
+        replay(mockConfig);
+        replay(mockDataSource);
+
+        handler.headers(oauthInfo);
+
+        verify(handler);
+        verify(mockConfig);
+        verify(mockDataSource);
+    }
+
+    /**
+     * Test method for {@link ZoomOAuth2Handler#headers}<br>
+     * Validates that the headers method throws an exception
+     * if no auth is found when no identifier is specified.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test(expected=ServiceException.class)
+    public void testHeadersNoIdentifierNoAuthFound() throws Exception {
+        final String identifier = "test-user@localhost";
+        final Map<String, String> tokens = ImmutableMap.of(identifier, "token");
+        final String type = "noop";
+        final AuthToken mockZmAuthToken = EasyMock.createMock(AuthToken.class);
+        final OAuthInfo oauthInfo = new OAuthInfo(Collections.emptyMap());
+        oauthInfo.setClientId(clientId);
+        oauthInfo.setClientSecret(clientSecret);
+        oauthInfo.setZmAuthToken(mockZmAuthToken);
+        final String accountId = "account-id";
+        final String cacheKey = "cache-key";
+        final ZoomOAuth2Handler handler = setupHandler("headers", "findStoredAccessToken",
+            "findAndCacheStoredRefreshableAccessToken");
+
+        // expect to fetch refresh tokens
+        expect(mockDataSource.getRefreshTokens(null, null, type)).andReturn(tokens);
+        // expect to check if the client is refreshable
+        expect(handler.isRefreshable()).andReturn(true);
+        // expect to fetch the account id
+        expect(mockZmAuthToken.getAccountId()).andReturn(accountId);
+        // expect to build a cache key
+        expect(DataSourceMetaData.buildTokenCacheKey(accountId, handler.client, identifier))
+            .andReturn(cacheKey);
+        // expect to fail to fetch the access token from cache
+        expect(OAuth2CacheUtilities.get(cacheKey)).andReturn(null);
+        // expect to call refresh
+        expect(handler.refresh(anyObject(OAuthInfo.class)))
+            .andThrow(ServiceException.INVALID_REQUEST("no datasource found", null));
+
+        PowerMock.replay(DataSourceMetaData.class);
+        PowerMock.replay(OAuth2CacheUtilities.class);
+        replay(handler);
+        replay(mockConfig);
+        replay(mockDataSource);
+        replay(mockZmAuthToken);
+
+        handler.headers(oauthInfo);
+
+        PowerMock.verify(DataSourceMetaData.class);
+        PowerMock.verify(OAuth2CacheUtilities.class);
+        verify(handler);
+        verify(mockConfig);
+        verify(mockDataSource);
+        verify(mockZmAuthToken);
+    }
 }

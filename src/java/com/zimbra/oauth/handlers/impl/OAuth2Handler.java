@@ -464,10 +464,10 @@ public abstract class OAuth2Handler {
      */
     protected String findAndCacheStoredRefreshableAccessToken(OAuthInfo oauthInfo)
         throws ServiceException {
-        final Account account = oauthInfo.getAccount();
+        final String accountId = oauthInfo.getZmAuthToken().getAccountId();
         final String identifier = oauthInfo.getUsername();
         final String type = OAuth2Constants.DEFAULT_PROXY_TYPE.getValue();
-        final String cacheKey = DataSourceMetaData.buildTokenCacheKey(account.getId(), client,
+        final String cacheKey = DataSourceMetaData.buildTokenCacheKey(accountId, client,
             identifier);
         // check cache
         String accessToken = OAuth2CacheUtilities.get(cacheKey);
@@ -481,9 +481,7 @@ public abstract class OAuth2Handler {
         accessToken = oauthInfo.getAccessToken();
 
         // cache the access token (this may clobber if many requests are refreshing)
-        OAuth2CacheUtilities.put(cacheKey, accessToken, tokenCacheLifetime);
-
-        return accessToken;
+        return OAuth2CacheUtilities.put(cacheKey, accessToken, tokenCacheLifetime);
     }
 
     /**
