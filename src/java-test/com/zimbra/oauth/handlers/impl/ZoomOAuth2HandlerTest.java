@@ -290,16 +290,11 @@ public class ZoomOAuth2HandlerTest {
         handler.validateRefreshTokenResponse(anyObject());
         EasyMock.expectLastCall().once();
         expect(handler.getStorableToken(mockCredentials)).andReturn(refreshToken);
-        expect(handler.getPrimaryEmail(anyObject(JsonNode.class), anyObject(Account.class)))
-            .andReturn(username);
 
         mockOAuthInfo.setTokenUrl(matches(ZoomOAuth2Constants.AUTHENTICATE_URI.getValue()));
         EasyMock.expectLastCall().once();
         expect(mockOAuthInfo.getZmAuthToken()).andReturn(mockAuthToken);
         expect(mockOAuthInfo.getRefreshToken()).andReturn(null);
-        expect(mockOAuthInfo.getUsername()).andReturn(null);
-        mockOAuthInfo.setUsername(username);
-        EasyMock.expectLastCall().once();
         mockOAuthInfo.setRefreshToken(refreshToken);
         EasyMock.expectLastCall().times(2);
         // expect to get a useable token and set it

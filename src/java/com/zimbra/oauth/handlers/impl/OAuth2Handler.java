@@ -348,19 +348,15 @@ public abstract class OAuth2Handler {
         final JsonNode credentials = getToken(oauthInfo, basicToken);
         // ensure the response contains the necessary credentials
         validateRefreshTokenResponse(credentials);
-        // determine account associated with credentials
-        String username = oauthInfo.getUsername();
-        if (StringUtils.isEmpty(username)) {
-            username = getPrimaryEmail(credentials, account);
-            oauthInfo.setUsername(username);
-        }
-        ZimbraLog.extensions.trace("Refresh performed for: %s", username);
+        ZimbraLog.extensions.trace("Refresh performed for: %s", identifier);
 
         // update the refresh token if it has changed (some of them change on every use)
         if (isStorableTokenRefreshed(refreshToken, credentials)) {
             oauthInfo.setRefreshToken(getStorableToken(credentials));
             ZimbraLog.extensions.debug("Updating oauth datasource with a new token");
             dataSource.syncDatasource(mailbox, oauthInfo, getDatasourceCustomAttrs(oauthInfo));
+        } else {
+            dataSource.clearTokensCache(oauthInfo);
         }
         oauthInfo.setAccessToken(getUsableToken(credentials));
         oauthInfo.setClientSecret(null);

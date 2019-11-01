@@ -138,6 +138,7 @@ public class OAuth2DataSource {
         final String type = credentials.getParam("type");
         final DataSourceMetaData meta = DataSourceMetaData.from(mailbox.getAccountId(), username,
             type, client);
+        OAuth2CacheUtilities.remove(meta.getTokenCacheKey());
         final String dsFolderName = meta.toName();
         try {
             // get datasource, create if missing
@@ -288,6 +289,17 @@ public class OAuth2DataSource {
             return false;
         }
         return true;
+    }
+
+    /**
+     * @param oauthInfo Contains identifier and details on zimbra account id
+     */
+    public void clearTokensCache(OAuthInfo oauthInfo) {
+        final String identifier = oauthInfo.getUsername();
+        final String accountId = oauthInfo.getZmAuthToken().getAccountId();
+        ZimbraLog.extensions.debug("Clearing token cache for accountId: %s identifier: %s",
+            accountId, identifier);
+        OAuth2CacheUtilities.remove(DataSourceMetaData.buildTokenCacheKey(accountId, client, identifier));
     }
 
     /**
