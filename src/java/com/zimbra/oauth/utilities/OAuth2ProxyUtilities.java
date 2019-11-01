@@ -157,6 +157,13 @@ public class OAuth2ProxyUtilities {
         return new ByteArrayEntity(body, ContentType.create(contentType));
     }
 
+    protected static String getHeaderLogValue(String key, String value) {
+        if (OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue().equalsIgnoreCase(key)) {
+            return "****";
+        }
+        return value;
+    }
+
     public static void doProxy(HttpServletRequest req, HttpServletResponse resp, byte[] body) throws IOException {
         final String target = req.getParameter(TARGET_PARAM);
         if (target == null) {
@@ -214,9 +221,10 @@ public class OAuth2ProxyUtilities {
             final Enumeration<String> headers = req.getHeaderNames();
             while (headers.hasMoreElements()) {
                 final String hdr = headers.nextElement();
-                ZimbraLog.extensions.debug("incoming: " + hdr + ": " + req.getHeader(hdr));
+                final String hdrLogValue = getHeaderLogValue(hdr, req.getHeader(hdr));
+                ZimbraLog.extensions.debug("incoming: " + hdr + ": " + hdrLogValue);
                 if (canProxyHeader(hdr)) {
-                    ZimbraLog.extensions.debug("outgoing: " + hdr + ": " + req.getHeader(hdr));
+                    ZimbraLog.extensions.debug("outgoing: " + hdr + ": " + hdrLogValue);
                     if (hdr.equalsIgnoreCase("x-host")) {
                         method.setHeader("Host", req.getHeader(hdr));
                     } else {
