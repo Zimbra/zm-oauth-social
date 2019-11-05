@@ -280,8 +280,10 @@ public class OAuth2DataSource {
             final List<DataSource> datasources = prov.getAllDataSources(account);
             for (final DataSource source : datasources) {
                 // find the relevant datasources for this identifier + client, and purge
-                if (DataSourceMetaData.from(source).isRelevant(identifier, null, client)) {
+                final DataSourceMetaData meta = DataSourceMetaData.from(source);
+                if (meta.isRelevant(identifier, null, client)) {
                     prov.deleteDataSource(account, source.getId());
+                    OAuth2CacheUtilities.remove(meta.getTokenCacheKey());
                 }
             }
         } catch (final ServiceException e) {
