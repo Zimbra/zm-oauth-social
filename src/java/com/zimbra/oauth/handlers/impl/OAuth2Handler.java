@@ -175,17 +175,26 @@ public abstract class OAuth2Handler {
     }
 
     /**
+     * @see #getTokenRequest(OAuthInfo, String, Map)
+     */
+    public static JsonNode getTokenRequest(OAuthInfo authInfo, String basicToken)
+        throws ServiceException {
+        return getTokenRequest(authInfo, basicToken, Collections.emptyMap());
+    }
+
+    /**
      * Default get_token implementation, usable by standard oauth2 services.<br>
      * Builds and executes the get_token HTTP request for the client.
      *
      * @param authInfo Contains the auth info to use in the request
      * @param basicToken The basic authorization header
+     * @param extraHeaders Non-null map of extra token headers to add
      * @return Json response from the endpoint containing credentials
      * @throws ServiceException If there are issues performing the request or
      *             parsing for json
      */
-    public static JsonNode getTokenRequest(OAuthInfo authInfo, String basicToken)
-        throws ServiceException {
+    public static JsonNode getTokenRequest(OAuthInfo authInfo, String basicToken,
+        Map<String, String> extraHeaders) throws ServiceException {
         final String refreshToken = authInfo.getRefreshToken();
         final HttpPost request = new HttpPost(authInfo.getTokenUrl());
         final List<NameValuePair> params = new ArrayList<NameValuePair>();
@@ -201,6 +210,8 @@ public abstract class OAuth2Handler {
         params.add(new BasicNameValuePair("redirect_uri", authInfo.getClientRedirectUri()));
         params.add(new BasicNameValuePair("client_secret", authInfo.getClientSecret()));
         params.add(new BasicNameValuePair("client_id", authInfo.getClientId()));
+        // add extra headers
+        extraHeaders.forEach((k, v) -> params.add(new BasicNameValuePair(k, v)));
         setFormEntity(request, params);
         request.setHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
             "application/x-www-form-urlencoded");
