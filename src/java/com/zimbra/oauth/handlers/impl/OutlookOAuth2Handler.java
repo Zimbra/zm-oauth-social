@@ -16,6 +16,9 @@
  */
 package com.zimbra.oauth.handlers.impl;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.commons.lang.StringUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -24,6 +27,8 @@ import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
+import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.soap.admin.type.DataSourceType;
 
 /**
@@ -187,7 +192,7 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         /**
          * The scope required for Outlook.
          */
-        REQUIRED_SCOPES("openid+email+offline_access+https://outlook.office.com/contacts.read"),
+        REQUIRED_SCOPES("openid+email+offline_access"),
 
         /**
          * The scope delimiter for Outlook.
@@ -307,4 +312,26 @@ public class OutlookOAuth2Handler extends OAuth2Handler implements IOAuth2Handle
         }
     }
 
+    @Override
+    protected JsonNode getToken(OAuthInfo authInfo, String basicToken) throws ServiceException {
+        final String datasourceType = authInfo.getParam(typeKey);
+        final Map<String, String> headers = new HashMap<String, String>();
+        // see https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-oauth2-auth-code-flow
+        // outlook requires scope to be added to token requests with the introduction of graph api scopes
+        if (OAuth2Constants.DEFAULT_PROXY_TYPE.getValue().equals(datasourceType)) {
+            final String scopeIdentifier = StringUtils.isEmpty(datasourceType)
+                ? client
+                : client + "_" + datasourceType;
+            String scope = StringUtils.join(new String[] { requiredScopes,
+                config.getString(String.format(OAuth2ConfigConstants.LC_OAUTH_SCOPE_TEMPLATE.getValue(),
+                    client), scopeIdentifier, authInfo.getAccount()) },
+                scopeDelimiter);
+            // scope delimiter varies depending on scopes. old contact: plus. noop: comma
+            // at the time of this writing microsoft docs incorrectly specify space delimiter
+            scope = scope.replace("+", ",");
+            ZimbraLog.extensions.debug("Adding %s's scope: %s to get token request.", scopeIdentifier, scope);
+            headers.put("scope", scope);
+        }
+        return getTokenRequest(authInfo, basicToken, headers);
+    }
 }
