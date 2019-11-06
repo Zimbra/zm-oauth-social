@@ -17,9 +17,11 @@
 package com.zimbra.oauth.utilities;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -134,14 +136,16 @@ public class OAuth2DataSource {
         final String username = credentials.getUsername();
         final String refreshToken = credentials.getRefreshToken();
         final String type = credentials.getParam("type");
-        final String dsFolderName = String
-                .format(OAuth2Constants.DEFAULT_OAUTH_FOLDER_TEMPLATE.getValue(), username, type, client);
+        final DataSourceMetaData meta = DataSourceMetaData.from(mailbox.getAccountId(), username,
+            type, client);
+        OAuth2CacheUtilities.remove(meta.getTokenCacheKey());
+        final String dsFolderName = meta.toName();
         try {
             // get datasource, create if missing
             ZDataSource osource = mailbox.getDataSourceByName(dsFolderName);
             if (osource == null) {
-                final DataSourceType dsType = getDataSourceTypeForOAuth2(type);
-                final View view = getViewForDataSource(dsType);
+                final DataSourceType dsType = meta.toDataSourceType();
+                final View view = meta.toView();
                 // define the import class and polling interval
                 // build up attributes
                 ZimbraLog.extensions.debug("Building datasource of type: %s", dsType);
@@ -233,6 +237,24 @@ public class OAuth2DataSource {
         return refreshToken;
     }
 
+    public Map<String, String> getRefreshTokens(Account account, String identifier, String type) throws ServiceException {
+        // {identifier} -> {token}
+        Map<String, String> tokens = Collections.emptyMap();
+        try {
+            ZimbraLog.extensions.debug("Fetching datasources to find %s refresh tokens.", client);
+            tokens = account.getAllDataSources().stream()
+            .filter(s -> DataSourceMetaData.from(s).isRelevant(identifier, type, client))
+            .collect(Collectors.toMap(
+                s -> DataSourceMetaData.from(s).getIdentifier(),
+                DataSource::getOauthRefreshToken
+            ));
+        } catch (final ServiceException e) {
+            ZimbraLog.extensions.errorQuietly("Unable to retrieve datasources.", e);
+            throw ServiceException.FAILURE("Unable to retrieve token data.", e);
+        }
+        return tokens;
+    }
+
     /**
      * Adds an import class to the mapping.
      *
@@ -244,67 +266,12 @@ public class OAuth2DataSource {
     }
 
     /**
-     * map type sent in authorize request to appropriate data source type
-     * @param type
-     * @return
-     * @throws ServiceException
-     */
-    public static DataSourceType getDataSourceTypeForOAuth2(String type) throws ServiceException {
-        DataSourceType dsType = null;
-        switch (type) {
-        case "contact":
-            dsType = DataSourceType.oauth2contact;
-            break;
-        case "calendar":
-            dsType = DataSourceType.oauth2calendar;
-            break;
-        case "caldav":
-            dsType = DataSourceType.oauth2caldav;
-            break;
-        case "noop":
-            dsType = DataSourceType.oauth2noop;
-            break;
-        default:
-            ZimbraLog.extensions.error("Invalid type: %s", type);
-            throw ServiceException.FAILURE("Invalid type: " + type, null);
-        }
-        return dsType;
-    }
-
-    /**
-     * return folder view as per data source type
-     * @param type
-     * @return
-     * @throws ServiceException
-     */
-    public static View getViewForDataSource(DataSourceType type) throws ServiceException {
-        View view = null;
-        switch (type) {
-        case oauth2contact:
-            view = View.contact;
-            break;
-        case oauth2calendar:
-            view = View.appointment;
-            break;
-        case oauth2caldav:
-            view = View.appointment;
-            break;
-        case oauth2noop:
-            view = View.unknown;
-            break;
-        default:
-            ZimbraLog.extensions.error("Invalid type received");
-            throw ServiceException.FAILURE("Invalid type received", null);
-        }
-        return view;
-    }
-
-    /**
      * Removes datasources relevant to the specified identifier.<br>
+     * Null identifier will remove all datasources for the client.<br>
      * Note: this method does not delete the associated folder.
      *
      * @param account The target account
-     * @param identifier The identifier to delete datasources for
+     * @param identifier The identifier to delete datasources for (optional)
      * @return True if there are no issues removing relevant datasources
      */
     public boolean removeDataSources(Account account, String identifier) {
@@ -313,8 +280,10 @@ public class OAuth2DataSource {
             final List<DataSource> datasources = prov.getAllDataSources(account);
             for (final DataSource source : datasources) {
                 // find the relevant datasources for this identifier + client, and purge
-                if (isDataSourceRelevant(source, identifier)) {
+                final DataSourceMetaData meta = DataSourceMetaData.from(source);
+                if (meta.isRelevant(identifier, null, client)) {
                     prov.deleteDataSource(account, source.getId());
+                    OAuth2CacheUtilities.remove(meta.getTokenCacheKey());
                 }
             }
         } catch (final ServiceException e) {
@@ -325,18 +294,154 @@ public class OAuth2DataSource {
     }
 
     /**
-     * Determines if a datasource is oauth relevant for a given identifier and client.
-     *
-     * @param datasource The datasource to check
-     * @param identifier The identifier to delete datasources for
-     * @return True if the datasource is any oauth2 datasource for the identifier and client
+     * @param oauthInfo Contains identifier and details on zimbra account id
      */
-    protected boolean isDataSourceRelevant(DataSource datasource, String identifier) {
-        final String dsName = datasource.getName();
-        // should have a refresh token
-        return datasource.getOauthRefreshToken() != null
-            // all 'type' are relevant for format: {identifier}-{type}-{client}
-            && StringUtils.startsWith(dsName, identifier)
-            && StringUtils.endsWith(dsName, client);
+    public void clearTokensCache(OAuthInfo oauthInfo) {
+        final String identifier = oauthInfo.getUsername();
+        final String accountId = oauthInfo.getZmAuthToken().getAccountId();
+        ZimbraLog.extensions.debug("Clearing token cache for accountId: %s identifier: %s",
+            accountId, identifier);
+        OAuth2CacheUtilities.remove(DataSourceMetaData.buildTokenCacheKey(accountId, client, identifier));
+    }
+
+    /**
+     * Handles parsing/generation of DataSource name field.<br>
+     * This class has utility methods to centralize handling of the identifier and type.<br><br>
+     * DataSource name field has format: {identifier}-{type}-{client}<br>
+     * where:<br>
+     * - identifier may contain external account identifiers (possibly `-` delimited)<br>
+     * - type may be any of the known DataSourceType suffixes.<br>
+     * - client may be any of the oauth2 clients (possibly `-` delimited)
+     */
+    public static class DataSourceMetaData {
+        protected final String accountId;
+        protected final String identifier;
+        protected final String type;
+        protected final String client;
+
+        private DataSourceMetaData(String accountId, String name, String type) {
+            this.accountId = accountId;
+            this.type = type;
+            this.client = StringUtils.substringAfterLast(name, String.format("-%s-", type));
+            this.identifier = StringUtils.substringBeforeLast(name,
+                String.format("-%s-%s", type, client));
+        }
+
+        private DataSourceMetaData(String accountId, String identifier, String type, String client) {
+            this.accountId = accountId;
+            this.identifier = identifier;
+            this.type = type;
+            this.client = client;
+        }
+
+        public String getIdentifier() {
+            return identifier;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public String getClient() {
+            return client;
+        }
+
+        public String getTokenCacheKey() {
+            return buildTokenCacheKey(accountId, client, identifier);
+        }
+
+        public String getRootCacheKey() {
+            return buildRootCacheKey(client, identifier);
+        }
+
+        public DataSourceType toDataSourceType() throws ServiceException {
+            return getDataSourceType(type);
+        }
+
+        public View toView() throws ServiceException {
+            View view = null;
+            switch (toDataSourceType()) {
+            case oauth2contact:
+                view = View.contact;
+                break;
+            case oauth2calendar:
+                view = View.appointment;
+                break;
+            case oauth2caldav:
+                view = View.appointment;
+                break;
+            case oauth2noop:
+                view = View.unknown;
+                break;
+            default:
+                ZimbraLog.extensions.error("Invalid type received");
+                throw ServiceException.FAILURE("Invalid type received", null);
+            }
+            return view;
+        }
+
+        public String toName() {
+            return String.format(OAuth2Constants.DEFAULT_OAUTH_FOLDER_TEMPLATE.getValue(),
+                identifier, type, client);
+        }
+
+        public boolean isRelevant(String sIdentifier, String sType, String sClient) {
+            return (sIdentifier == null || StringUtils.equals(identifier, sIdentifier))
+                && (sType == null || StringUtils.equals(type, sType))
+                // at minimum same client denotes relevancy
+                && StringUtils.equals(client, sClient);
+        }
+
+        public static String buildTokenCacheKey(String accountId, String client, String identifier) {
+            // {account_prefix}zm_oauth_social_{client}_{identifier}_access_token
+            return OAuth2CacheUtilities.buildAccountKey(accountId,
+                String.format("%s_access_token", buildRootCacheKey(client, identifier)));
+        }
+
+        public static String buildRootCacheKey(String client, String identifier) {
+            // zm_oauth_social_{client}_{identifier}
+            return String.format("zm_oauth_social_%s_%s", client, identifier);
+        }
+
+        /**
+         * Map type sent in authorize request to appropriate data source type.
+         *
+         * @param type The request type
+         * @return DataSourceType type
+         * @throws ServiceException If type is invalid
+         */
+        public static DataSourceType getDataSourceType(String type) throws ServiceException {
+            DataSourceType dsType = null;
+            switch (type) {
+            case "contact":
+                dsType = DataSourceType.oauth2contact;
+                break;
+            case "calendar":
+                dsType = DataSourceType.oauth2calendar;
+                break;
+            case "caldav":
+                dsType = DataSourceType.oauth2caldav;
+                break;
+            case "noop":
+                dsType = DataSourceType.oauth2noop;
+                break;
+            default:
+                ZimbraLog.extensions.error("Invalid type: %s", type);
+                throw ServiceException.FAILURE("Invalid type: " + type, null);
+            }
+            return dsType;
+        }
+
+        public static DataSourceMetaData from(DataSource source) {
+            return new DataSourceMetaData(source.getAccountId(), source.getName(), typeToString(source.getType()));
+        }
+
+        public static DataSourceMetaData from(String accountId, String identifier, String type, String client) {
+            return new DataSourceMetaData(accountId, identifier, type, client);
+        }
+
+        protected static String typeToString(DataSourceType type) {
+            return StringUtils.substringAfter(type.name(), "oauth2");
+        }
     }
 }

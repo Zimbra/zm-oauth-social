@@ -36,12 +36,14 @@ import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.Provisioning;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
+import com.zimbra.oauth.handlers.IOAuth2ProxyHandler;
 import com.zimbra.oauth.models.GuestRequest;
 import com.zimbra.oauth.models.HttpResponseWrapper;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2CacheUtilities;
 import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
+import com.zimbra.oauth.utilities.OAuth2DataSource.DataSourceMetaData;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
 import com.zimbra.oauth.utilities.OAuth2JsonUtilities;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
@@ -54,7 +56,7 @@ import com.zimbra.oauth.utilities.OAuth2Utilities;
  * @package com.zimbra.oauth.handlers.impl
  * @copyright Copyright © 2019
  */
-public class ZoomOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
+public class ZoomOAuth2Handler extends OAuth2Handler implements IOAuth2Handler, IOAuth2ProxyHandler {
 
     private final String ERROR_TEMPLATE = "%s | Zoom error code: %s | Reason: %s";
 
@@ -305,7 +307,8 @@ public class ZoomOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
                     "caching data for accountId: %s userId: %s zimbraAccountId: %s", zoomAccountId,
                     zoomUserId, zimbraAccountId);
                 // cache Zoom -> Zimbra account mapping
-                OAuth2CacheUtilities.put(buildCacheKey(identifier), zimbraAccountId);
+                final String cacheKey = DataSourceMetaData.buildRootCacheKey(client, identifier);
+                OAuth2CacheUtilities.put(cacheKey, zimbraAccountId);
                 return identifier;
             }
         }
@@ -358,7 +361,7 @@ public class ZoomOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
             headers.get(OAuth2HttpConstants.HEADER_DISABLE_EXTERNAL_REQUESTS.getValue()));
 
         // validate the request params and verification token
-        if(!isValidEventRequest(account, payload, payloadVerificationToken, oauthInfo)
+        if (!isValidEventRequest(account, payload, payloadVerificationToken, oauthInfo)
             // delete all datasources for the Zoom user
             || !dataSource.removeDataSources(account, identifier)
             // send compliance request
@@ -367,7 +370,8 @@ public class ZoomOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
         }
 
         // remove the account mapping from cache
-        OAuth2CacheUtilities.remove(buildCacheKey(identifier));
+        final String cacheKey = DataSourceMetaData.buildRootCacheKey(client, identifier);
+        OAuth2CacheUtilities.remove(cacheKey);
 
         return true;
     }
@@ -384,8 +388,8 @@ public class ZoomOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
     protected boolean loadZimbraAccount(String accountId, String userId, OAuthInfo oauthInfo)
         throws ServiceException {
         final String identifier = buildPrimaryIdentifier(accountId, userId);
-        final String cacheMappingKey = buildCacheKey(identifier);
-        final String zimbraAccountId = OAuth2CacheUtilities.get(cacheMappingKey);
+        final String cacheKey = DataSourceMetaData.buildRootCacheKey(client, identifier);
+        final String zimbraAccountId = OAuth2CacheUtilities.get(cacheKey);
         final Account account = Provisioning.getInstance().getAccountById(zimbraAccountId);
 
         if (account == null) {
@@ -495,14 +499,4 @@ public class ZoomOAuth2Handler extends OAuth2Handler implements IOAuth2Handler {
         return String.format(ZoomOAuth2Constants.IDENTIFIER_TEMPLATE.getValue(), accountId, userId);
     }
 
-    /**
-     * Builds a prefixed cache key.
-     *
-     * @param identifier The Zoom account identifier
-     * @return A prefixed key for use in cache
-     */
-    protected String buildCacheKey(String identifier) {
-        // zm_oauth_social_zoom_{accountId-userId}
-        return String.format("zm_oauth_social_%s_%s", client, identifier);
-    }
 }

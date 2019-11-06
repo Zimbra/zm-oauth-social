@@ -39,7 +39,10 @@ public enum OAuth2Constants {
 
     CONTACTS_IMAGE_BUFFER_SIZE("2048"),
 
-    PROPERTIES_NAME_APPLICATION("application");
+    PROPERTIES_NAME_APPLICATION("application"),
+
+    DEFAULT_PROXY_TYPE("noop"),
+    TOKEN_CACHE_LIFETIME("1800");
 
     /**
      * The value of this enum.

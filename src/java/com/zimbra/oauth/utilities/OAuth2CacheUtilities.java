@@ -16,10 +16,13 @@
  */
 package com.zimbra.oauth.utilities;
 
+import java.util.concurrent.TimeUnit;
+
 import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 
 import com.zimbra.cs.mailbox.RedissonClientHolder;
+import com.zimbra.cs.mailbox.redis.RedisUtils;
 
 /**
  * The OAuth2CacheUtilities class.
@@ -40,6 +43,11 @@ public class OAuth2CacheUtilities {
         return value;
     }
 
+    public static String put(String key, String value, long expiry) {
+        getBucket(key).set(value, expiry, TimeUnit.SECONDS);
+        return value;
+    }
+
     public static String remove(String key) {
         return getBucket(key).getAndDelete();
     }
@@ -54,6 +62,10 @@ public class OAuth2CacheUtilities {
             value = defValue;
         }
         return value;
+    }
+
+    public static String buildAccountKey(String accountId, String key) {
+        return RedisUtils.createAccountRoutedKey(accountId, key);
     }
 
     private static RBucket<String> getBucket(String key) {

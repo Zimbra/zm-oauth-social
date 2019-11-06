@@ -341,10 +341,12 @@ public class OAuth2ResourceUtilities {
      */
     public static ResponseObject<?> headers(String method, String client, Cookie[] cookies,
         Map<String, String> headers, Map<String, String[]> queryParams, byte[] body) {
+        AuthToken zmAuthToken = null;
         Account account = null;
         // auth the requesting Zimbra user
         try {
-            account = getAccount(getAuthToken(cookies, headers, null));
+            zmAuthToken = getAuthToken(cookies, headers, null);
+            account = getAccount(zmAuthToken);
         } catch (final ServiceException e) {
             return new ResponseObject<ErrorMessage>(
                 new ErrorMessage(OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue(),
@@ -367,16 +369,24 @@ public class OAuth2ResourceUtilities {
         Map<String, String> extraHeaders = Collections.emptyMap();
         try {
             // fetch the proxy headers. should have at least one for authorization
-            extraHeaders = oauth2ProxyHandler.headers(params, account);
+            final OAuthInfo oauthInfo = new OAuthInfo(params);
+            oauthInfo.setAccount(account);
+            oauthInfo.setZmAuthToken(zmAuthToken);
+            extraHeaders = oauth2ProxyHandler.headers(oauthInfo);
             if (extraHeaders == null || extraHeaders.size() < 1) {
                 throw ServiceException.PERM_DENIED(
                     String.format("Proxy headers not found for client %s.", client));
             }
         } catch (final ServiceException e) {
+            String code = OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue();
+            int status = Status.UNAUTHORIZED.getStatusCode();
+            if (ServiceException.INVALID_REQUEST.equals(e.getCode())) {
+                code = OAuth2ErrorConstants.ERROR_PARAM_MISSING.getValue();
+                status = Status.BAD_REQUEST.getStatusCode();
+            }
             return new ResponseObject<ErrorMessage>(
-                new ErrorMessage(OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue(),
-                    e.getMessage()),
-                new ResponseMeta(Status.UNAUTHORIZED.getStatusCode()));
+                new ErrorMessage(code, e.getMessage()),
+                new ResponseMeta(status));
         }
         // validate the proxy request
         ZimbraLog.extensions.debug("Checking if oauth proxy request is allowed.");

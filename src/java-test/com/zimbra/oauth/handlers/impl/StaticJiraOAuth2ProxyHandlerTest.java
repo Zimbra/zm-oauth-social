@@ -45,6 +45,8 @@ import com.google.common.collect.ImmutableMap;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.models.HttpResponseWrapper;
+import com.zimbra.oauth.utilities.LdapConfiguration;
+import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
 import com.zimbra.oauth.utilities.OAuth2JsonUtilities;
 import com.zimbra.oauth.utilities.OAuth2ProxyUtilities;
@@ -54,7 +56,7 @@ import com.zimbra.oauth.utilities.OAuth2Utilities;
  * Test class for {@link StaticJiraOAuth2ProxyHandler}.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ StaticJiraOAuth2ProxyHandler.class, OAuth2Utilities.class, OAuth2ProxyUtilities.class })
+@PrepareForTest({ LdapConfiguration.class, OAuth2Utilities.class, OAuth2ProxyUtilities.class, StaticJiraOAuth2ProxyHandler.class })
 public class StaticJiraOAuth2ProxyHandlerTest {
 
     /**
@@ -68,9 +70,25 @@ public class StaticJiraOAuth2ProxyHandlerTest {
     protected final String projectId = "12345";
 
     /**
+     * Jira project id 2.
+     */
+    protected final String projectId2 = "54321";
+
+    /**
+     * Comma-separatd list of allowed Jira project ids.
+     */
+    protected final String allowedProjectIds = String.format("%s,%s", projectId, projectId2);
+
+    /**
      * Client for testing.
      */
     protected final String client = String.format("static-basic-jira-%s", projectId);
+
+    /**
+     * Credentials with misc data..
+     */
+    protected final String credentials = String.format("%s:%s:%s:%s", "test@zmc.com", "testToken",
+        allowedProjectIds, client);
 
     /**
      * Authorization header for testing.
@@ -87,6 +105,11 @@ public class StaticJiraOAuth2ProxyHandlerTest {
     public void setUp() throws Exception {
         PowerMock.mockStatic(OAuth2Utilities.class);
         PowerMock.mockStatic(OAuth2ProxyUtilities.class);
+        PowerMock.mockStatic(LdapConfiguration.class);
+
+        expect(LdapConfiguration.getFirstConfig(
+            matches(OAuth2ConfigConstants.OAUTH_STATIC_CREDENTIALS.getValue()), matches(client),
+            anyObject())).andReturn(credentials);
     }
 
     /**
@@ -110,11 +133,43 @@ public class StaticJiraOAuth2ProxyHandlerTest {
 
         PowerMock.replay(OAuth2Utilities.class);
         PowerMock.replay(OAuth2ProxyUtilities.class);
+        PowerMock.replay(LdapConfiguration.class);
 
         assertTrue(handler.isProxyRequestAllowed(client, method, extraHeaders, target, body, null));
 
         PowerMock.verify(OAuth2Utilities.class);
         PowerMock.verify(OAuth2ProxyUtilities.class);
+        PowerMock.verify(LdapConfiguration.class);
+    }
+
+    /**
+     * Test method for {@link StaticJiraOAuth2ProxyHandler#isProxyRequestAllowed}<br>
+     * Validates that the isProxyRequestAllowed method returns true when
+     * creating an issue with the second projectId.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testIsProxyRequestAllowedCreateIssueSecond() throws Exception {
+        final String method = HttpMethod.POST;
+        final Map<String, String> extraHeaders = ImmutableMap
+            .of(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(), authHeader);
+        final String host = "zimbra.test";
+        final String target = String.format("https://%s/rest/api/3/issue/", host);
+        final byte[] body = buildRequestBodyJson(projectId2).getBytes();
+
+        expect(OAuth2ProxyUtilities.isAllowedTargetHost(matches(host), anyObject(Account.class)))
+            .andReturn(true);
+
+        PowerMock.replay(OAuth2Utilities.class);
+        PowerMock.replay(OAuth2ProxyUtilities.class);
+        PowerMock.replay(LdapConfiguration.class);
+
+        assertTrue(handler.isProxyRequestAllowed(client, method, extraHeaders, target, body, null));
+
+        PowerMock.verify(OAuth2Utilities.class);
+        PowerMock.verify(OAuth2ProxyUtilities.class);
+        PowerMock.verify(LdapConfiguration.class);
     }
 
     /**
@@ -139,12 +194,14 @@ public class StaticJiraOAuth2ProxyHandlerTest {
 
         PowerMock.replay(OAuth2Utilities.class);
         PowerMock.replay(OAuth2ProxyUtilities.class);
+        PowerMock.replay(LdapConfiguration.class);
 
         assertFalse(
             handler.isProxyRequestAllowed(client, method, extraHeaders, target, body, null));
 
         PowerMock.verify(OAuth2Utilities.class);
         PowerMock.verify(OAuth2ProxyUtilities.class);
+        PowerMock.verify(LdapConfiguration.class);
     }
 
     /**
@@ -169,12 +226,14 @@ public class StaticJiraOAuth2ProxyHandlerTest {
 
         PowerMock.replay(OAuth2Utilities.class);
         PowerMock.replay(OAuth2ProxyUtilities.class);
+        PowerMock.replay(LdapConfiguration.class);
 
         assertFalse(
             handler.isProxyRequestAllowed(client, method, extraHeaders, target, body, null));
 
         PowerMock.verify(OAuth2Utilities.class);
         PowerMock.verify(OAuth2ProxyUtilities.class);
+        PowerMock.verify(LdapConfiguration.class);
     }
 
     /**
@@ -198,12 +257,14 @@ public class StaticJiraOAuth2ProxyHandlerTest {
 
         PowerMock.replay(OAuth2Utilities.class);
         PowerMock.replay(OAuth2ProxyUtilities.class);
+        PowerMock.replay(LdapConfiguration.class);
 
         assertFalse(
             handler.isProxyRequestAllowed(client, method, extraHeaders, target, body, null));
 
         PowerMock.verify(OAuth2Utilities.class);
         PowerMock.verify(OAuth2ProxyUtilities.class);
+        PowerMock.verify(LdapConfiguration.class);
     }
 
     /**
@@ -227,12 +288,14 @@ public class StaticJiraOAuth2ProxyHandlerTest {
 
         PowerMock.replay(OAuth2Utilities.class);
         PowerMock.replay(OAuth2ProxyUtilities.class);
+        PowerMock.replay(LdapConfiguration.class);
 
         assertFalse(
             handler.isProxyRequestAllowed(client, method, extraHeaders, target, body, null));
 
         PowerMock.verify(OAuth2Utilities.class);
         PowerMock.verify(OAuth2ProxyUtilities.class);
+        PowerMock.verify(LdapConfiguration.class);
     }
 
     /**
@@ -256,12 +319,14 @@ public class StaticJiraOAuth2ProxyHandlerTest {
 
         PowerMock.replay(OAuth2Utilities.class);
         PowerMock.replay(OAuth2ProxyUtilities.class);
+        PowerMock.replay(LdapConfiguration.class);
 
         assertFalse(
             handler.isProxyRequestAllowed(client, method, extraHeaders, target, body, null));
 
         PowerMock.verify(OAuth2Utilities.class);
         PowerMock.verify(OAuth2ProxyUtilities.class);
+        PowerMock.verify(LdapConfiguration.class);
     }
 
     /**
@@ -285,12 +350,14 @@ public class StaticJiraOAuth2ProxyHandlerTest {
 
         PowerMock.replay(OAuth2Utilities.class);
         PowerMock.replay(OAuth2ProxyUtilities.class);
+        PowerMock.replay(LdapConfiguration.class);
 
         assertFalse(
             handler.isProxyRequestAllowed(client, method, extraHeaders, target, body, null));
 
         PowerMock.verify(OAuth2Utilities.class);
         PowerMock.verify(OAuth2ProxyUtilities.class);
+        PowerMock.verify(LdapConfiguration.class);
     }
 
     /**
@@ -327,6 +394,7 @@ public class StaticJiraOAuth2ProxyHandlerTest {
 
         PowerMock.replay(OAuth2Utilities.class);
         PowerMock.replay(OAuth2ProxyUtilities.class);
+        PowerMock.replay(LdapConfiguration.class);
         replay(mockResponseWrapper);
         replay(mockHttpResponse);
 
@@ -334,6 +402,7 @@ public class StaticJiraOAuth2ProxyHandlerTest {
 
         PowerMock.verify(OAuth2Utilities.class);
         PowerMock.verify(OAuth2ProxyUtilities.class);
+        PowerMock.verify(LdapConfiguration.class);
         verify(mockResponseWrapper);
         verify(mockHttpResponse);
     }
@@ -364,12 +433,14 @@ public class StaticJiraOAuth2ProxyHandlerTest {
 
         PowerMock.replay(OAuth2Utilities.class);
         PowerMock.replay(OAuth2ProxyUtilities.class);
+        PowerMock.replay(LdapConfiguration.class);
 
         assertFalse(
             handler.isProxyRequestAllowed(client, method, extraHeaders, target, body, null));
 
         PowerMock.verify(OAuth2Utilities.class);
         PowerMock.verify(OAuth2ProxyUtilities.class);
+        PowerMock.verify(LdapConfiguration.class);
     }
 
     protected String buildRequestBodyJson(String projectId) throws ServiceException {
