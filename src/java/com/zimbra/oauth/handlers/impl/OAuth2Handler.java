@@ -259,14 +259,7 @@ public abstract class OAuth2Handler {
                 client), new Exception("Invalid config"));
         }
 
-        final String scopeIdentifier = StringUtils.isEmpty(datasourceType)
-            ? client
-            : client + "_" + datasourceType;
-        final String scope = StringUtils.join(new String[] { requiredScopes,
-            config.getString(String.format(OAuth2ConfigConstants.LC_OAUTH_SCOPE_TEMPLATE.getValue(),
-                client), scopeIdentifier, account) },
-            scopeDelimiter);
-
+        final String scope = buildScopeString(account, datasourceType);
         try {
             encodedRedirectUri = URLEncoder.encode(clientRedirectUri,
                 OAuth2Constants.ENCODING.getValue());
@@ -275,6 +268,21 @@ public abstract class OAuth2Handler {
         }
 
         return String.format(template, clientId, encodedRedirectUri, responseType, scope);
+    }
+
+    /**
+     * @param account The zimbra account
+     * @param type The datasource type
+     * @return The scope string with required scopes and ldap configured scopes
+     */
+    protected String buildScopeString(Account account, String type) {
+        final String scopeIdentifier = StringUtils.isEmpty(type)
+            ? client
+            : client + "_" + type;
+        return StringUtils.join(new String[] { requiredScopes,
+            config.getString(String.format(OAuth2ConfigConstants.LC_OAUTH_SCOPE_TEMPLATE.getValue(),
+                client), scopeIdentifier, account) },
+            scopeDelimiter);
     }
 
     /**
