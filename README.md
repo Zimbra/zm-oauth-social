@@ -75,6 +75,8 @@ See the [client setup wiki].
 | Google Contact | `https://www.googleapis.com/auth/contacts.readonly+profile:google_contact` |
 | Google CalDav | `https://www.googleapis.com/auth/calendar:google_caldav` |
 | Facebook | `user_friends,read_custom_friendlists,email,user_location,public_profile,user_about_me,user_birthday,groups_access_member_info:facebook_contact` |
+| Outlook | `profile+User.Read+Files.ReadWrite.All:outlook_noop` |
+| Outlook Contact | `https%3A%2F%2Foutlook.office.com%2Fcontacts.read:outlook_contact` |
 | Slack | `chat:write:bot,chat:write:user,groups:write,bot,users:read,users:read.email,team:read:slack_noop` |
 | Zoom | `meeting:write:zoom_noop` |
 
