@@ -379,7 +379,7 @@ public class OAuth2ResourceUtilities {
             }
         } catch (final ServiceException e) {
             String code = OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue();
-            int status = Status.UNAUTHORIZED.getStatusCode();
+            int status = Status.FORBIDDEN.getStatusCode();
             if (ServiceException.INVALID_REQUEST.equals(e.getCode())) {
                 code = OAuth2ErrorConstants.ERROR_PARAM_MISSING.getValue();
                 status = Status.BAD_REQUEST.getStatusCode();

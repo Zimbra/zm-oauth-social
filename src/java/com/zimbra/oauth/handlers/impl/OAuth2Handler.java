@@ -455,6 +455,9 @@ public abstract class OAuth2Handler {
                     "%d tokens found for identifier: %s type: %s client: %s", tokensFound,
                     identifier, type, client);
                 ZimbraLog.extensions.debug(message);
+                if (tokensFound < 1) {
+                    throw ServiceException.PERM_DENIED(message);
+                }
                 throw ServiceException.INVALID_REQUEST(message, null);
             }
             identifier = tokens.keySet().iterator().next();
