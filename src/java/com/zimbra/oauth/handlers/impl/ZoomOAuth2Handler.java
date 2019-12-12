@@ -35,6 +35,7 @@ import com.zimbra.common.util.StringUtil;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.Provisioning;
+import com.zimbra.oauth.handlers.IOAuth2CacheHandler;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.handlers.IOAuth2ProxyHandler;
 import com.zimbra.oauth.models.GuestRequest;
@@ -56,7 +57,7 @@ import com.zimbra.oauth.utilities.OAuth2Utilities;
  * @package com.zimbra.oauth.handlers.impl
  * @copyright Copyright © 2019
  */
-public class ZoomOAuth2Handler extends OAuth2Handler implements IOAuth2Handler, IOAuth2ProxyHandler {
+public class ZoomOAuth2Handler extends OAuth2Handler implements IOAuth2Handler, IOAuth2CacheHandler, IOAuth2ProxyHandler {
 
     private final String ERROR_TEMPLATE = "%s | Zoom error code: %s | Reason: %s";
 
@@ -499,4 +500,8 @@ public class ZoomOAuth2Handler extends OAuth2Handler implements IOAuth2Handler, 
         return String.format(ZoomOAuth2Constants.IDENTIFIER_TEMPLATE.getValue(), accountId, userId);
     }
 
+    @Override
+    public boolean isCacheValidForOAuth() {
+        return OAuth2CacheUtilities.isValidStorageType();
+    }
 }
