@@ -16,13 +16,9 @@
  */
 package com.zimbra.oauth.utilities;
 
-import java.util.concurrent.TimeUnit;
-
-import org.redisson.api.RBucket;
-import org.redisson.api.RedissonClient;
-
-import com.zimbra.cs.mailbox.RedissonClientHolder;
-import com.zimbra.cs.mailbox.redis.RedisUtils;
+import com.zimbra.oauth.cache.IOAuth2CacheHelper;
+import com.zimbra.oauth.cache.OAuth2NoopCacheHelper;
+import com.zimbra.oauth.cache.ephemeral.OAuth2EphemeralCacheHelper;
 
 /**
  * The OAuth2CacheUtilities class.
@@ -33,42 +29,38 @@ import com.zimbra.cs.mailbox.redis.RedisUtils;
  */
 public class OAuth2CacheUtilities {
 
-    /**
-     * Cache client instance.
-     */
-    protected static final RedissonClient client = RedissonClientHolder.getInstance().getRedissonClient();
+    protected static IOAuth2CacheHelper helper = loadCacheHelper();
+
+    public static boolean isValidStorageType() {
+        return helper.isValidStorageType();
+    }
 
     public static String put(String key, String value) {
-        getBucket(key).set(value);
-        return value;
+        return helper.put(key, value);
     }
 
     public static String put(String key, String value, long expiry) {
-        getBucket(key).set(value, expiry, TimeUnit.SECONDS);
-        return value;
+        return helper.put(key, value, expiry);
     }
 
-    public static String remove(String key) {
-        return getBucket(key).getAndDelete();
+    public static void remove(String key) {
+        helper.remove(key);
     }
 
     public static String get(String key) {
-        return get(key, null);
-    }
-
-    public static String get(String key, String defValue) {
-        String value = getBucket(key).get();
-        if (value == null) {
-            value = defValue;
-        }
-        return value;
+        return helper.get(key);
     }
 
     public static String buildAccountKey(String accountId, String key) {
-        return RedisUtils.createAccountRoutedKey(accountId, key);
+        return String.format("{%s}-%s", accountId, key);
     }
 
-    private static RBucket<String> getBucket(String key) {
-        return client.getBucket(key);
+    protected static IOAuth2CacheHelper loadCacheHelper() {
+        final IOAuth2CacheHelper cacheHelper = new OAuth2EphemeralCacheHelper();
+        // if storage type is not valid, we can't use the ephemeral cache
+        if (cacheHelper.isValidStorageType()) {
+            return cacheHelper;
+        }
+        return new OAuth2NoopCacheHelper();
     }
 }

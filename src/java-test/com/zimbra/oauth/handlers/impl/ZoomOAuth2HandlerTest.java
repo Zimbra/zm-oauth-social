@@ -392,7 +392,8 @@ public class ZoomOAuth2HandlerTest {
         // expect to build a cache key
         expect(DataSourceMetaData.buildRootCacheKey(handler.client, identifier)).andReturn(cacheKey);
         // expect to remove the cache value
-        expect(OAuth2CacheUtilities.remove(cacheKey)).andReturn(null);
+        OAuth2CacheUtilities.remove(cacheKey);
+        EasyMock.expectLastCall().once();
 
         replay(handler);
         PowerMock.replay(OAuth2CacheUtilities.class);
@@ -452,7 +453,8 @@ public class ZoomOAuth2HandlerTest {
         // expect to build a cache key
         expect(DataSourceMetaData.buildRootCacheKey(handler.client, identifier)).andReturn(cacheKey);
         // expect to remove the cache value
-        expect(OAuth2CacheUtilities.remove(cacheKey)).andReturn(null);
+        OAuth2CacheUtilities.remove(cacheKey);
+        EasyMock.expectLastCall().once();
 
         replay(handler);
         PowerMock.replay(OAuth2CacheUtilities.class);
