@@ -57,6 +57,9 @@ public class OAuth2EphemeralCacheHelper implements IOAuth2CacheHelper {
 
     @Override
     public boolean isValidStorageType() {
+        if (client == null) {
+            return false;
+        }
         try {
             // ssdb allows ssdb, redis for formless storage. ensure we're only using this for caching
             final String backendUrl = Provisioning.getInstance().getConfig().getEphemeralBackendURL();
