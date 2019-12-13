@@ -16,12 +16,9 @@
  */
 package com.zimbra.oauth.cache.ephemeral;
 
-import org.apache.commons.lang.StringUtils;
-
 import com.zimbra.cs.ephemeral.AttributeEncoder;
 import com.zimbra.cs.ephemeral.EphemeralKey;
-import com.zimbra.cs.ephemeral.ExpirableEphemeralKeyValuePair;
-import com.zimbra.oauth.utilities.OAuth2Constants;
+import com.zimbra.cs.ephemeral.EphemeralKeyValuePair;
 
 /**
  * The OAuth2AttributeEncoder class.
@@ -39,27 +36,8 @@ public class OAuth2AttributeEncoder extends AttributeEncoder {
     }
 
     @Override
-    public ExpirableEphemeralKeyValuePair decode(String key, String value) {
-        final String DELIMITER = OAuth2Constants.CACHE_VALUE_DELIMITER.getValue();
-        final EphemeralKey eKey = new EphemeralKey(key);
-        String decodedValue;
-        Long expires = null;
-        if (StringUtils.endsWith(value, DELIMITER)) {
-            // no expiration encoded
-            decodedValue = value.substring(0, value.length() - DELIMITER.length());
-        } else {
-            final int delimiterLastIndex = value.lastIndexOf(DELIMITER);
-            decodedValue = value.substring(0, delimiterLastIndex);
-            final String expiryStr = value.substring(delimiterLastIndex + DELIMITER.length());
-            try {
-                expires = Long.parseLong(expiryStr);
-            } catch (final NumberFormatException e) {
-                // fall back to the whole string being the value
-                decodedValue = value;
-            }
-        }
-        return new ExpirableEphemeralKeyValuePair(eKey, decodedValue, expires);
+    public EphemeralKeyValuePair decode(String key, String value) {
+        return new EphemeralKeyValuePair(new EphemeralKey(key), value);
     }
 
 }
-
