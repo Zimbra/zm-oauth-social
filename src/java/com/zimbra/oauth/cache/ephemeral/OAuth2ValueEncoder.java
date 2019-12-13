@@ -19,7 +19,6 @@ package com.zimbra.oauth.cache.ephemeral;
 import com.zimbra.cs.ephemeral.EphemeralInput;
 import com.zimbra.cs.ephemeral.EphemeralLocation;
 import com.zimbra.cs.ephemeral.ValueEncoder;
-import com.zimbra.oauth.utilities.OAuth2Constants;
 
 /**
  * The OAuth2ValueEncoder class.
@@ -31,20 +30,12 @@ import com.zimbra.oauth.utilities.OAuth2Constants;
  */
 public class OAuth2ValueEncoder extends ValueEncoder {
 
-    protected final String DELIMITER = OAuth2Constants.CACHE_VALUE_DELIMITER.getValue();
-
     @Override
     public String encodeValue(EphemeralInput input, EphemeralLocation target) {
         if(input == null || input.getValue() == null) {
             return null;
         }
-        final Long expires = input.getExpiration();
-        final String value = input.getValue().toString();
-        if (expires != null && expires > 0L) {
-            return String.format("%s%s%s", value, DELIMITER, String.valueOf(expires));
-        } else {
-            return String.format("%s%s", value, DELIMITER);
-        }
+        return input.getValue().toString();
     }
 
 }
