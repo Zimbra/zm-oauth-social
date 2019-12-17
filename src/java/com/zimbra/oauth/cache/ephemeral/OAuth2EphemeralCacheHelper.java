@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.zimbra.common.localconfig.LC;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Provisioning;
@@ -60,8 +61,13 @@ public class OAuth2EphemeralCacheHelper implements IOAuth2CacheHelper {
         if (client == null) {
             return false;
         }
+        // if redis service details exist assume this is zimbra x. ephemeral is handled with default setup
+        final String redisServiceUri = LC.get("redis_service_uri");
+        if (!StringUtils.isEmpty(redisServiceUri)) {
+            return true;
+        }
         try {
-            // ssdb allows ssdb, redis for formless storage. ensure we're only using this for caching
+            // `ssdb` allows ssdb, redis use for formless storage. ensure we're only using this for caching
             final String backendUrl = Provisioning.getInstance().getConfig().getEphemeralBackendURL();
             return StringUtils.startsWith(backendUrl, OAuth2Constants.CACHE_BACKEND_URL_PREFIX.getValue());
         } catch (final ServiceException e) {
