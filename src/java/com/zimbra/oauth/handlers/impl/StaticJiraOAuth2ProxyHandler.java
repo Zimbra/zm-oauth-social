@@ -93,6 +93,9 @@ public class StaticJiraOAuth2ProxyHandler extends StaticOAuth2ProxyHandler imple
     @Override
     public boolean isProxyRequestAllowed(String client, String method,
         Map<String, String> extraHeaders, String target, byte[] body, Account account) {
+        if (StringUtils.isEmpty(target)) {
+            return false;
+        }
         URIBuilder builder;
         try {
             builder = new URIBuilder(target);

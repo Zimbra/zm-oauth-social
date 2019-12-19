@@ -42,7 +42,10 @@ public enum OAuth2Constants {
     PROPERTIES_NAME_APPLICATION("application"),
 
     DEFAULT_PROXY_TYPE("noop"),
-    TOKEN_CACHE_LIFETIME("1800");
+    TOKEN_CACHE_LIFETIME("1800"),
+
+    CACHE_KEY_PREFIX("zm_oauth_social"),
+    CACHE_BACKEND_URL_PREFIX("ssdb");
 
     /**
      * The value of this enum.

@@ -26,6 +26,7 @@ import java.util.regex.Pattern;
 import com.google.common.collect.ImmutableMap;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.oauth.handlers.IOAuth2CacheHandler;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.handlers.IOAuth2ProxyHandler;
 import com.zimbra.oauth.handlers.impl.StaticJiraOAuth2ProxyHandler;
@@ -97,6 +98,13 @@ public class ClassManager {
         final IOAuth2Handler handler = getHandler(client);
         // verify it's a proxy handler
         if (handler != null && handler instanceof IOAuth2ProxyHandler) {
+            if (handler instanceof IOAuth2CacheHandler
+                && !((IOAuth2CacheHandler) handler).isCacheValidForProxy()) {
+                ZimbraLog.extensions.warn(
+                    "The specified proxy client is not supported with configured ephemeral backend: %s",
+                    client);
+                throw ServiceException.UNSUPPORTED();
+            }
             return (IOAuth2ProxyHandler) handler;
         }
         // no client proxy handler found
@@ -156,6 +164,14 @@ public class ClassManager {
                     }
                 }
             }
+        }
+        // make sure the handler can be used with available caching system
+        if (handler instanceof IOAuth2CacheHandler
+            && !((IOAuth2CacheHandler) handler).isCacheValidForOAuth()) {
+            ZimbraLog.extensions.warn(
+                "The specified client is not supported with configured ephemeral backend: %s",
+                client);
+            throw ServiceException.UNSUPPORTED();
         }
         return handler;
     }

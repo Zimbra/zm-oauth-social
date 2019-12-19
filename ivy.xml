@@ -14,7 +14,6 @@
       <dependency org="commons-lang" name="commons-lang" rev="2.6" />
       <dependency org="org.apache.httpcomponents" name="httpclient" rev="${httpclient.version}" />
       <dependency org="org.apache.httpcomponents" name="httpcore" rev="${httpclient.httpcore.version}" />
-      <dependency org="org.redisson" name="redisson-all" rev="3.10.7" />
       <!-- Local Requirements -->
       <dependency org="zimbra" name="zm-common" rev="latest.integration" />
       <dependency org="zimbra" name="zm-client" rev="latest.integration" />
