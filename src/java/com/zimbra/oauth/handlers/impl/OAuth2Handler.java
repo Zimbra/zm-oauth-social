@@ -280,6 +280,10 @@ public abstract class OAuth2Handler {
         final String scopeIdentifier = StringUtils.isEmpty(type)
             ? client
             : client + "_" + type;
+        if (scopeDelimiter == null) {
+            // scopes are not supported by this client
+            return requiredScopes;
+        }
         return Arrays
             .stream(new String[] { requiredScopes,
                 config.getString(

@@ -97,7 +97,7 @@ public class DropboxOAuth2HandlerTest {
     @Before
     public void setUp() throws Exception {
         handler = PowerMock.createPartialMockForAllMethodsExcept(DropboxOAuth2Handler.class,
-            "authorize", "authenticate", "info");
+            "authorize", "authenticate", "info", "buildScopeString");
         Whitebox.setInternalState(handler, "config", mockConfig);
         Whitebox.setInternalState(handler, "relayKey", DropboxOAuth2Constants.RELAY_KEY.getValue());
         Whitebox.setInternalState(handler, "typeKey",
@@ -293,6 +293,29 @@ public class DropboxOAuth2HandlerTest {
             verify(handler);
             verify(mockOAuthInfo);
         }
+    }
+
+    /**
+     * Test method for {@link DropboxOAuth2Handler#buildScopeString}<br>
+     * Validates that the buildScopeString method returns null when no scopes are used.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testBuildScopeString() throws Exception {
+        // expect null scope string
+        final String expectedScopes = null;
+
+        replay(handler);
+        replay(mockConfig);
+
+        final String scopes = handler.buildScopeString(null, "noop");
+
+        // verify build was called
+        verify(handler);
+        verify(mockConfig);
+
+        assertEquals(expectedScopes, scopes);
     }
 
 }
