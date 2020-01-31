@@ -22,10 +22,20 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.google.common.collect.ImmutableMap;
 import com.zimbra.common.localconfig.LC;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
+import com.zimbra.oauth.handlers.impl.DropboxOAuth2Handler;
+import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler;
+import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler;
+import com.zimbra.oauth.handlers.impl.OutlookOAuth2Handler;
+import com.zimbra.oauth.handlers.impl.SlackOAuth2Handler;
+import com.zimbra.oauth.handlers.impl.TwitterOAuth2Handler;
+import com.zimbra.oauth.handlers.impl.WebexOAuth2Handler;
+import com.zimbra.oauth.handlers.impl.YahooOAuth2Handler;
+import com.zimbra.oauth.handlers.impl.ZoomOAuth2Handler;
 
 /**
  * The Configuration class for this project.
@@ -41,6 +51,28 @@ public class Configuration {
      */
     protected static Map<String, Configuration> configCache = Collections
         .synchronizedMap(new HashMap<String, Configuration>());
+
+    /**
+     * Map of default configurations used by this project.<br>
+     * These may be overridden by matching localconfig keys.
+     *
+     * @see com.zimbra.common.localconfig.LC
+     */
+    protected static final Map<String, String> defaultLCConfigurations;
+    static {
+        final Map <String, String> handlers = new HashMap<String, String>();
+        // known dynamic client handler classes defined by this project
+        handlers.put("zm_oauth_classes_handlers_dropbox", DropboxOAuth2Handler.class.getCanonicalName());
+        handlers.put("zm_oauth_classes_handlers_facebook", FacebookOAuth2Handler.class.getCanonicalName());
+        handlers.put("zm_oauth_classes_handlers_google", GoogleOAuth2Handler.class.getCanonicalName());
+        handlers.put("zm_oauth_classes_handlers_outlook", OutlookOAuth2Handler.class.getCanonicalName());
+        handlers.put("zm_oauth_classes_handlers_slack", SlackOAuth2Handler.class.getCanonicalName());
+        handlers.put("zm_oauth_classes_handlers_twitter", TwitterOAuth2Handler.class.getCanonicalName());
+        handlers.put("zm_oauth_classes_handlers_webex", WebexOAuth2Handler.class.getCanonicalName());
+        handlers.put("zm_oauth_classes_handlers_yahoo", YahooOAuth2Handler.class.getCanonicalName());
+        handlers.put("zm_oauth_classes_handlers_zoom", ZoomOAuth2Handler.class.getCanonicalName());
+        defaultLCConfigurations = ImmutableMap.copyOf(handlers);
+    }
 
     /**
      * The config name.
@@ -85,13 +117,16 @@ public class Configuration {
     }
 
     /**
-     * Get the associated value with the key or the default value.
+     * Get the associated value with the key or the default value.<br>
+     * Falls back to default LC configurations if empty default provided.
      *
      * @param key A key to lookup
      * @param defaultValue A default value to use if value for key is empty
      * @return A value for the given key or the default value
      */
     public String getString(String key, String defaultValue) {
+        // if no default value is specified and the config key is known, use it
+        defaultValue = StringUtils.defaultIfEmpty(defaultValue, defaultLCConfigurations.get(key));
         return StringUtils.defaultIfEmpty(LC.get(key), defaultValue);
     }
 
@@ -141,14 +176,15 @@ public class Configuration {
     /**
      * Determines if a specified name is a valid client for this service.<br>
      * A client is valid if localconfig contains a specified handler class for
-     * the client.<br>
-     * Note this does not necessarily mean the class exists on the classpath.
+     * the client, or it is one of the known handlers defined by this project.<br>
+     * Note: LC containing the key does not necessarily mean the class exists on the classpath.
      *
      * @param name The client name
      * @return True if the client name is known by the service
      */
     protected static boolean isValidClient(String name) {
-        return !StringUtils.isEmpty(LC.get(OAuth2ConfigConstants.LC_HANDLER_CLASS_PREFIX.getValue() + name));
+        final String key = OAuth2ConfigConstants.LC_HANDLER_CLASS_PREFIX.getValue() + name;
+        return !StringUtils.isEmpty(LC.get(key)) || defaultLCConfigurations.containsKey(key);
     }
 
     /**
