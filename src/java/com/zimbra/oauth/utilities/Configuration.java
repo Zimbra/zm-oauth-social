@@ -60,18 +60,19 @@ public class Configuration {
      */
     protected static final Map<String, String> defaultLCConfigurations;
     static {
-        final Map <String, String> handlers = new HashMap<String, String>();
+        final Map <String, String> configs = new HashMap<String, String>();
         // known dynamic client handler classes defined by this project
-        handlers.put("zm_oauth_classes_handlers_dropbox", DropboxOAuth2Handler.class.getCanonicalName());
-        handlers.put("zm_oauth_classes_handlers_facebook", FacebookOAuth2Handler.class.getCanonicalName());
-        handlers.put("zm_oauth_classes_handlers_google", GoogleOAuth2Handler.class.getCanonicalName());
-        handlers.put("zm_oauth_classes_handlers_outlook", OutlookOAuth2Handler.class.getCanonicalName());
-        handlers.put("zm_oauth_classes_handlers_slack", SlackOAuth2Handler.class.getCanonicalName());
-        handlers.put("zm_oauth_classes_handlers_twitter", TwitterOAuth2Handler.class.getCanonicalName());
-        handlers.put("zm_oauth_classes_handlers_webex", WebexOAuth2Handler.class.getCanonicalName());
-        handlers.put("zm_oauth_classes_handlers_yahoo", YahooOAuth2Handler.class.getCanonicalName());
-        handlers.put("zm_oauth_classes_handlers_zoom", ZoomOAuth2Handler.class.getCanonicalName());
-        defaultLCConfigurations = ImmutableMap.copyOf(handlers);
+        final String handlerPrefix = OAuth2ConfigConstants.LC_HANDLER_CLASS_PREFIX.getValue();
+        configs.put(handlerPrefix + "dropbox", DropboxOAuth2Handler.class.getCanonicalName());
+        configs.put(handlerPrefix + "facebook", FacebookOAuth2Handler.class.getCanonicalName());
+        configs.put(handlerPrefix + "google", GoogleOAuth2Handler.class.getCanonicalName());
+        configs.put(handlerPrefix + "outlook", OutlookOAuth2Handler.class.getCanonicalName());
+        configs.put(handlerPrefix + "slack", SlackOAuth2Handler.class.getCanonicalName());
+        configs.put(handlerPrefix + "twitter", TwitterOAuth2Handler.class.getCanonicalName());
+        configs.put(handlerPrefix + "webex", WebexOAuth2Handler.class.getCanonicalName());
+        configs.put(handlerPrefix + "yahoo", YahooOAuth2Handler.class.getCanonicalName());
+        configs.put(handlerPrefix + "zoom", ZoomOAuth2Handler.class.getCanonicalName());
+        defaultLCConfigurations = ImmutableMap.copyOf(configs);
     }
 
     /**
