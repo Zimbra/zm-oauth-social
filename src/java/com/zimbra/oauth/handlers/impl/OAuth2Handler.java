@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.NameValuePair;
@@ -279,10 +280,17 @@ public abstract class OAuth2Handler {
         final String scopeIdentifier = StringUtils.isEmpty(type)
             ? client
             : client + "_" + type;
-        return StringUtils.join(new String[] { requiredScopes,
-            config.getString(String.format(OAuth2ConfigConstants.LC_OAUTH_SCOPE_TEMPLATE.getValue(),
-                client), scopeIdentifier, account) },
-            scopeDelimiter);
+        if (scopeDelimiter == null) {
+            // scopes are not supported by this client
+            return requiredScopes;
+        }
+        return Arrays
+            .stream(new String[] { requiredScopes,
+                config.getString(
+                    String.format(OAuth2ConfigConstants.LC_OAUTH_SCOPE_TEMPLATE.getValue(), client),
+                    scopeIdentifier, account) })
+            .filter(StringUtils::isNotEmpty)
+            .collect(Collectors.joining(scopeDelimiter));
     }
 
     /**

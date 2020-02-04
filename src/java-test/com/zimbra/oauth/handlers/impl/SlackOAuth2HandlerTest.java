@@ -95,7 +95,7 @@ public class SlackOAuth2HandlerTest {
     @Before
     public void setUp() throws Exception {
         handler = PowerMock.createPartialMockForAllMethodsExcept(SlackOAuth2Handler.class,
-            "authorize", "authenticate");
+            "authorize", "authenticate", "buildScopeString");
         Whitebox.setInternalState(handler, "config", mockConfig);
         Whitebox.setInternalState(handler, "relayKey", SlackOAuth2Constants.RELAY_KEY.getValue());
         Whitebox.setInternalState(handler, "typeKey",
@@ -106,6 +106,8 @@ public class SlackOAuth2HandlerTest {
             SlackOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue());
         Whitebox.setInternalState(handler, "client", SlackOAuth2Constants.CLIENT_NAME.getValue());
         Whitebox.setInternalState(handler, "dataSource", mockDataSource);
+        Whitebox.setInternalState(handler, "requiredScopes", SlackOAuth2Constants.REQUIRED_SCOPES.getValue());
+        Whitebox.setInternalState(handler, "scopeDelimiter", SlackOAuth2Constants.SCOPE_DELIMITER.getValue());
     }
 
     /**
@@ -229,6 +231,34 @@ public class SlackOAuth2HandlerTest {
         verify(mockConfig);
         verify(mockCredentials);
         verify(mockDataSource);
+    }
+
+    /**
+     * Test method for {@link SlackOAuth2Handler#buildScopeString}<br>
+     * Validates that the buildScopeString method returns configured values
+     * when no scopes are required, but some are configured in LDAP.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testBuildScopeString() throws Exception {
+        // expect configured scope string
+        final String expectedScopes = "chat:write:bot,chat:write:user,groups:write,bot,users:read,users:read.email,team:read";
+
+        // expect to fetch the scopes from config
+        expect(mockConfig.getString(anyObject(String.class), anyObject(String.class), anyObject(Account.class)))
+            .andReturn(expectedScopes);
+
+        replay(handler);
+        replay(mockConfig);
+
+        final String scopes = handler.buildScopeString(null, "noop");
+
+        // verify build was called
+        verify(handler);
+        verify(mockConfig);
+
+        assertEquals(expectedScopes, scopes);
     }
 
 }
