@@ -139,12 +139,12 @@ public class SlackOAuth2Handler extends OAuth2Handler implements IOAuth2Handler,
         /**
          * The authorize endpoint for Slack.
          */
-        AUTHORIZE_URI_TEMPLATE("https://slack.com/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s"),
+        AUTHORIZE_URI_TEMPLATE("https://slack.com/oauth/v2/authorize?client_id=%s&redirect_uri=%s&response_type=%s&user_scope=%s"),
 
         /**
          * The authenticate endpoint for Slack.
          */
-        AUTHENTICATE_URI("https://slack.com/api/oauth.access"),
+        AUTHENTICATE_URI("https://slack.com/api/oauth.v2.access"),
 
         /**
          * The scopes required for Slack.
@@ -214,15 +214,16 @@ public class SlackOAuth2Handler extends OAuth2Handler implements IOAuth2Handler,
     @Override
     protected void setResponseParams(JsonNode tokenResponse, OAuthInfo oauthInfo) {
         final Map<String, String> params = new HashMap<String, String>();
-        params.put("access_token", tokenResponse.get("access_token").asText());
-        params.put("user_id", tokenResponse.get("user_id").asText());
-        params.put("team_id", tokenResponse.get("team_id").asText());
+        final JsonNode authedUser = tokenResponse.get("authed_user");
+        params.put("access_token", authedUser.get("access_token").asText());
+        params.put("user_id", authedUser.get("id").asText());
+        params.put("team_id", tokenResponse.get("team").get("id").asText());
         oauthInfo.setParams(params);
     }
 
     @Override
     protected String getStorableToken(JsonNode credentials) {
-        return credentials.get("access_token").asText();
+        return credentials.get("authed_user").get("access_token").asText();
     }
 
     @Override
@@ -282,12 +283,12 @@ public class SlackOAuth2Handler extends OAuth2Handler implements IOAuth2Handler,
             }
         }
 
-        // ensure the tokens we requested are present
+        // ensure the data we requested is present
         // TODO: update this to require refresh_token when slack adds support for auto-expiring tokens
         // see https://api.slack.com/docs/rotating-and-refreshing-credentials
-        if (!response.has("access_token") || !response.has("user_id") || !response.has("team_id")) {
+        if (!response.has("authed_user") || !response.has("team")) {
             throw ServiceException.PARSE_ERROR(
-                "Unexpected response from social service. Missing any of required params: access_token, user_id, team_id.",
+                "Unexpected response from social service. Missing any of required params: authed_user, team.",
                 null);
         }
 
@@ -296,13 +297,15 @@ public class SlackOAuth2Handler extends OAuth2Handler implements IOAuth2Handler,
     @Override
     protected String getPrimaryEmail(JsonNode credentials, Account account)
         throws ServiceException {
-        final String teamId = credentials.get("team_id").asText();
-        final String userId = credentials.get("user_id").asText();
-        if (StringUtils.isEmpty(teamId) || StringUtils.isEmpty(userId)) {
-            throw ServiceException.PARSE_ERROR("Authentication response has empty user identifier parameters.",
-                null);
+        final JsonNode team = credentials.get("team");
+        final JsonNode authedUser = credentials.get("authed_user");
+        if (team.hasNonNull("id") && authedUser.hasNonNull("id")) {
+            final String teamId = team.get("id").asText();
+            final String userId = authedUser.get("id").asText();
+            return String.format(SlackOAuth2Constants.IDENTIFIER_TEMPLATE.getValue(), teamId, userId);
         }
-        return String.format(SlackOAuth2Constants.IDENTIFIER_TEMPLATE.getValue(), teamId, userId);
+        throw ServiceException.PARSE_ERROR("Authentication response has empty user identifier parameters.",
+            null);
     }
 
     @Override
