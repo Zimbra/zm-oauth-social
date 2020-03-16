@@ -36,7 +36,6 @@ import org.junit.runner.RunWith;
 import org.powermock.api.easymock.PowerMock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-import org.powermock.reflect.Whitebox;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.zimbra.cs.account.DataSource;
@@ -45,6 +44,7 @@ import com.zimbra.oauth.handlers.impl.TwitterContactsImport.TwitterContactsUtil;
 import com.zimbra.oauth.handlers.impl.TwitterOAuth2Handler.TwitterAuthorizationBuilder;
 import com.zimbra.oauth.handlers.impl.TwitterOAuth2Handler.TwitterContactConstants;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.OAuth2JsonUtilities;
 
 /**
  * Test class for {@link TwitterContactsImport}.
@@ -89,9 +89,7 @@ public class TwitterContactsImportTest {
         importer = PowerMock.createPartialMock(TwitterContactsImport.class,
             new String[] { "getAuthorizationBuilder", "buildContactsUrl", "getContactsRequest",
                 "getExistingContacts", "parseNewContacts" },
-            mockSource);
-
-        Whitebox.setInternalState(importer, "config", mockConfig);
+            mockSource, mockConfig);
 
         PowerMock.mockStatic(TwitterContactsUtil.class);
     }
@@ -123,7 +121,7 @@ public class TwitterContactsImportTest {
         // expect to execute the authorization builder
         expect(mockBuilder.build()).andReturn(authHeader);
         final String jsonData = "{\"next_cursor\":0,\"next_cursor_str\":\"0\",\"previous_cursor\":0,\"previous_cursor_str\":\"0\",\"users\":[{\"description\":\"Test User.\",\"entities\":{\"description\":{\"urls\":[]},\"url\":{\"urls\":[{\"display_url\":\"example.com\",\"expanded_url\":\"http://www.example.com\"}]}},\"id\":519555576,\"name\":\"Some Test\",\"screen_name\":\"SomeTest\"},{\"description\":\"Mr Unit's tweet space.\",\"entities\":{\"description\":{\"urls\":[]},\"url\":{\"urls\":[{\"display_url\":\"example.com\",\"expanded_url\":\"http://www.example.com\"}]}},\"id\":519555577,\"name\":\"Test Unit\",\"screen_name\":\"IntegrationTest\"},{\"description\":\"Test User2.\",\"entities\":{\"description\":{\"urls\":[]},\"url\":{\"urls\":[{\"display_url\":\"example.com\",\"expanded_url\":\"http://www.example.com\"}]}},\"id\":519555578,\"name\":\"Some Test2\",\"screen_name\":\"SomeTest2\"}]}";
-        final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
+        final JsonNode jsonResponse = OAuth2JsonUtilities.stringToJson(jsonData);
         expect(importer.getContactsRequest(anyObject(), matches(authHeader))).andReturn(jsonResponse);
         // expect parse new contacts to be called
         importer.parseNewContacts(anyObject(Set.class), anyObject(JsonNode.class),
@@ -157,7 +155,7 @@ public class TwitterContactsImportTest {
         final Set<String> existingContacts = new HashSet<String>();
         existingContacts.add("519555570");
         final String jsonData = "{\"next_cursor\":0,\"next_cursor_str\":\"0\",\"previous_cursor\":0,\"previous_cursor_str\":\"0\",\"users\":[{\"description\":\"Test User.\",\"entities\":{\"description\":{\"urls\":[]},\"url\":{\"urls\":[{\"display_url\":\"example.com\",\"expanded_url\":\"http://www.example.com\"}]}},\"id\":519555576,\"name\":\"Some Test\",\"screen_name\":\"SomeTest\"},{\"description\":\"Mr Unit's tweet space.\",\"entities\":{\"description\":{\"urls\":[]},\"url\":{\"urls\":[{\"display_url\":\"example.com\",\"expanded_url\":\"http://www.example.com\"}]}},\"id\":519555577,\"name\":\"Test Unit\",\"screen_name\":\"IntegrationTest\"},{\"description\":\"Test User2.\",\"entities\":{\"description\":{\"urls\":[]},\"url\":{\"urls\":[{\"display_url\":\"example.com\",\"expanded_url\":\"http://www.example.com\"}]}},\"id\":519555578,\"name\":\"Some Test2\",\"screen_name\":\"SomeTest2\"}]}";
-        final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
+        final JsonNode jsonResponse = OAuth2JsonUtilities.stringToJson(jsonData);
         final JsonNode jsonContacts = jsonResponse.get("users");
         final List<ParsedContact> createList = new ArrayList<ParsedContact>();
 
@@ -191,7 +189,7 @@ public class TwitterContactsImportTest {
         existingContacts.add("519555577");
         existingContacts.add("519555578");
         final String jsonData = "{\"next_cursor\":0,\"next_cursor_str\":\"0\",\"previous_cursor\":0,\"previous_cursor_str\":\"0\",\"users\":[{\"description\":\"Test User.\",\"entities\":{\"description\":{\"urls\":[]},\"url\":{\"urls\":[{\"display_url\":\"example.com\",\"expanded_url\":\"http://www.example.com\"}]}},\"id\":519555576,\"name\":\"Some Test\",\"screen_name\":\"SomeTest\"},{\"description\":\"Mr Unit's tweet space.\",\"entities\":{\"description\":{\"urls\":[]},\"url\":{\"urls\":[{\"display_url\":\"example.com\",\"expanded_url\":\"http://www.example.com\"}]}},\"id\":519555577,\"name\":\"Test Unit\",\"screen_name\":\"IntegrationTest\"},{\"description\":\"Test User2.\",\"entities\":{\"description\":{\"urls\":[]},\"url\":{\"urls\":[{\"display_url\":\"example.com\",\"expanded_url\":\"http://www.example.com\"}]}},\"id\":519555578,\"name\":\"Some Test2\",\"screen_name\":\"SomeTest2\"}]}";
-        final JsonNode jsonResponse = OAuth2Handler.mapper.readTree(jsonData);
+        final JsonNode jsonResponse = OAuth2JsonUtilities.stringToJson(jsonData);
         final JsonNode jsonContacts = jsonResponse.get("users");
         final List<ParsedContact> createList = new ArrayList<ParsedContact>();
 

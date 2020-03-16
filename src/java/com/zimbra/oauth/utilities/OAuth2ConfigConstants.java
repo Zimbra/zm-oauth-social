@@ -16,6 +16,7 @@
  */
 package com.zimbra.oauth.utilities;
 
+import com.zimbra.cs.account.Provisioning;
 
 /**
  * The OAuth2ConfigConstants class.<br>
@@ -37,8 +38,10 @@ public enum OAuth2ConfigConstants {
 
     OAUTH_CLIENT_ID("client_id"),
     OAUTH_CLIENT_SECRET("client_secret"),
+    OAUTH_VERIFICATION_TOKEN("verification_token"),
     OAUTH_CLIENT_REDIRECT_URI("client_redirect_uri"),
-    OAUTH_SCOPE("scope");
+    OAUTH_SCOPE("scope"),
+    OAUTH_STATIC_CREDENTIALS(Provisioning.A_zimbraOAuthConsumerCredentials);
 
     /**
      * The value of this enum.

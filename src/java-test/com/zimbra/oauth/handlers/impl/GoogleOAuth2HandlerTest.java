@@ -53,7 +53,7 @@ import com.zimbra.oauth.utilities.OAuth2HttpConstants;
  * Test class for {@link GoogleOAuth2Handler}.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ OAuth2DataSource.class, OAuth2Handler.class, GoogleOAuth2Handler.class, ZMailbox.class })
+@PrepareForTest({ OAuth2DataSource.class, GoogleOAuth2Handler.class, ZMailbox.class })
 @SuppressStaticInitializationFor("com.zimbra.client.ZMailbox")
 public class GoogleOAuth2HandlerTest {
 
@@ -149,7 +149,7 @@ public class GoogleOAuth2HandlerTest {
         // use contact type
         final Map<String, String> params = new HashMap<String, String>();
         params.put(OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue(), "contact");
-        final String stateValue = "&state=;contact";
+        final String stateValue = "&state=%3Bcontact";
         final String authorizeBase = String.format(
             GoogleOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code",
             GoogleOAuth2Constants.REQUIRED_SCOPES.getValue());
@@ -188,10 +188,7 @@ public class GoogleOAuth2HandlerTest {
         final OAuthInfo mockOAuthInfo = EasyMock.createMock(OAuthInfo.class);
         final ZMailbox mockZMailbox = EasyMock.createMock(ZMailbox.class);
         final JsonNode mockCredentials = EasyMock.createMock(JsonNode.class);
-        final JsonNode mockCredentialsRToken = EasyMock.createMock(JsonNode.class);
         final Map<String, Object> customAttrs = new HashMap<String, Object>();
-
-        PowerMock.mockStatic(OAuth2Handler.class);
 
         expect(mockOAuthInfo.getAccount()).andReturn(null);
         handler.loadClientConfig(null, mockOAuthInfo);
@@ -201,12 +198,11 @@ public class GoogleOAuth2HandlerTest {
         expect(handler.getDatasourceCustomAttrs(anyObject())).andReturn(customAttrs);
         expect(handler.getZimbraMailbox(anyObject(AuthToken.class), anyObject(Account.class)))
             .andReturn(mockZMailbox);
-        expect(OAuth2Handler.getTokenRequest(anyObject(OAuthInfo.class), anyObject(String.class)))
+        expect(handler.getToken(anyObject(OAuthInfo.class), anyObject(String.class)))
             .andReturn(mockCredentials);
         handler.validateTokenResponse(anyObject());
         EasyMock.expectLastCall().once();
-        expect(mockCredentials.get("refresh_token")).andReturn(mockCredentialsRToken);
-        expect(mockCredentialsRToken.asText()).andReturn(refreshToken);
+        expect(handler.getStorableToken(mockCredentials)).andReturn(refreshToken);
         expect(handler.getPrimaryEmail(anyObject(JsonNode.class), anyObject(Account.class)))
             .andReturn(username);
 
@@ -219,23 +215,23 @@ public class GoogleOAuth2HandlerTest {
         EasyMock.expectLastCall().once();
         mockDataSource.syncDatasource(mockZMailbox, mockOAuthInfo, customAttrs);
         EasyMock.expectLastCall().once();
+        mockOAuthInfo.setClientSecret(null);
+        EasyMock.expectLastCall().once();
+        handler.setResponseParams(mockCredentials, mockOAuthInfo);
+        EasyMock.expectLastCall().once();
 
         replay(handler);
-        PowerMock.replay(OAuth2Handler.class);
         replay(mockOAuthInfo);
         replay(mockConfig);
         replay(mockCredentials);
-        replay(mockCredentialsRToken);
         replay(mockDataSource);
 
         handler.authenticate(mockOAuthInfo);
 
         verify(handler);
-        PowerMock.verify(OAuth2Handler.class);
         verify(mockOAuthInfo);
         verify(mockConfig);
         verify(mockCredentials);
-        verify(mockCredentialsRToken);
         verify(mockDataSource);
     }
 

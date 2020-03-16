@@ -28,7 +28,7 @@ import com.zimbra.cs.account.Provisioning;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
-import com.zimbra.oauth.utilities.OAuth2DataSource;
+import com.zimbra.oauth.utilities.OAuth2DataSource.DataSourceMetaData;
 import com.zimbra.soap.admin.type.DataSourceType;
 
 /**
@@ -263,7 +263,6 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
             GoogleContactsImport.class.getCanonicalName());
         dataSource.addImportClass(DataSourceType.oauth2caldav.name(),
             CalDavOAuth2DataImport.class.getCanonicalName());
-
     }
 
     /**
@@ -282,6 +281,16 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
      */
     @Override
     protected void validateTokenResponse(JsonNode response) throws ServiceException {
+        validateRefreshTokenResponse(response);
+        // expect a refresh token on regular token responses
+        if (!response.has("refresh_token")) {
+            throw ServiceException.PARSE_ERROR(
+                "Unexpected response from social service. Missing refresh_token", null);
+        }
+    }
+
+    @Override
+    protected void validateRefreshTokenResponse(JsonNode response) throws ServiceException {
         // check for errors
         if (response.has("error")) {
             final String error = response.get("error").asText();
@@ -320,17 +329,17 @@ public class GoogleOAuth2Handler extends OAuth2Handler implements IOAuth2Handler
         }
 
         // ensure the tokens we requested are present
-        if (!response.has("access_token") || !response.has("refresh_token")) {
-            throw ServiceException.PARSE_ERROR("Unexpected response from social service.", null);
+        if (!response.has("access_token")) {
+            throw ServiceException
+                .PARSE_ERROR("Unexpected response from social service. Missing access_token", null);
         }
-
     }
 
     @Override
     protected Map<String, Object> getDatasourceCustomAttrs(OAuthInfo oauthInfo) throws ServiceException {
         final String type = oauthInfo.getParam("type");
         final Map<String, Object> dsAttrs = new HashMap<String, Object>();
-        if (DataSourceType.oauth2caldav == OAuth2DataSource.getDataSourceTypeForOAuth2(type)) {
+        if (DataSourceType.oauth2caldav == DataSourceMetaData.getDataSourceType(type)) {
             final String[] dsAttrArr = new String[] {GoogleCaldavConstants.DS_ATTR_VAL.getValue()};
             dsAttrs.put(Provisioning.A_zimbraDataSourcePort, GoogleCaldavConstants.DS_PORT.getValue());
             dsAttrs.put(Provisioning.A_zimbraDataSourceConnectionType, GoogleCaldavConstants.DS_CONNECTION_TYPE.getValue());

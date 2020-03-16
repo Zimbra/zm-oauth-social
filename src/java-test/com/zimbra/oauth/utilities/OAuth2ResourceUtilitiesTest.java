@@ -21,12 +21,15 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.matches;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.Cookie;
+import javax.ws.rs.core.Response.Status;
 
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -41,6 +44,7 @@ import com.zimbra.cs.account.AuthToken;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
 import com.zimbra.oauth.managers.ClassManager;
 import com.zimbra.oauth.models.OAuthInfo;
+import com.zimbra.oauth.models.ResponseObject;
 
 /**
  * Test class for {@link OAuth2ResourceUtilities}.
@@ -346,6 +350,164 @@ public class OAuth2ResourceUtilitiesTest {
 
         OAuth2ResourceUtilities.authenticate(client, new Cookie[] {}, new HashMap<String, String>(),
             params);
+
+        PowerMock.verify(ClassManager.class);
+        PowerMock.verify(OAuth2ResourceUtilities.class);
+        verify(mockHandler);
+    }
+
+    /**
+     * Test method for {@link OAuth2ResourceUtilities#refresh}<br>
+     * Validates that refresh triggers the handler refresh and
+     * responds with a ResponseObject.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testRefresh() throws Exception {
+        final String client = "test-client";
+        final String identifier = "test@zmc.com";
+        final String type = "noop";
+        final AuthToken mockAuthToken = EasyMock.createMock(AuthToken.class);
+        final Map<String, String[]> params = new HashMap<String, String[]>(1);
+        params.put("type", new String[] { type });
+
+        PowerMock.mockStaticPartial(OAuth2ResourceUtilities.class, "getAccount", "getAuthToken");
+
+        OAuth2ResourceUtilities.getAuthToken(anyObject(), anyObject(), anyObject(String.class));
+        PowerMock.expectLastCall().andReturn(mockAuthToken);
+        // expect the account to be fetched
+        OAuth2ResourceUtilities.getAccount(anyObject(AuthToken.class));
+        PowerMock.expectLastCall().andReturn(null);
+        expect(ClassManager.getHandler(matches(client))).andReturn(mockHandler);
+        expect(mockHandler.getAuthorizeParamKeys())
+            .andReturn(Arrays.asList("state", "type"));
+        expect(mockHandler.refresh(anyObject(OAuthInfo.class))).andReturn(true);
+
+        PowerMock.replay(ClassManager.class);
+        PowerMock.replay(OAuth2ResourceUtilities.class);
+        replay(mockHandler);
+
+        final ResponseObject<?> response = OAuth2ResourceUtilities.refresh(client, identifier,
+            new Cookie[] {}, new HashMap<String, String>(), params);
+        assertNotNull(response);
+        assertEquals(Status.OK.getStatusCode(), response.get_meta().getStatus());
+
+        PowerMock.verify(ClassManager.class);
+        PowerMock.verify(OAuth2ResourceUtilities.class);
+        verify(mockHandler);
+    }
+
+    /**
+     * Test method for {@link OAuth2ResourceUtilities#refresh}<br>
+     * Validates that refresh triggers the handler refresh and
+     * responds with a ResponseObject with status NOT_IMPLEMENTED.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testRefreshUnsupported() throws Exception {
+        final String client = "test-client";
+        final String identifier = "test@zmc.com";
+        final String type = "noop";
+        final AuthToken mockAuthToken = EasyMock.createMock(AuthToken.class);
+        final Map<String, String[]> params = new HashMap<String, String[]>(1);
+        params.put("type", new String[] { type });
+
+        PowerMock.mockStaticPartial(OAuth2ResourceUtilities.class, "getAccount", "getAuthToken");
+
+        OAuth2ResourceUtilities.getAuthToken(anyObject(), anyObject(), anyObject(String.class));
+        PowerMock.expectLastCall().andReturn(mockAuthToken);
+        // expect the account to be fetched
+        OAuth2ResourceUtilities.getAccount(anyObject(AuthToken.class));
+        PowerMock.expectLastCall().andReturn(null);
+        expect(ClassManager.getHandler(matches(client))).andReturn(mockHandler);
+        expect(mockHandler.getAuthorizeParamKeys())
+            .andReturn(Arrays.asList("state", "type"));
+        expect(mockHandler.refresh(anyObject(OAuthInfo.class)))
+            .andThrow(ServiceException.UNSUPPORTED());
+
+        PowerMock.replay(ClassManager.class);
+        PowerMock.replay(OAuth2ResourceUtilities.class);
+        replay(mockHandler);
+
+        final ResponseObject<?> response = OAuth2ResourceUtilities.refresh(client, identifier,
+            new Cookie[] {}, new HashMap<String, String>(), params);
+        assertNotNull(response);
+        assertEquals(Status.NOT_IMPLEMENTED.getStatusCode(), response.get_meta().getStatus());
+
+        PowerMock.verify(ClassManager.class);
+        PowerMock.verify(OAuth2ResourceUtilities.class);
+        verify(mockHandler);
+    }
+
+    /**
+     * Test method for {@link OAuth2ResourceUtilities#info}<br>
+     * Validates that info triggers the handler info and
+     * responds with a ResponseObject.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testInfo() throws Exception {
+        final String client = "test-client";
+        final AuthToken mockAuthToken = EasyMock.createMock(AuthToken.class);
+
+        PowerMock.mockStaticPartial(OAuth2ResourceUtilities.class, "getAccount", "getAuthToken");
+
+        OAuth2ResourceUtilities.getAuthToken(anyObject(), anyObject(), anyObject(String.class));
+        PowerMock.expectLastCall().andReturn(mockAuthToken);
+        // expect the account to be fetched
+        OAuth2ResourceUtilities.getAccount(anyObject(AuthToken.class));
+        PowerMock.expectLastCall().andReturn(null);
+        expect(ClassManager.getHandler(matches(client))).andReturn(mockHandler);
+        expect(mockHandler.info(anyObject(OAuthInfo.class))).andReturn(true);
+
+        PowerMock.replay(ClassManager.class);
+        PowerMock.replay(OAuth2ResourceUtilities.class);
+        replay(mockHandler);
+
+        final ResponseObject<?> response = OAuth2ResourceUtilities.info(client, new Cookie[] {},
+            new HashMap<String, String>());
+        assertNotNull(response);
+        assertEquals(Status.OK.getStatusCode(), response.get_meta().getStatus());
+
+        PowerMock.verify(ClassManager.class);
+        PowerMock.verify(OAuth2ResourceUtilities.class);
+        verify(mockHandler);
+    }
+
+    /**
+     * Test method for {@link OAuth2ResourceUtilities#info}<br>
+     * Validates that info triggers the handler info and
+     * responds with a ResponseObject with status NOT_FOUND.
+     *
+     * @throws Exception If there are issues testing
+     */
+    @Test
+    public void testInfoInvalidConfiguration() throws Exception {
+        final String client = "test-client";
+        final AuthToken mockAuthToken = EasyMock.createMock(AuthToken.class);
+
+        PowerMock.mockStaticPartial(OAuth2ResourceUtilities.class, "getAccount", "getAuthToken");
+
+        OAuth2ResourceUtilities.getAuthToken(anyObject(), anyObject(), anyObject(String.class));
+        PowerMock.expectLastCall().andReturn(mockAuthToken);
+        // expect the account to be fetched
+        OAuth2ResourceUtilities.getAccount(anyObject(AuthToken.class));
+        PowerMock.expectLastCall().andReturn(null);
+        expect(ClassManager.getHandler(matches(client))).andReturn(mockHandler);
+        expect(mockHandler.info(anyObject(OAuthInfo.class)))
+            .andThrow(ServiceException.NOT_FOUND("config not found"));
+
+        PowerMock.replay(ClassManager.class);
+        PowerMock.replay(OAuth2ResourceUtilities.class);
+        replay(mockHandler);
+
+        final ResponseObject<?> response = OAuth2ResourceUtilities.info(client, new Cookie[] {},
+            new HashMap<String, String>());
+        assertNotNull(response);
+        assertEquals(Status.NOT_FOUND.getStatusCode(), response.get_meta().getStatus());
 
         PowerMock.verify(ClassManager.class);
         PowerMock.verify(OAuth2ResourceUtilities.class);

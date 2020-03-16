@@ -31,6 +31,8 @@ public enum OAuth2HttpConstants {
     HEADER_CONTENT_TYPE("Content-Type"),
     HEADER_ACCEPT("Accept"),
     HEADER_LOCATION("Location"),
+    HEADER_DISABLE_EXTERNAL_REQUESTS("Disable-External-Requests"),
+    HEADER_USER_AGENT("User-Agent"),
     QUERY_ERROR("error"),
     QUERY_ERROR_MSG("error_msg"),
     COOKIE_AUTH_TOKEN("ZM_AUTH_TOKEN"),
@@ -38,7 +40,9 @@ public enum OAuth2HttpConstants {
     OAUTH2_RELAY_KEY("state"),
     OAUTH2_TYPE_KEY("type"),
 
-    JWT_PARAM_KEY("jwt");
+    JWT_PARAM_KEY("jwt"),
+
+    PROXY_USER_AGENT("Zimbra/oauth-proxy");
 
     /**
      * The value of this enum.
