@@ -86,6 +86,12 @@ public class ZOAuth2ProxyServlet extends ExtensionHttpHandler {
         doProxy(req, resp);
     }
 
+    @Override
+    public void doPatch(HttpServletRequest req, HttpServletResponse resp)
+        throws IOException, ServletException {
+        doProxy(req, resp);
+    }
+
     protected void doProxy(HttpServletRequest req, HttpServletResponse resp)
         throws IOException, ServletException {
         final String path = StringUtils.removeEndIgnoreCase(req.getPathInfo(), "/");
