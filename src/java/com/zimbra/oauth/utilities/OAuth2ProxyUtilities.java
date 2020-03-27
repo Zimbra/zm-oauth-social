@@ -36,6 +36,7 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
@@ -182,18 +183,24 @@ public class OAuth2ProxyUtilities {
                 method = new HttpGet(target);
             } else if (reqMethod.equalsIgnoreCase("POST")) {
                 final HttpPost post = new HttpPost(target);
-                if (body != null) {
+                if (body.length > 0) {
                     post.setEntity(buildEntity(body, req.getContentType()));
                 }
                 method = post;
             } else if (reqMethod.equalsIgnoreCase("PUT")) {
                 final HttpPut put = new HttpPut(target);
-                if (body != null) {
+                if (body.length > 0) {
                     put.setEntity(buildEntity(body, req.getContentType()));
                 }
                 method = put;
             } else if (reqMethod.equalsIgnoreCase("DELETE")) {
                 method = new HttpDelete(target);
+            } else if (reqMethod.equalsIgnoreCase("PATCH")) {
+                final HttpPatch patch = new HttpPatch(target);
+                if (body.length > 0) {
+                    patch.setEntity(buildEntity(body, req.getContentType()));
+                }
+                method = patch;
             } else {
                 ZimbraLog.extensions.info("unsupported request method: " + reqMethod);
                 sendError(resp, HttpServletResponse.SC_METHOD_NOT_ALLOWED,
@@ -235,7 +242,9 @@ public class OAuth2ProxyUtilities {
 
             HttpResponse httpResp = null;
             try {
-                if (!(reqMethod.equalsIgnoreCase("POST") || reqMethod.equalsIgnoreCase("PUT"))) {
+                if (!(reqMethod.equalsIgnoreCase("POST")
+                    || reqMethod.equalsIgnoreCase("PUT")
+                    || reqMethod.equalsIgnoreCase("PATCH"))) {
                     clientBuilder.setRedirectStrategy(new DefaultRedirectStrategy());
                 }
                 final HttpClient client = clientBuilder.build();
