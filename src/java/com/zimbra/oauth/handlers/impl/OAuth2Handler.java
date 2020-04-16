@@ -18,18 +18,23 @@ package com.zimbra.oauth.handlers.impl;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.message.BasicNameValuePair;
 
 import com.auth0.jwt.JWT;
@@ -37,7 +42,8 @@ import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.zimbra.client.ZMailbox;
 import com.zimbra.client.ZMailbox.Options;
 import com.zimbra.common.service.ServiceException;
@@ -47,13 +53,19 @@ import com.zimbra.cs.account.AuthToken;
 import com.zimbra.cs.account.ZimbraAuthToken;
 import com.zimbra.cs.util.AccountUtil;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
+import com.zimbra.oauth.handlers.IOAuth2ProxyHandler;
+import com.zimbra.oauth.models.GuestRequest;
 import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
+import com.zimbra.oauth.utilities.OAuth2CacheUtilities;
 import com.zimbra.oauth.utilities.OAuth2ConfigConstants;
 import com.zimbra.oauth.utilities.OAuth2Constants;
 import com.zimbra.oauth.utilities.OAuth2DataSource;
+import com.zimbra.oauth.utilities.OAuth2DataSource.DataSourceMetaData;
 import com.zimbra.oauth.utilities.OAuth2ErrorConstants;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
+import com.zimbra.oauth.utilities.OAuth2JsonUtilities;
+import com.zimbra.oauth.utilities.OAuth2ProxyUtilities;
 import com.zimbra.oauth.utilities.OAuth2Utilities;
 
 /**
@@ -113,9 +125,9 @@ public abstract class OAuth2Handler {
     protected final Configuration config;
 
     /**
-     * A mapper object that can convert between Java <-> JSON objects.
+     * Implementation token lifetime in cache (seconds).
      */
-    protected static final ObjectMapper mapper = OAuth2Utilities.createDefaultMapper();
+    protected long tokenCacheLifetime;
 
     /**
      * Constructor.
@@ -129,6 +141,7 @@ public abstract class OAuth2Handler {
         this.config = config;
         typeKey = OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue();
         dataSource = OAuth2DataSource.createDataSource(client, clientHost);
+        tokenCacheLifetime = Long.valueOf(OAuth2Constants.TOKEN_CACHE_LIFETIME.getValue());
     }
 
     /**
@@ -141,17 +154,48 @@ public abstract class OAuth2Handler {
     protected abstract void validateTokenResponse(JsonNode response) throws ServiceException;
 
     /**
+     * This method should be overridden if the implementing client
+     * expects a different token response on refresh.
+     *
+     * @see #validateTokenResponse(JsonNode)
+     */
+    protected void validateRefreshTokenResponse(JsonNode response)
+        throws ServiceException {
+        // validate as regular token response by default
+        validateTokenResponse(response);
+    }
+
+    /**
+     * This method should be overridden if the implementing client cannot use the
+     * standard getTokenRequest implementation.
+     *
+     * @see OAuth2Handler#getTokenRequest(OAuthInfo, String)
+     */
+    protected JsonNode getToken(OAuthInfo authInfo, String basicToken) throws ServiceException {
+        return getTokenRequest(authInfo, basicToken);
+    }
+
+    /**
+     * @see #getTokenRequest(OAuthInfo, String, Map)
+     */
+    public static JsonNode getTokenRequest(OAuthInfo authInfo, String basicToken)
+        throws ServiceException {
+        return getTokenRequest(authInfo, basicToken, Collections.emptyMap());
+    }
+
+    /**
      * Default get_token implementation, usable by standard oauth2 services.<br>
      * Builds and executes the get_token HTTP request for the client.
      *
      * @param authInfo Contains the auth info to use in the request
      * @param basicToken The basic authorization header
+     * @param extraHeaders Non-null map of extra token headers to add
      * @return Json response from the endpoint containing credentials
      * @throws ServiceException If there are issues performing the request or
      *             parsing for json
      */
-    public static JsonNode getTokenRequest(OAuthInfo authInfo, String basicToken)
-        throws ServiceException {
+    public static JsonNode getTokenRequest(OAuthInfo authInfo, String basicToken,
+        Map<String, String> extraHeaders) throws ServiceException {
         final String refreshToken = authInfo.getRefreshToken();
         final HttpPost request = new HttpPost(authInfo.getTokenUrl());
         final List<NameValuePair> params = new ArrayList<NameValuePair>();
@@ -167,6 +211,8 @@ public abstract class OAuth2Handler {
         params.add(new BasicNameValuePair("redirect_uri", authInfo.getClientRedirectUri()));
         params.add(new BasicNameValuePair("client_secret", authInfo.getClientSecret()));
         params.add(new BasicNameValuePair("client_id", authInfo.getClientId()));
+        // add extra headers
+        extraHeaders.forEach((k, v) -> params.add(new BasicNameValuePair(k, v)));
         setFormEntity(request, params);
         request.setHeader(OAuth2HttpConstants.HEADER_CONTENT_TYPE.getValue(),
             "application/x-www-form-urlencoded");
@@ -209,24 +255,12 @@ public abstract class OAuth2Handler {
             String.format(OAuth2ConfigConstants.LC_OAUTH_CLIENT_REDIRECT_URI_TEMPLATE.getValue(), client),
             client, account);
         if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientRedirectUri)) {
-            throw ServiceException
-                .FAILURE("Required config(id, and redirectUri) parameters are not provided.", null);
-        }
-
-        final String scopeIdentifier = StringUtils.isEmpty(datasourceType)
-            ? client
-            : client + "_" + datasourceType;
-        final String scope = StringUtils.join(new String[] { requiredScopes,
-            config.getString(String.format(OAuth2ConfigConstants.LC_OAUTH_SCOPE_TEMPLATE.getValue(),
-                client), scopeIdentifier, account) },
-            scopeDelimiter);
-
-        if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientRedirectUri)) {
             throw ServiceException.NOT_FOUND(String.format(
-                "The app: %s is not properly configured, please set Oauth credentials and redirect uri",
+                "The oauth client: %s is not properly configured. Please set oauth credentials and redirect uri.",
                 client), new Exception("Invalid config"));
         }
 
+        final String scope = buildScopeString(account, datasourceType);
         try {
             encodedRedirectUri = URLEncoder.encode(clientRedirectUri,
                 OAuth2Constants.ENCODING.getValue());
@@ -235,6 +269,28 @@ public abstract class OAuth2Handler {
         }
 
         return String.format(template, clientId, encodedRedirectUri, responseType, scope);
+    }
+
+    /**
+     * @param account The zimbra account
+     * @param type The datasource type
+     * @return The scope string with required scopes and ldap configured scopes
+     */
+    protected String buildScopeString(Account account, String type) {
+        final String scopeIdentifier = StringUtils.isEmpty(type)
+            ? client
+            : client + "_" + type;
+        if (scopeDelimiter == null) {
+            // scopes are not supported by this client
+            return requiredScopes;
+        }
+        return Arrays
+            .stream(new String[] { requiredScopes,
+                config.getString(
+                    String.format(OAuth2ConfigConstants.LC_OAUTH_SCOPE_TEMPLATE.getValue(), client),
+                    scopeIdentifier, account) })
+            .filter(StringUtils::isNotEmpty)
+            .collect(Collectors.joining(scopeDelimiter));
     }
 
     /**
@@ -260,7 +316,7 @@ public abstract class OAuth2Handler {
             oauthInfo.getClientId(), oauthInfo.getClientSecret());
         oauthInfo.setTokenUrl(authenticateUri);
         // request credentials from social service
-        final JsonNode credentials = getTokenRequest(oauthInfo, basicToken);
+        final JsonNode credentials = getToken(oauthInfo, basicToken);
         // ensure the response contains the necessary credentials
         validateTokenResponse(credentials);
         // determine account associated with credentials
@@ -272,12 +328,265 @@ public abstract class OAuth2Handler {
 
         // store refreshToken
         oauthInfo.setUsername(username);
-        oauthInfo.setRefreshToken(credentials.get("refresh_token").asText());
+        oauthInfo.setRefreshToken(getStorableToken(credentials));
         dataSource.syncDatasource(mailbox, oauthInfo, getDatasourceCustomAttrs(oauthInfo));
-        // add new datasource for calendar using oauth2calendar, if you want to use same
-        // oauthinfo for calendar datasource. see example below
-        // e.g. dataSource.syncDatasource(mailbox, oauthInfo, DataSourceType.oauth2calendar);
+
+        oauthInfo.setClientSecret(null);
+        // allow clients to set response params
+        setResponseParams(credentials, oauthInfo);
+
         return true;
+    }
+
+    /**
+     * @see IOAuth2Handler#refresh(OAuthInfo)
+     */
+    public Boolean refresh(OAuthInfo oauthInfo) throws ServiceException {
+        final Account account = oauthInfo.getAccount();
+        final String identifier = oauthInfo.getUsername();
+        final String type = oauthInfo.getParam(typeKey);
+        if (StringUtils.isEmpty(identifier) || StringUtils.isEmpty(type)) {
+            throw ServiceException.INVALID_REQUEST(
+                String.format("Missing arguments: identifier: %s, type: %s", identifier, type),
+                null);
+        }
+        loadClientConfig(account, oauthInfo);
+
+        final ZMailbox mailbox = getZimbraMailbox(oauthInfo.getZmAuthToken(), account);
+        String refreshToken = oauthInfo.getRefreshToken();
+        // fetch the refresh token if it isn't set already
+        if (StringUtils.isEmpty(refreshToken)) {
+            refreshToken = dataSource.getRefreshToken(mailbox, identifier, type);
+            if (StringUtils.isEmpty(refreshToken)) {
+                ZimbraLog.extensions.debug("No refresh token found for identifier: %s, and type: %s.",
+                    identifier, type);
+                throw ServiceException.INVALID_REQUEST(
+                    String.format("No refresh token found for identifier: %s, and type: %s.",
+                        identifier, type),
+                    null);
+            }
+            oauthInfo.setRefreshToken(refreshToken);
+        }
+
+        final String basicToken = OAuth2Utilities.encodeBasicHeader(
+            oauthInfo.getClientId(), oauthInfo.getClientSecret());
+        oauthInfo.setTokenUrl(authenticateUri);
+        // request credentials from social service
+        final JsonNode credentials = getToken(oauthInfo, basicToken);
+        // ensure the response contains the necessary credentials
+        validateRefreshTokenResponse(credentials);
+        ZimbraLog.extensions.trace("Refresh performed for: %s", identifier);
+
+        // update the refresh token if it has changed (some of them change on every use)
+        if (isStorableTokenRefreshed(refreshToken, credentials)) {
+            oauthInfo.setRefreshToken(getStorableToken(credentials));
+            ZimbraLog.extensions.debug("Updating oauth datasource with a new token");
+            dataSource.syncDatasource(mailbox, oauthInfo, getDatasourceCustomAttrs(oauthInfo));
+        } else {
+            dataSource.clearTokensCache(oauthInfo);
+        }
+        oauthInfo.setAccessToken(getUsableToken(credentials));
+        oauthInfo.setClientSecret(null);
+        // allow clients to set response params
+        setResponseParams(credentials, oauthInfo);
+
+        return true;
+    }
+
+    /**
+     * @see IOAuth2Handler#info(OAuthInfo)
+     */
+    public Boolean info(OAuthInfo oauthInfo) throws ServiceException {
+        final Account account = oauthInfo.getAccount();
+        loadClientConfig(account, oauthInfo);
+        oauthInfo.setClientSecret(null);
+
+        // only these params will be returned to the client
+        oauthInfo.setParams(Collections.singletonMap("client_id", oauthInfo.getClientId()));
+        return true;
+    }
+
+    /**
+     * @see IOAuth2Handler#event(GuestRequest)
+     */
+    public Boolean event(GuestRequest request) throws ServiceException {
+        ZimbraLog.extensions.debug("Event is not supported by this client: %s.", client);
+        throw ServiceException.UNSUPPORTED();
+    }
+
+    /**
+     * @see IOAuth2ProxyHandler#headers(OAuthInfo)
+     */
+    public Map<String, String> headers(OAuthInfo oauthInfo) throws ServiceException {
+        final String accessToken = findStoredAccessToken(oauthInfo);
+        return ImmutableMap.of(OAuth2HttpConstants.HEADER_AUTHORIZATION.getValue(),
+            buildAuthorizationHeader(accessToken),
+            OAuth2HttpConstants.HEADER_USER_AGENT.getValue(),
+            OAuth2HttpConstants.PROXY_USER_AGENT.getValue());
+    }
+
+    /**
+     * @see IOAuth2ProxyHandler#isProxyRequestAllowed(String, String, Map, String, byte[], Account)
+     */
+    public boolean isProxyRequestAllowed(String client, String method,
+        Map<String, String> extraHeaders, String target, byte[] body, Account account) {
+        if (StringUtils.isEmpty(target)) {
+            return false;
+        }
+        URIBuilder builder;
+        try {
+            builder = new URIBuilder(target);
+        } catch (final URISyntaxException e) {
+            ZimbraLog.extensions.warn("Unable to parse proxy target: %s", target);
+            return false;
+        }
+        return OAuth2ProxyUtilities.isAllowedTargetHost(builder.getHost(), account);
+    }
+
+    /**
+     * Attempts to find an access token if no identifier is provided or the client
+     * stores non-refreshable tokens. Fetches token from cache or full refresh otherwise.
+     *
+     * @param oauthInfo May or may not contain an identifier to validate against datasources
+     * @return An access token either newly refreshed, or from cache
+     * @throws ServiceException If there are issues
+     */
+    protected String findStoredAccessToken(OAuthInfo oauthInfo) throws ServiceException {
+        final Account account = oauthInfo.getAccount();
+        String identifier = oauthInfo.getParam("identifier");
+        final String type = OAuth2Constants.DEFAULT_PROXY_TYPE.getValue();
+
+        // find the identifier if none specified or find the access token if non refreshable
+        if (StringUtils.isEmpty(identifier) || !isRefreshable()) {
+            final Map<String, String> tokens = dataSource.getRefreshTokens(account, identifier, type);
+            // ensure there is only one if no identifier was specified
+            final int tokensFound = tokens.size();
+            if (tokensFound != 1) {
+                final String message = String.format(
+                    "%d tokens found for identifier: %s type: %s client: %s", tokensFound,
+                    identifier, type, client);
+                ZimbraLog.extensions.debug(message);
+                if (tokensFound < 1) {
+                    throw ServiceException.PERM_DENIED(message);
+                }
+                throw ServiceException.INVALID_REQUEST(message, null);
+            }
+            identifier = tokens.keySet().iterator().next();
+            // we're done if the token is not refreshable
+            if (!isRefreshable()) {
+                return tokens.get(identifier);
+            }
+            oauthInfo.setRefreshToken(tokens.get(identifier));
+        }
+        // identifier was found or specified, client is non refreshable
+        oauthInfo.setUsername(identifier);
+        return findAndCacheStoredRefreshableAccessToken(oauthInfo);
+    }
+
+    /**
+     * Fetches access token from cache, refreshes/caches if it's missing.
+     *
+     * @param oauthInfo Must contain zm auth token, zimbra account, username (identifier)
+     * @return An access token either newly refreshed, or from cache
+     * @throws ServiceException If there are issues
+     * @see #refresh(OAuthInfo)
+     */
+    protected String findAndCacheStoredRefreshableAccessToken(OAuthInfo oauthInfo)
+        throws ServiceException {
+        final String accountId = oauthInfo.getZmAuthToken().getAccountId();
+        final String identifier = oauthInfo.getUsername();
+        final String type = OAuth2Constants.DEFAULT_PROXY_TYPE.getValue();
+        final String cacheKey = DataSourceMetaData.buildTokenCacheKey(accountId, client,
+            identifier);
+        // check cache
+        String accessToken = OAuth2CacheUtilities.get(cacheKey);
+        if (!StringUtils.isEmpty(accessToken)) {
+            ZimbraLog.extensions.debug("Using cached access token for oauth proxy.");
+            return accessToken;
+        }
+
+        oauthInfo.setParams(ImmutableMap.of(typeKey, type));
+        refresh(oauthInfo);
+        accessToken = oauthInfo.getAccessToken();
+
+        // cache the access token (this may clobber if many requests are refreshing)
+        return OAuth2CacheUtilities.put(cacheKey, accessToken, tokenCacheLifetime);
+    }
+
+    /**
+     * This method should be overridden if the implementing client does not store a refresh token.
+     *
+     * @return True if this implementation stores a refresh token
+     */
+    protected boolean isRefreshable() {
+        return true;
+    }
+
+    /**
+     * Sets response parameters to return to the resource for use in redirect.<br>
+     * This method should be overridden if the implementing client returns
+     * different parameters.
+     *
+     * @param tokenResponse The get token response
+     * @param oauthInfo The oauthInfo to set the response params on
+     */
+    protected void setResponseParams(JsonNode tokenResponse, OAuthInfo oauthInfo) {
+        final Map<String, String> params = new HashMap<String, String>();
+        if ("noop".equalsIgnoreCase(oauthInfo.getParam("type"))) {
+            params.put("access_token", tokenResponse.get("access_token").asText());
+            params.put("email", oauthInfo.getUsername());
+        }
+        oauthInfo.setParams(params);
+    }
+
+    /**
+     * Get the token to store in datasource - defaults to refresh token.<br>
+     * This method should be overridden if the implementing client stores a different parameter.
+     *
+     * @param credentials The validated getToken response to retrieve token from
+     * @return The token to store
+     */
+    protected String getStorableToken(JsonNode credentials) {
+        return credentials.hasNonNull("refresh_token")
+            ? credentials.get("refresh_token").asText()
+            : null;
+    }
+
+    /**
+     * This method should be overridden if the implementing client uses a different parameter.
+     *
+     * @param credentials The validated getToken response to retrieve token from
+     * @return The token that may be used in requests to client services
+     */
+    protected String getUsableToken(JsonNode credentials) {
+        return credentials.hasNonNull("access_token")
+            ? credentials.get("access_token").asText()
+            : null;
+    }
+
+    /**
+     * This method should be overridden if the implementing client uses a different auth header.
+     *
+     * @param accessToken The stored or refreshed token depending on implementation
+     * @return An authorization header that may be used in requests to client services
+     */
+    protected String buildAuthorizationHeader(String accessToken) {
+        return String.format("Bearer %s", accessToken);
+    }
+
+    /**
+     * Determines if the datasource needs to be updated on refresh.<br>
+     * This method should be overridden if the implementing client has different refresh criteria.
+     *
+     * @param storedToken The current refresh token
+     * @param credentials The token response
+     * @return True if the refresh token needs to be updated
+     */
+    protected boolean isStorableTokenRefreshed(String storedToken, JsonNode credentials) {
+        final String newToken = getStorableToken(credentials);
+        // some clients won't return a refreshToken on refresh
+        // so check that the new token both exists and is new
+        return newToken != null && !"null".equals(newToken) && !newToken.equals(storedToken);
     }
 
     /**
@@ -300,8 +609,9 @@ public abstract class OAuth2Handler {
         // error if missing any
         if (StringUtils.isEmpty(clientId) || StringUtils.isEmpty(clientSecret)
             || StringUtils.isEmpty(clientRedirectUri)) {
-            throw ServiceException.FAILURE(
-                "Required config(id, secret and redirectUri) parameters are not provided.", null);
+            throw ServiceException.NOT_FOUND(String.format(
+                "The oauth client: %s is not properly configured. Please set oauth credentials and redirect uri.",
+                client), new Exception("Invalid config"));
         }
         // update the existing auth info
         authInfo.setClientId(clientId);
@@ -354,8 +664,14 @@ public abstract class OAuth2Handler {
      * @see IOAuth2Handler#getAuthenticateParamKeys()
      */
     public List<String> getAuthorizeParamKeys() {
-        // code, error, state are default oauth2 keys
         return Arrays.asList(relayKey, typeKey);
+    }
+
+    /**
+     * @see IOAuth2ProxyHandler#getHeadersParamKeys()
+     */
+    public List<String> getHeadersParamKeys() {
+        return ImmutableList.of("identifier", "target");
     }
 
     /**
@@ -400,7 +716,7 @@ public abstract class OAuth2Handler {
             throw ServiceException.INVALID_REQUEST("Missing type param in authorize request.", null);
         } else {
             //validate if type is valid
-            OAuth2DataSource.getDataSourceTypeForOAuth2(type);
+            DataSourceMetaData.getDataSourceType(type);
         }
     }
 
@@ -465,8 +781,8 @@ public abstract class OAuth2Handler {
                 if (relayValue.isEmpty()) {
                     relayValue = prefix + relayKey + "=";
                 }
-                relayValue += RELAY_DELIMETER
-                    + URLEncoder.encode(type, OAuth2Constants.ENCODING.getValue());
+                relayValue += URLEncoder.encode(RELAY_DELIMETER + type,
+                    OAuth2Constants.ENCODING.getValue());
             } catch (final UnsupportedEncodingException e) {
                 throw ServiceException.INVALID_REQUEST("Unable to encode type parameter.", e);
             }
@@ -478,8 +794,8 @@ public abstract class OAuth2Handler {
         // jwt is third and optional
         if (!jwt.isEmpty()) {
             try {
-                relayValue += RELAY_DELIMETER
-                    + URLEncoder.encode(jwt, OAuth2Constants.ENCODING.getValue());
+                relayValue += URLEncoder.encode(RELAY_DELIMETER + jwt,
+                    OAuth2Constants.ENCODING.getValue());
             } catch (final UnsupportedEncodingException e) {
                 throw ServiceException.INVALID_REQUEST("Unable to encode jwt parameter.", e);
             }
@@ -559,18 +875,12 @@ public abstract class OAuth2Handler {
     }
 
     /**
-     * Reads a given string into a json node.<br>
-     * Returns null if input is empty.
+     * Wrapper for tests.
      *
-     * @param jsonString The string to read
-     * @return A json node
-     * @throws IOException If there are issues parsing the string
+     * @see OAuth2JsonUtilities#stringToJson(String)
      */
     protected static JsonNode stringToJson(String jsonString) throws IOException {
-        if (StringUtils.isEmpty(jsonString)) {
-            return null;
-        }
-        return mapper.readTree(jsonString);
+        return OAuth2JsonUtilities.stringToJson(jsonString);
     }
 
     /**

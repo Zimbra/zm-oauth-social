@@ -29,6 +29,7 @@ public enum OAuth2Constants {
     API_NAME("zm-oauth-social"),
     ENCODING("utf-8"),
     DEFAULT_SERVER_PATH("/oauth2"),
+    PROXY_SERVER_PATH("/oauth2-proxy"),
 
     DEFAULT_SUCCESS_REDIRECT("/"),
     DEFAULT_HOST_URI_TEMPLATE("https://%s:443"),
@@ -38,7 +39,13 @@ public enum OAuth2Constants {
 
     CONTACTS_IMAGE_BUFFER_SIZE("2048"),
 
-    PROPERTIES_NAME_APPLICATION("application");
+    PROPERTIES_NAME_APPLICATION("application"),
+
+    DEFAULT_PROXY_TYPE("noop"),
+    TOKEN_CACHE_LIFETIME("1800"),
+
+    CACHE_KEY_PREFIX("zm_oauth_social"),
+    CACHE_BACKEND_URL_PREFIX("ssdb");
 
     /**
      * The value of this enum.

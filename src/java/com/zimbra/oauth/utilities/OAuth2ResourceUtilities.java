@@ -20,6 +20,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ import java.util.Map.Entry;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
@@ -45,8 +47,13 @@ import com.zimbra.cs.account.ZimbraJWToken;
 import com.zimbra.cs.service.AuthProvider;
 import com.zimbra.cs.service.util.JWTUtil;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
+import com.zimbra.oauth.handlers.IOAuth2ProxyHandler;
 import com.zimbra.oauth.managers.ClassManager;
+import com.zimbra.oauth.models.ErrorMessage;
+import com.zimbra.oauth.models.GuestRequest;
 import com.zimbra.oauth.models.OAuthInfo;
+import com.zimbra.oauth.models.ResponseMeta;
+import com.zimbra.oauth.models.ResponseObject;
 
 /**
  * The OAuth2ResourceUtilities class.
@@ -91,16 +98,23 @@ public class OAuth2ResourceUtilities {
             }
             return oauth2Handler.authorize(paramsForAuthorize, account);
         } catch (final ServiceException e) {
-            if (ServiceException.INVALID_REQUEST.equals(e.getCode())) {
+            final String code = e.getCode();
+            if (ServiceException.INVALID_REQUEST.equals(code)) {
                 // return redirect error if invalid request
                 return OAuth2ResourceUtilities.addQueryParams(
                     getValidatedRelay(oauth2Handler.getRelay(paramsForAuthorize)),
                     mapError(OAuth2ErrorConstants.ERROR_PARAM_MISSING.getValue(), e.getMessage()));
-            } else if (ServiceException.PERM_DENIED.equals(e.getCode())) {
+            } else if (ServiceException.PERM_DENIED.equals(code)) {
                 // return access denied error if perm denied
                 return OAuth2ResourceUtilities.addQueryParams(
                     getValidatedRelay(oauth2Handler.getRelay(paramsForAuthorize)),
                     mapError(OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue(), e.getMessage()));
+            } else if (ServiceException.NOT_FOUND.equals(code)) {
+                // return config missing error if not found
+                return OAuth2ResourceUtilities.addQueryParams(
+                    getValidatedRelay(oauth2Handler.getRelay(paramsForAuthorize)),
+                    mapError(OAuth2ErrorConstants.ERROR_CONFIGURATION_MISSING.getValue(),
+                        OAuth2ErrorConstants.ERROR_CONFIGURATION_MISSING_MSG.getValue()));
             }
             // otherwise bubble error
             throw e;
@@ -127,7 +141,7 @@ public class OAuth2ResourceUtilities {
         // check the client's state param for a jwt
         // get handler to validate the client
         final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
-        final Map<String, String> errorParams = new HashMap<String, String>();
+        final Map<String, String> responseParams = new HashMap<String, String>();
         final Map<String, String> params = getParams(oauth2Handler.getAuthenticateParamKeys(),
             queryParams);
 
@@ -137,11 +151,11 @@ public class OAuth2ResourceUtilities {
         } catch (final ServiceException e) {
             if (StringUtils.equals(ServiceException.PERM_DENIED, e.getCode())) {
                 // if unauthorized, pass along the error message
-                mapError(errorParams, OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue(),
+                mapError(responseParams, OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue(),
                     e.getMessage());
             } else {
                 // if invalid op, pass along the error message
-                mapError(errorParams, e.getCode(), null);
+                mapError(responseParams, e.getCode(), null);
             }
         }
 
@@ -150,14 +164,14 @@ public class OAuth2ResourceUtilities {
             params.get(OAuth2HttpConstants.JWT_PARAM_KEY.getValue()));
         if (authToken == null) {
             // if there is no zimbra session, the zimbra account cannot be identified
-            mapError(errorParams, OAuth2ErrorConstants.ERROR_INVALID_ZM_AUTH_CODE.getValue(),
+            mapError(responseParams, OAuth2ErrorConstants.ERROR_INVALID_ZM_AUTH_CODE.getValue(),
                 OAuth2ErrorConstants.ERROR_INVALID_ZM_AUTH_CODE_MSG.getValue());
         }
 
         // get account to auth the user
         final Account account = getAccount(authToken);
 
-        if (errorParams.isEmpty()) {
+        if (responseParams.isEmpty()) {
             try {
                 // no errors and authToken exists
                 // attempt to authenticate
@@ -165,23 +179,264 @@ public class OAuth2ResourceUtilities {
                 authInfo.setAccount(account);
                 authInfo.setZmAuthToken(authToken);
                 oauth2Handler.authenticate(authInfo);
+                // add any available params to the response params
+                responseParams.putAll(authInfo.getParams());
             } catch (final ServiceException e) {
                 // unauthorized does not have an error message associated
                 // with it
                 if (StringUtils.equals(ServiceException.PERM_DENIED, e.getCode())) {
-                    mapError(errorParams, OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue(),
+                    mapError(responseParams, OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue(),
                         null);
                 } else {
-                    mapError(errorParams,
+                    mapError(responseParams,
                         OAuth2ErrorConstants.ERROR_AUTHENTICATION_ERROR.getValue(),
                         e.getMessage());
                 }
             }
         }
 
-        // validate relay, then add error params if there are any, then redirect
+        // validate relay, then add response params if there are any, then redirect
         final String relay = oauth2Handler.getRelay(params);
-        return addQueryParams(getValidatedRelay(relay), errorParams);
+        return addQueryParams(getValidatedRelay(relay), responseParams);
+    }
+
+    /**
+     * Handles client manager acquisition, input organization, and error handling for the
+     * refresh call.
+     *
+     * @param client The client
+     * @param identifier The identifier to refresh (email, user id, etc)
+     * @param cookies Request cookies
+     * @param headers Request headers required for authenticate
+     * @param queryParams Map of query params
+     * @return A response object containing the json res and http status
+     */
+    public static ResponseObject<? extends Object> refresh(String client, String identifier, Cookie[] cookies,
+        Map<String, String> headers, Map<String, String[]> queryParams) {
+        AuthToken authToken = null;
+        Account account = null;
+        try {
+            // search for credentials
+            authToken = getAuthToken(cookies, headers, null);
+            if (authToken == null) {
+                // if there is no zimbra session, the zimbra account cannot be identified
+                throw ServiceException
+                    .PERM_DENIED("No zimbra auth token found");
+            }
+            // get account to auth the user
+            account = getAccount(authToken);
+        } catch (final ServiceException e) {
+            return new ResponseObject<ErrorMessage>(
+                new ErrorMessage(OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue(),
+                    OAuth2ErrorConstants.ERROR_INVALID_ZM_AUTH_CODE_MSG.getValue()),
+                new ResponseMeta(Status.UNAUTHORIZED.getStatusCode()));
+        }
+        // get handler to validate the request client
+        IOAuth2Handler oauth2Handler = null;
+        try {
+            oauth2Handler = ClassManager.getHandler(client);
+        } catch (final ServiceException e) {
+            return new ResponseObject<ErrorMessage>(
+                new ErrorMessage(OAuth2ErrorConstants.ERROR_INVALID_CLIENT.getValue()),
+                new ResponseMeta(Status.BAD_REQUEST.getStatusCode()));
+        }
+        // refresh uses the same params as authorize (only requires type)
+        final Map<String, String> params = getParams(oauth2Handler.getAuthorizeParamKeys(),
+            queryParams);
+        // this will contain new access token in the params map
+        final OAuthInfo oauthResponse = new OAuthInfo(params);
+        oauthResponse.setUsername(identifier);
+
+        try {
+            oauthResponse.setAccount(account);
+            oauthResponse.setZmAuthToken(authToken);
+            oauth2Handler.refresh(oauthResponse);
+        } catch (final ServiceException e) {
+            return buildHandlerErrorResponse(e);
+        }
+
+        return new ResponseObject<Map<String, String>>(oauthResponse.getParams(),
+            new ResponseMeta(Status.OK.getStatusCode()));
+    }
+
+    /**
+     * Handles client manager acquisition, input organization, and error handling for the
+     * info call.
+     *
+     * @param client The client
+     * @param cookies Request cookies
+     * @param headers Request headers required for authenticate
+     * @return A response object containing the json res and http status
+     */
+    public static ResponseObject<?> info(String client, Cookie[] cookies,
+        Map<String, String> headers) {
+        AuthToken authToken = null;
+        Account account = null;
+        try {
+            // search for credentials
+            authToken = getAuthToken(cookies, headers, null);
+            if (authToken == null) {
+                // if there is no zimbra session, the zimbra account cannot be identified
+                throw ServiceException
+                    .PERM_DENIED("No zimbra auth token found");
+            }
+            // get account to auth the user
+            account = getAccount(authToken);
+        } catch (final ServiceException e) {
+            return new ResponseObject<ErrorMessage>(
+                new ErrorMessage(OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue(),
+                    OAuth2ErrorConstants.ERROR_INVALID_ZM_AUTH_CODE_MSG.getValue()),
+                new ResponseMeta(Status.UNAUTHORIZED.getStatusCode()));
+        }
+        // get handler to validate the request client
+        IOAuth2Handler oauth2Handler = null;
+        try {
+            oauth2Handler = ClassManager.getHandler(client);
+        } catch (final ServiceException e) {
+            return new ResponseObject<ErrorMessage>(
+                new ErrorMessage(OAuth2ErrorConstants.ERROR_INVALID_CLIENT.getValue()),
+                new ResponseMeta(Status.BAD_REQUEST.getStatusCode()));
+        }
+        // this will contain public client info in the params map
+        final OAuthInfo oauthResponse = new OAuthInfo(Collections.emptyMap());
+
+        try {
+            oauthResponse.setAccount(account);
+            oauthResponse.setZmAuthToken(authToken);
+            oauth2Handler.info(oauthResponse);
+        } catch (final ServiceException e) {
+            return buildHandlerErrorResponse(e);
+        }
+
+        return new ResponseObject<Map<String, String>>(oauthResponse.getParams(),
+            new ResponseMeta(Status.OK.getStatusCode()));
+    }
+
+    /**
+     * Performs an event request as a guest (no specific request authorization).
+     *
+     * @param client The client the event is for
+     * @param headers The request headers
+     * @param body The request body in map format
+     * @throws ServiceException If there are issues handling the event
+     */
+    public static void event(String client, Map<String, String> headers,
+        Map<String, Object> body) throws ServiceException {
+        final IOAuth2Handler oauth2Handler = ClassManager.getHandler(client);
+        oauth2Handler.event(new GuestRequest(headers, body));
+    }
+
+    /**
+     * Fetches proxy headers for specific client.<br>
+     * Handles client manager acquisition, input organization, and error handling for the
+     * headers call.
+     *
+     * @param method The request method
+     * @param client The client to fetch headers for
+     * @param cookies Request cookies
+     * @param headers Request headers required for fetching the token
+     * @param queryParams Map of query params
+     * @param body Request body
+     * @return A response object containing the json res and http status
+     */
+    public static ResponseObject<?> headers(String method, String client, Cookie[] cookies,
+        Map<String, String> headers, Map<String, String[]> queryParams, byte[] body) {
+        AuthToken zmAuthToken = null;
+        Account account = null;
+        // auth the requesting Zimbra user
+        try {
+            zmAuthToken = getAuthToken(cookies, headers, null);
+            account = getAccount(zmAuthToken);
+        } catch (final ServiceException e) {
+            return new ResponseObject<ErrorMessage>(
+                new ErrorMessage(OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue(),
+                    OAuth2ErrorConstants.ERROR_INVALID_ZM_AUTH_CODE_MSG.getValue()),
+                new ResponseMeta(Status.UNAUTHORIZED.getStatusCode()));
+        }
+        // validate the specified client
+        IOAuth2ProxyHandler oauth2ProxyHandler = null;
+        try {
+            oauth2ProxyHandler = ClassManager.getProxyHandler(client);
+        } catch (final ServiceException e) {
+            return new ResponseObject<ErrorMessage>(
+                new ErrorMessage(OAuth2ErrorConstants.ERROR_INVALID_PROXY_CLIENT.getValue()),
+                new ResponseMeta(Status.BAD_REQUEST.getStatusCode()));
+        }
+        final Map<String, String> params = getParams(oauth2ProxyHandler.getHeadersParamKeys(),
+            queryParams);
+        // add client to query params so handler can reference if needed
+        params.put("client", client);
+        Map<String, String> extraHeaders = Collections.emptyMap();
+        try {
+            // fetch the proxy headers. should have at least one for authorization
+            final OAuthInfo oauthInfo = new OAuthInfo(params);
+            oauthInfo.setAccount(account);
+            oauthInfo.setZmAuthToken(zmAuthToken);
+            extraHeaders = oauth2ProxyHandler.headers(oauthInfo);
+            if (extraHeaders == null || extraHeaders.size() < 1) {
+                throw ServiceException.PERM_DENIED(
+                    String.format("Proxy headers not found for client %s.", client));
+            }
+        } catch (final ServiceException e) {
+            String code = OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue();
+            int status = Status.FORBIDDEN.getStatusCode();
+            if (ServiceException.INVALID_REQUEST.equals(e.getCode())) {
+                code = OAuth2ErrorConstants.ERROR_PARAM_MISSING.getValue();
+                status = Status.BAD_REQUEST.getStatusCode();
+            }
+            return new ResponseObject<ErrorMessage>(
+                new ErrorMessage(code, e.getMessage()),
+                new ResponseMeta(status));
+        }
+        // validate the proxy request
+        ZimbraLog.extensions.debug("Checking if oauth proxy request is allowed.");
+        if (!oauth2ProxyHandler.isProxyRequestAllowed(client, method, extraHeaders,
+            params.get("target"), body, account)) {
+            return new ResponseObject<ErrorMessage>(
+                new ErrorMessage(OAuth2ErrorConstants.ERROR_INVALID_PROXY_TARGET.getValue()),
+                new ResponseMeta(Status.BAD_REQUEST.getStatusCode()));
+        }
+
+        return new ResponseObject<Map<String, String>>(extraHeaders,
+            new ResponseMeta(Status.OK.getStatusCode()));
+    }
+
+    /**
+     * Builds an error ResponseObject from a thrown handler exception.<br>
+     * This method should be used on exceptions thrown by handlers, only in methods
+     * that return a ResponseObject<ErrorMessage> instead of a redirect location.
+     *
+     * @param e The exception to map
+     * @return ResponseObject with details about the error
+     */
+    protected static ResponseObject<ErrorMessage> buildHandlerErrorResponse(ServiceException e) {
+        final String code = e.getCode();
+        ErrorMessage message = null;
+        int responseStatus = Status.UNAUTHORIZED.getStatusCode();
+        // missing required params : 400
+        if (ServiceException.INVALID_REQUEST.equals(code)) {
+            responseStatus = Status.BAD_REQUEST.getStatusCode();
+            message = new ErrorMessage(
+                OAuth2ErrorConstants.ERROR_PARAM_MISSING.getValue(),
+                e.getMessage());
+        // missing required ldap configuration for this client : 404
+        } else if (ServiceException.NOT_FOUND.equals(code)) {
+            responseStatus = Status.NOT_FOUND.getStatusCode();
+            message = new ErrorMessage(
+                OAuth2ErrorConstants.ERROR_CONFIGURATION_MISSING.getValue(),
+                OAuth2ErrorConstants.ERROR_CONFIGURATION_MISSING_MSG.getValue());
+         // refresh not supported by this client : 501
+        } else if (ServiceException.UNSUPPORTED.equals(code)) {
+            responseStatus = Status.NOT_IMPLEMENTED.getStatusCode();
+            message = new ErrorMessage(
+                OAuth2ErrorConstants.ERROR_REFRESH_UNSUPPORTED.getValue(),
+                OAuth2ErrorConstants.ERROR_REFRESH_UNSUPPORTED_MSG.getValue());
+        // remaining service exceptions : 401
+        } else {
+            message = new ErrorMessage(OAuth2ErrorConstants.ERROR_ACCESS_DENIED.getValue());
+        }
+        return new ResponseObject<ErrorMessage>(message,
+            new ResponseMeta(responseStatus));
     }
 
     /**
@@ -393,7 +648,7 @@ public class OAuth2ResourceUtilities {
                 }
                 try {
                     account = AuthProvider.validateAuthToken(Provisioning.getInstance(),
-                        authToken, false);
+                        authToken, true);
                 } catch (final ServiceException e) {
                     throw ServiceException.PERM_DENIED(HttpServletResponse.SC_UNAUTHORIZED + ": "
                         + L10nUtil.getMessage(MsgKey.errMustAuthenticate));

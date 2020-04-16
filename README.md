@@ -41,6 +41,17 @@ See the [documentation for api usage].
 
 After a user completes the oauth2 flow, the credentials for their account will be stored as a data source with a configured folder created in the user's root mailbox during authentication. The import is triggered after successful completion of the OAuth flow. An import can also be triggered manually with a `zmsoap` import data request.
 
+**Resources**
+
+| Path | Description | Response Type |
+| ---- | ----------- | ------------- |
+| `/service/extension/oauth2/authorize/{client}` | Initiates the oauth2 flow with a redirect response. | HTTP Redirect |
+| `/service/extension/oauth2/authenticate/{client}` | Callback url for the social service in the oauth2 flow | HTTP Redirect |
+| `/service/extension/oauth2/refresh/{client}/{identifier}` | Acquires and returns a new access token for the identified social account (limited support) | JSON |
+| `/service/extension/oauth2/info/{client}` | Returns info for the specified client | JSON |
+| `/service/extension/oauth2/event/{client}` | This is currently only used by Zoom for deauthorization | 202 Accepted |
+| `/service/extension/oauth2-proxy/{client}?target={target}` | Similar to the Zimlet ProxyServlet, attaches configured Authorization header for the specified client. | Varies, JSON on error |
+
 ---
 
 ## Configuration
@@ -64,6 +75,10 @@ See the [client setup wiki].
 | Google Contact | `https://www.googleapis.com/auth/contacts.readonly+profile:google_contact` |
 | Google CalDav | `https://www.googleapis.com/auth/calendar:google_caldav` |
 | Facebook | `user_friends,read_custom_friendlists,email,user_location,public_profile,user_about_me,user_birthday,groups_access_member_info:facebook_contact` |
+| Outlook | `profile+User.Read+Files.ReadWrite.All:outlook_noop` |
+| Outlook Contact | `https%3A%2F%2Foutlook.office.com%2Fcontacts.read:outlook_contact` |
+| Slack | `groups:write,team:read,users:read,users:read.email,chat:write,mpim:write:slack_noop` |
+| Zoom | `meeting:write:zoom_noop` |
 
 Note: Delimiters can vary across clients.
 

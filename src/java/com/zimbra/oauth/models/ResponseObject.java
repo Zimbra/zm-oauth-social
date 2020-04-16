@@ -18,8 +18,6 @@ package com.zimbra.oauth.models;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.zimbra.oauth.utilities.OAuth2Constants;
-
 /**
  * The ResponseObject class.
  *
@@ -33,20 +31,21 @@ public class ResponseObject<E> {
     /**
      * Data of type.
      */
-    protected E data;
+    protected final E data;
 
     /**
      * Meta instance.
      */
-    protected Meta _meta = new Meta();
+    protected final ResponseMeta _meta;
 
     /**
      * Constructor.
      *
      * @param data A data object
      */
-    public ResponseObject(E data) {
+    public ResponseObject(E data, ResponseMeta meta) {
         this.data = data;
+        this._meta = meta;
     }
 
     /**
@@ -59,39 +58,12 @@ public class ResponseObject<E> {
     }
 
     /**
-     * Set data.
-     *
-     * @param data A data object
-     */
-    public void setData(E data) {
-        this.data = data;
-    }
-
-    /**
      * Get the Meta instance.
      *
      * @return The instance of Meta object
      */
-    public Meta get_meta() {
+    public ResponseMeta get_meta() {
         return _meta;
     }
 
-    /**
-     * Set the Meta instance.
-     *
-     * @param _meta An instance of Meta object
-     */
-    public void set_meta(Meta _meta) {
-        this._meta = _meta;
-    }
-
-    @XmlRootElement
-    protected class Meta {
-
-        protected final String api = OAuth2Constants.API_NAME.getValue();
-
-        public String getApi() {
-            return api;
-        }
-    }
 }

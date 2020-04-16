@@ -21,6 +21,7 @@ import java.util.Map;
 
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.cs.account.Account;
+import com.zimbra.oauth.models.GuestRequest;
 import com.zimbra.oauth.models.OAuthInfo;
 
 /**
@@ -52,6 +53,35 @@ public interface IOAuth2Handler {
      * @throws ServiceException If there are issues in this process
      */
     public Boolean authenticate(OAuthInfo oauthInfo) throws ServiceException;
+
+    /**
+     * Refreshes a user's token and updates the credentials in oauthInfo.
+     *
+     * @param oauthInfo Contains the info on which account/token to refresh
+     * @return True on success
+     * @throws ServiceException If there are issues in this process
+     */
+    public Boolean refresh(OAuthInfo oauthInfo) throws ServiceException;
+
+    /**
+     * Retrieves the client info for a specified client and sets it in oauthInfo
+     * params.
+     *
+     * @param oauthInfo Contains the client info
+     * @return True on success
+     * @throws ServiceException If there are issues in this process
+     */
+    public Boolean info(OAuthInfo oauthResponse) throws ServiceException;
+
+    /**
+     * Handles events for the client.<br>
+     * This method is not provided with an authorized account before execution.
+     *
+     * @param request Contains client and request info
+     * @return True on success
+     * @throws ServiceException If there are issues in this process
+     */
+    public Boolean event(GuestRequest request) throws ServiceException;
 
     /**
      * Returns a list of keys to expect during authenticate callback.

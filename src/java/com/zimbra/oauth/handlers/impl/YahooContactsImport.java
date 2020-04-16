@@ -131,6 +131,17 @@ public class YahooContactsImport implements DataImport {
         }
     }
 
+    /**
+     * Constructor.
+     *
+     * @param datasource The datasource to set
+     * @param config The config
+     */
+    public YahooContactsImport(DataSource datasource, Configuration config) {
+        this.mDataSource = datasource;
+        this.config = config;
+    }
+
     @Override
     public void test() throws ServiceException {
         final Pair<String, String> tokenAndGuid = refresh();

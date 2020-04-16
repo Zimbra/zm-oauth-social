@@ -19,6 +19,10 @@
       <dependency org="zimbra" name="zm-client" rev="latest.integration" />
       <dependency org="zimbra" name="zm-soap" rev="latest.integration" />
       <dependency org="zimbra" name="zm-store" rev="latest.integration" />
+      <!-- Transitive Requirements -->
+      <dependency org="com.fasterxml.jackson.core" name="jackson-core" rev="2.9.2"/>
+      <dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="2.9.2"/>
+      <dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="2.9.2"/>
       <!-- Test Requirements -->
       <dependency org="junit" name="junit" rev="4.8.2" />
       <dependency org="org.powermock" name="powermock-core" rev="1.6.5" />
@@ -33,7 +37,7 @@
       <dependency org="org.objenesis" name="objenesis" rev="1.2"/>
       <dependency org="asm" name="asm" rev="3.3.1" />
       <dependency org="log4j" name="log4j" rev="1.2.16" />
-      <dependency org="dom4j" name="dom4j" rev="1.5.2" />
+      <dependency org="org.dom4j" name="dom4j" rev="${dom4j.version}" />
       <dependency org="org.json" name="json" rev="20090211" />
       <dependency org="org.apache.httpcomponents" name="httpmime" rev="4.5.8" />
       <!-- Doclet Requirements -->

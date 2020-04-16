@@ -150,7 +150,7 @@ public class FacebookOAuth2HandlerTest {
         // use contact type
         final Map<String, String> params = new HashMap<String, String>();
         params.put(OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue(), "contact");
-        final String stateValue = "&state=;contact";
+        final String stateValue = "&state=%3Bcontact";
         final String authorizeBase = String.format(
             FacebookOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code",
             FacebookOAuth2Constants.REQUIRED_SCOPES.getValue());

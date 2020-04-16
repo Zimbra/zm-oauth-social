@@ -27,6 +27,7 @@ import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.IOAuth2Handler;
+import com.zimbra.oauth.models.OAuthInfo;
 import com.zimbra.oauth.utilities.Configuration;
 import com.zimbra.oauth.utilities.OAuth2HttpConstants;
 import com.zimbra.soap.admin.type.DataSourceType;
@@ -236,6 +237,12 @@ public class YahooOAuth2Handler extends OAuth2Handler implements IOAuth2Handler 
         // add associated import classes
         dataSource.addImportClass(DataSourceType.oauth2contact.name(),
             YahooContactsImport.class.getCanonicalName());
+    }
+
+    @Override
+    public Boolean refresh(OAuthInfo oauthInfo) throws ServiceException {
+        ZimbraLog.extensions.info("Refresh is not supported for: %s", client);
+        throw ServiceException.UNSUPPORTED();
     }
 
     /**

@@ -142,7 +142,7 @@ public class TwitterOAuth2HandlerTest {
         final String authorizeToken = "token";
         final String authorizeSecret = "secret";
         final String authorizeTokenRaw = "oauth_token=%s&oauth_token_secret=%s&oauth_callback_confirmed=%s";
-        final String stateValue = "?state=;contact";
+        final String stateValue = "?state=%3Bcontact";
         // use contact type
         final Map<String, String> params = new HashMap<String, String>();
         params.put(OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue(), "contact");
