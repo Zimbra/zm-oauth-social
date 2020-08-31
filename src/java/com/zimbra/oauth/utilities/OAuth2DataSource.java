@@ -125,6 +125,28 @@ public class OAuth2DataSource {
     }
 
     /**
+     * Updates DataSource(s) refresh token, or creates them if none exist for the specified
+     * username and types. Triggers the data sync if the importClass is defined.<br>
+     * Handles multiple types from the credential type param.
+     *
+     * @param mailbox The user's mailbox
+     * @param credentials Credentials containing the username, and refreshToken
+     * @param dsCustomAttrs Map of custom datasource attributes to set
+     * @throws ServiceException
+     */
+    public void syncDatasource(ZMailbox mailbox, OAuthInfo credentials, Map <String, Object> dsCustomAttrs)
+        throws ServiceException {
+        final String types = credentials.getParam("type");
+        for (final String type : StringUtils.split(types, ",")) {
+            Map<String, Object> dsAttrs = null;
+            if (dsCustomAttrs != null && dsCustomAttrs.get(type) instanceof Map<?, ?>) {
+                dsAttrs = (Map<String, Object>) dsCustomAttrs.get(type);
+            }
+            syncDatasource(mailbox, credentials, dsAttrs, type);
+        }
+    }
+
+    /**
      * Updates a DataSource refresh token, or creates one if none exists for the
      * specified username. Triggers the data sync if the importClass is defined.
      *
@@ -132,10 +154,10 @@ public class OAuth2DataSource {
      * @param credentials Credentials containing the username, and refreshToken
      * @throws InvalidResponseException If there are issues
      */
-    public void syncDatasource(ZMailbox mailbox, OAuthInfo credentials, Map <String, Object> dsCustomAttrs) throws ServiceException {
+    public void syncDatasource(ZMailbox mailbox, OAuthInfo credentials, Map <String, Object> dsCustomAttrs, String type)
+        throws ServiceException {
         final String username = credentials.getUsername();
         final String refreshToken = credentials.getRefreshToken();
-        final String type = credentials.getParam("type");
         final DataSourceMetaData meta = DataSourceMetaData.from(mailbox.getAccountId(), username,
             type, client);
         OAuth2CacheUtilities.remove(meta.getTokenCacheKey());
