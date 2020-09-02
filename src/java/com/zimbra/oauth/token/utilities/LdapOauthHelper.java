@@ -1,5 +1,7 @@
 package com.zimbra.oauth.token.utilities;
 
+import java.util.Arrays;
+
 import org.apache.commons.lang.StringUtils;
 
 import com.zimbra.common.service.ServiceException;
@@ -32,6 +34,27 @@ public class LdapOauthHelper {
         return values;
     }
 
+
+    /**
+     * Retrieve first instance of specified configuration for the client.<br>
+     * Client is not validated against LC handlers.
+     *
+     * @param key The config key
+     * @param appName The client
+     * @param account The account to search by
+     * @return The first instance of the configuration
+     */
+    public static String getFirstConfig(String key, String appName, Account account) {
+        final String[] registeredOAuth2Clients = loadConfiguration(account, key, appName);
+        String rawConfig = null;
+        if (registeredOAuth2Clients != null) {
+            rawConfig = Arrays.stream(registeredOAuth2Clients)
+                .filter(c -> StringUtils.endsWith(c, appName))
+                .findFirst()
+                .orElse(null);
+        }
+        return rawConfig;
+    }
 
 
 }

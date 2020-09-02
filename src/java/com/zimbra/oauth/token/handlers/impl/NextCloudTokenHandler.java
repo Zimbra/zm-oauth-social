@@ -70,18 +70,18 @@ public class NextCloudTokenHandler {
         final OAuthInfo oauthInfo = new OAuthInfo(new HashMap<String, String>());
         final String refreshToken = OAuth2DataSource.getRefreshToken(dataSource);
 
-        String [] values = com.zimbra.oauth.token.utilities.LdapOauthHelper.loadConfiguration(acct, Provisioning.A_zimbraOAuthConsumerCredentials,
-            client) ;
-        String indVa [] = values[0].split(":");
+        String value = com.zimbra.oauth.token.utilities.LdapOauthHelper.getFirstConfig(Provisioning.A_zimbraOAuthConsumerCredentials,
+                client, acct) ;
+        String indVa [] = value.split(":");
         final String clientId = indVa[0];
         final String clientSecret = indVa[1];
-        values = LdapOauthHelper.loadConfiguration(acct, Provisioning.A_zimbraOAuthConsumerRedirectUri,
-            client) ;
-        String redirecUri = values[0].substring(0, values[0].lastIndexOf(":"));
+        value = LdapOauthHelper.getFirstConfig(Provisioning.A_zimbraOAuthConsumerRedirectUri,
+            client, acct) ;
+        String redirecUri = value.substring(0, value.lastIndexOf(":"));
         final String clientRedirectUri = redirecUri;
 
-        values = LdapOauthHelper.loadConfiguration(acct,  Provisioning.A_zimbraOAuthConsumerAPIScope,client);
-        String nextCloudUrl =  values[0].substring(0, values[0].lastIndexOf(":"));
+        value = LdapOauthHelper.getFirstConfig(Provisioning.A_zimbraOAuthConsumerAPIScope,client, acct);
+        String nextCloudUrl =value.substring(0, value.lastIndexOf(":"));
 
         if (StringUtil.isNullOrEmpty(clientId) || StringUtil.isNullOrEmpty(clientSecret)
             || StringUtil.isNullOrEmpty(clientRedirectUri)) {
