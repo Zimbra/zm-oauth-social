@@ -42,7 +42,9 @@ public enum OAuth2ErrorConstants {
     ERROR_CONFIGURATION_MISSING_MSG("OAuth is not properly configured for this client."),
     ERROR_INVALID_PROXY_TARGET("invalid_proxy_target"),
     ERROR_INVALID_PROXY_CLIENT("invalid_proxy_client"),
-    ERROR_INVALID_PROXY_RESPONSE("invalid_proxy_response");
+    ERROR_INVALID_PROXY_RESPONSE("invalid_proxy_response"),
+    ERROR_INVALID_CLIENT_TYPES("invalid_client_and_types"),
+    ERROR_INVALID_CLIENT_TYPES_MSG("Client and types combination not supported.");
 
     /**
      * The value of this enum.
