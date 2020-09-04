@@ -16,7 +16,7 @@ The `zm-build` and `zm-zcs` projects should also reside in the same local parent
 
 
 **Deploying the extension from CLI**
-
+Test deploy 2 jars
 For testing purposes you can build and deploy the extension to `/opt/zimbra/lib/ext/zm-oauth-social` by running the following:
 
 ```sh
@@ -45,7 +45,7 @@ After a user completes the oauth2 flow, the credentials for their account will b
 
 | Path | Description | Response Type |
 | ---- | ----------- | ------------- |
-| `/service/extension/oauth2/authorize/{client}` | Initiates the oauth2 flow with a redirect response. | HTTP Redirect |
+| `/service/extension/oauth2/authorize/{client}?type={type}` | Initiates the oauth2 flow with a redirect response. Type is one of `contact`, `calendar`, `caldav` or `noop` see: OAuth2DataSource.java.  | HTTP Redirect |
 | `/service/extension/oauth2/authenticate/{client}` | Callback url for the social service in the oauth2 flow | HTTP Redirect |
 | `/service/extension/oauth2/refresh/{client}/{identifier}` | Acquires and returns a new access token for the identified social account (limited support) | JSON |
 | `/service/extension/oauth2/info/{client}` | Returns info for the specified client | JSON |

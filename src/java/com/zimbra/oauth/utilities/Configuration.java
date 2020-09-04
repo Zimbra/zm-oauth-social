@@ -30,6 +30,7 @@ import com.zimbra.cs.account.Account;
 import com.zimbra.oauth.handlers.impl.DropboxOAuth2Handler;
 import com.zimbra.oauth.handlers.impl.FacebookOAuth2Handler;
 import com.zimbra.oauth.handlers.impl.GoogleOAuth2Handler;
+import com.zimbra.oauth.handlers.impl.NextcloudOAuth2Handler;
 import com.zimbra.oauth.handlers.impl.OutlookOAuth2Handler;
 import com.zimbra.oauth.handlers.impl.SlackOAuth2Handler;
 import com.zimbra.oauth.handlers.impl.TwitterOAuth2Handler;
@@ -66,6 +67,7 @@ public class Configuration {
         configs.put(handlerPrefix + "dropbox", DropboxOAuth2Handler.class.getCanonicalName());
         configs.put(handlerPrefix + "facebook", FacebookOAuth2Handler.class.getCanonicalName());
         configs.put(handlerPrefix + "google", GoogleOAuth2Handler.class.getCanonicalName());
+        configs.put(handlerPrefix + "nextcloud", NextcloudOAuth2Handler.class.getCanonicalName());
         configs.put(handlerPrefix + "outlook", OutlookOAuth2Handler.class.getCanonicalName());
         configs.put(handlerPrefix + "slack", SlackOAuth2Handler.class.getCanonicalName());
         configs.put(handlerPrefix + "twitter", TwitterOAuth2Handler.class.getCanonicalName());
