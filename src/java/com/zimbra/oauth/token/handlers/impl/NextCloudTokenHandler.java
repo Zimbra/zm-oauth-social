@@ -80,8 +80,13 @@ public class NextCloudTokenHandler {
         String redirecUri = value.substring(0, value.lastIndexOf(":"));
         final String clientRedirectUri = redirecUri;
 
-        value = LdapOauthHelper.getFirstConfig(Provisioning.A_zimbraOAuthConsumerAPIScope,client, acct);
-        String nextCloudUrl =value.substring(0, value.lastIndexOf(":"));
+        String nextCloudUrl = null;
+        value = LdapOauthHelper.getFirstConfig(Provisioning.A_zimbraOAuthConsumerAPIScope, client + "_noop", acct);
+        try {
+           nextCloudUrl = value.substring(0, value.lastIndexOf(":"));
+        } catch (Exception e) {
+           throw ServiceException.FAILURE("Failed to get nextCloudUrl from zimbraOAuthConsumerAPIScope", null);
+        }
 
         if (StringUtil.isNullOrEmpty(clientId) || StringUtil.isNullOrEmpty(clientSecret)
             || StringUtil.isNullOrEmpty(clientRedirectUri)) {
