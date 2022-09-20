@@ -39,8 +39,10 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.zimbra.common.httpclient.HttpClientUtil;
@@ -83,7 +85,27 @@ public class OAuth2Utilities {
      * @return Basic authorization header
      */
     public static String encodeBasicHeader(String user, String pass) {
-        return Base64.getEncoder().encodeToString(new String(user + ":" + pass).getBytes());
+        return encodeString(new String(user + ":" + pass));
+    }
+
+    /**
+     * Encodes the specified string.
+     *
+     * @param string String to encode
+     * @return Base64-encoded string
+     */
+    public static String encodeString(String string) {
+        return Base64.getEncoder().encodeToString(string.getBytes());
+    }
+
+    /**
+     * Decodes the specified string.
+     *
+     * @param string Base64 string to decode
+     * @return Decoded string
+     */
+    public static String decodeString(String string) {
+        return new String(Base64.getDecoder().decode(string.getBytes()));
     }
 
     /**
@@ -257,6 +279,42 @@ public class OAuth2Utilities {
             .newHttpClient();
         HttpProxyUtil.configureProxy(builder);
         return builder.build();
+    }
+
+    /**
+     * Executes an Http Request and parses for json.
+     *
+     * @param request Request to execute
+     * @return The json response
+     * @throws ServiceException If there are issues with the connection
+     * @throws IOException If there are non connection related issues
+     */
+    public static JsonNode executeRequestForJson(HttpRequestBase request)
+        throws ServiceException, IOException {
+        JsonNode json = null;
+        final String responseBody = OAuth2Utilities.executeRequest(request);
+
+        // try to parse json
+        // throw if the upstream response
+        // is not what we previously expected
+        try {
+            json = stringToJson(responseBody);
+        } catch (final JsonParseException e) {
+            ZimbraLog.extensions.warn("The destination server responded with unexpected data.");
+            throw ServiceException
+                .PROXY_ERROR("The destination server responded with unexpected data.", null);
+        }
+
+        return json;
+    }
+
+    /**
+     * Wrapper for tests.
+     *
+     * @see OAuth2JsonUtilities#stringToJson(String)
+     */
+    public static JsonNode stringToJson(String jsonString) throws IOException {
+        return OAuth2JsonUtilities.stringToJson(jsonString);
     }
 
 }

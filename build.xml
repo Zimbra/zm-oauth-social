@@ -10,6 +10,9 @@
   <property name="build.dir" location="build"/>
   <property name="classes.dir" location="${build.dir}/classes"/>
   <property name="extension.deploy.dir" location="${zimbra.home.dir}/lib/ext/${ext.name}"/>
+  <property name="extension.common.deploy.dir" location="${zimbra.home.dir}/lib/ext-common"/>
+  <property name="oauth-social-common.jar.file" value="zm-oauth-social-common.jar" />
+  <property name="oauth-social.jar.file" value="zm-oauth-social.jar" />
 
   <target name="build-init">
     <mkdir dir="${build.classes.dir}"/>
@@ -18,8 +21,56 @@
     <mkdir dir="${dist.lib.ext.dir}"/>
   </target>
 
+  <!-- builds the server extension tar for use with extension loader -->
+  <target name="tar" depends="oauth-social-jar,oauth-social-common-jar" description="Creates the tar file">
+    <mkdir dir="${build.dir}/zm-oauth-social"/>
+    <mkdir dir="${build.dir}/zm-oauth-social/ext"/>
+    <mkdir dir="${build.dir}/zm-oauth-social/ext-common"/>
+    <copy file="${build.dir}/${oauth-social.jar.file}" tofile="${build.dir}/zm-oauth-social/ext/zmoauthsocial.jar"/>
+    <copy file="${build.dir}/${oauth-social-common.jar.file}" todir="${build.dir}/zm-oauth-social/ext-common"/>
+    <tar destfile="${build.dir}/zm-oauth-social.tar">
+      <tarfileset dir="${build.dir}/zm-oauth-social" prefix="/zm-oauth-social" includes="**"/>
+    </tar>
+  </target>
+
   <!-- builds the server extension jar -->
   <target name="jar" depends="compile,zimbra-jar" description="Creates the jar file" />
+
+  <target name="oauth-social-jar" depends="compile"
+       description="Creates the zm-oauth-social.jar file which is used by for oauth functionality">
+     <antcall target="zimbra-jar">
+       <param name="implementation.title" value="Zimbra Oauth Social Client Jar"/>
+       <param name="jar.file" value="${oauth-social.jar.file}"/>
+       <param name="includes"
+         value="com/zimbra/oauth/handlers/impl/**,
+         com/zimbra/oauth/resources/**,
+         com/zimbra/oauth/schedulers/impl/**,
+         com/zimbra/oauth/managers/ClassManager.class,
+         com/zimbra/oauth/utilities/**"/>
+     </antcall>
+   </target>
+
+  <target name="oauth-social-common-jar" depends="compile"
+        description="Creates the zm-oauth-social-common.jar file which is used by other extensions">
+      <antcall target="zimbra-jar">
+        <param name="implementation.title" value="Zimbra OAuth Social Common Jar"/>
+        <param name="jar.file" value="${oauth-social-common.jar.file}"/>
+        <param name="includes"
+          value="com/zimbra/oauth/cache/**,com/zimbra/oauth/token/**,
+          com/zimbra/oauth/handlers/**,com/zimbra/oauth/models/**,
+          com/zimbra/oauth/schedulers/**,
+          com/zimbra/oauth/utilities/OAuth2HttpConstants.class, 
+          com/zimbra/oauth/utilities/OAuth2CacheUtilities.class,
+          com/zimbra/oauth/utilities/OAuth2Constants.class,
+          com/zimbra/oauth/utilities/OAuth2DataSource*.class,
+          com/zimbra/oauth/utilities/OAuth2JsonUtilities.class,
+          com/zimbra/oauth/utilities/OAuth2Utilities.class"/>
+        <param name="excludes"
+          value="com/zimbra/oauth/handlers/impl/**,
+          com/zimbra/oauth/schedulers/impl/**"/>
+
+      </antcall>
+    </target>
 
   <!-- deploy to the server extension directory -->
   <target name="deploy" depends="jar">
@@ -31,8 +82,11 @@
     <ivy:install organisation="com.fasterxml.jackson.core" module="jackson-databind" revision="2.10.1" settingsRef="dev.settings" from="chain-resolver" to="build-dist" overwrite="true" transitive="true" type="jar"/>
     <echo> Copying ${build.dir}/${jar.file} and ${dist.dir}/*.jar to ${extension.deploy.dir}</echo>
     <copy todir="${extension.deploy.dir}">
-      <fileset dir="${build.dir}" includes="${jar.file}" />
+      <fileset dir="${build.dir}" includes="${oauth-social.jar.file}" />
       <fileset dir="${dist.dir}" includes="*.jar" />
+    </copy>
+    <copy todir="${extension.common.deploy.dir}">
+         <fileset dir="${build.dir}" includes="${oauth-social-common.jar.file}" />
     </copy>
   </target>
 
