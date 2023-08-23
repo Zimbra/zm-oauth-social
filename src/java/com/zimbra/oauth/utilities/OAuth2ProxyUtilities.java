@@ -18,6 +18,7 @@ package com.zimbra.oauth.utilities;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Set;
 
@@ -48,6 +49,7 @@ import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.impl.client.HttpClientBuilder;
 
 import com.zimbra.common.httpclient.HttpClientUtil;
+import com.zimbra.common.localconfig.LC;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ByteUtil;
 import com.zimbra.common.util.ZimbraHttpConnectionManager;
@@ -132,7 +134,8 @@ public class OAuth2ProxyUtilities {
             || header.equals("cache-control")
             || header.equals("cookie")
             || header.equals("origin")
-            || header.equals("transfer-encoding"));
+            || header.equals("transfer-encoding")
+            || Arrays.asList(LC.proxy_servlet_drop_headers.value().toString().split(",")).contains(header));
     }
 
     protected static void sendError(HttpServletResponse resp, int statusCode, String code) throws IOException {
