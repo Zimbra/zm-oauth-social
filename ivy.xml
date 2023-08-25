@@ -43,5 +43,6 @@
       <dependency org="org.apache.httpcomponents" name="httpmime" rev="4.5.8" />
       <!-- Doclet Requirements -->
       <dependency org="com.tenxerconsulting" name="swagger-doclet" rev="1.1.3" />
+      <dependency org="javax.xml.bind" name="jaxb-api" rev="2.3.1"/>
     </dependencies>
 </ivy-module>
