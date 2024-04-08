@@ -139,8 +139,12 @@ public class OAuth2DataSource {
         final String types = credentials.getParam("type");
         for (final String type : StringUtils.split(types, ",")) {
             Map<String, Object> dsAttrs = null;
-            if (dsCustomAttrs != null && dsCustomAttrs.get(type) instanceof Map<?, ?>) {
-                dsAttrs = (Map<String, Object>) dsCustomAttrs.get(type);
+            if (dsCustomAttrs != null) {
+                if (dsCustomAttrs.get(type) != null && dsCustomAttrs.get(type) instanceof Map<?, ?>) {
+                    dsAttrs = (Map<String, Object>) dsCustomAttrs.get(type);
+                } else if (dsCustomAttrs instanceof Map<?, ?>) {
+                    dsAttrs = dsCustomAttrs;
+                }
             }
             syncDatasource(mailbox, credentials, dsAttrs, type);
         }
