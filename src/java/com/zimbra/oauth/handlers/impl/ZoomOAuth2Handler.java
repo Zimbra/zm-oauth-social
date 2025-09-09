@@ -120,7 +120,7 @@ public class ZoomOAuth2Handler extends OAuth2Handler implements IOAuth2Handler, 
         /**
          * The authorize endpoint for Zoom.
          */
-        AUTHORIZE_URI_TEMPLATE("https://zoom.us/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s"),
+        AUTHORIZE_URI_TEMPLATE("https://zoom.us/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=%s"),
 
         /**
          * The profile endpoint for Zoom.
@@ -136,16 +136,6 @@ public class ZoomOAuth2Handler extends OAuth2Handler implements IOAuth2Handler, 
          * The compliance endpoint for Zoom.
          */
         COMPLIANCE_URI("https://api.zoom.us/oauth/data/compliance"),
-
-        /**
-         * The scope required for Zoom.
-         */
-        REQUIRED_SCOPES("user:read"),
-
-        /**
-         * The scope delimiter for Zoom.
-         */
-        SCOPE_DELIMITER("+"),
 
         /**
          * Format for identifier as: `account id-user id`.
@@ -197,8 +187,6 @@ public class ZoomOAuth2Handler extends OAuth2Handler implements IOAuth2Handler, 
         super(config, ZoomOAuth2Constants.CLIENT_NAME.getValue(), ZoomOAuth2Constants.HOST_ZOOM.getValue());
         authenticateUri = ZoomOAuth2Constants.AUTHENTICATE_URI.getValue();
         authorizeUriTemplate = ZoomOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue();
-        requiredScopes = ZoomOAuth2Constants.REQUIRED_SCOPES.getValue();
-        scopeDelimiter = ZoomOAuth2Constants.SCOPE_DELIMITER.getValue();
         relayKey = ZoomOAuth2Constants.RELAY_KEY.getValue();
     }
 
