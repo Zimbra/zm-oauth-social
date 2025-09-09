@@ -172,8 +172,7 @@ public class ZoomOAuth2HandlerTest {
         params.put(OAuth2HttpConstants.OAUTH2_TYPE_KEY.getValue(), "noop");
         final String stateValue = "&state=%3Bnoop";
         final String authorizeBase = String.format(
-            ZoomOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code",
-            ZoomOAuth2Constants.REQUIRED_SCOPES.getValue());
+            ZoomOAuth2Constants.AUTHORIZE_URI_TEMPLATE.getValue(), clientId, encodedUri, "code");
         // expect a contact state with no relay
         final String expectedAuthorize = authorizeBase + stateValue;
 
